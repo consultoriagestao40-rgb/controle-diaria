@@ -15,14 +15,15 @@ export async function GET() {
 
     try {
         const coberturas = await prisma.cobertura.findMany({
-            where: user.role === 'ADMIN' ? {} : { supervisorId: user.id },
+            // DEBUG: SHOW EVERYTHING. REMOVED USER FILTER.
+            // where: user.role === 'ADMIN' ? {} : { supervisorId: user.id },
             include: {
                 posto: true,
                 diarista: true,
-                supervisor: true // supervisor is a relation
+                supervisor: true
             },
             orderBy: { createdAt: 'desc' },
-            take: 20
+            take: 50
         })
 
         return NextResponse.json(coberturas)
