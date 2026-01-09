@@ -48,9 +48,9 @@ async function main() {
     // Admin
     await prisma.user.upsert({
         where: { email: 'admin@example.com' },
-        update: {},
+        update: { nome: 'Cristiano Silva' },
         create: {
-            nome: 'Administrador',
+            nome: 'Cristiano Silva',
             email: 'admin@example.com',
             password: 'admin',
             role: Role.ADMIN,
@@ -60,9 +60,9 @@ async function main() {
     // Supervisor
     await prisma.user.upsert({
         where: { email: 'supervisor@example.com' },
-        update: {},
+        update: { nome: 'José Santos' },
         create: {
-            nome: 'Supervisor José',
+            nome: 'José Santos',
             email: 'supervisor@example.com',
             password: 'sup',
             role: Role.SUPERVISOR,
@@ -72,9 +72,9 @@ async function main() {
     // Aprovador
     await prisma.user.upsert({
         where: { email: 'aprovador@example.com' },
-        update: {},
+        update: { nome: 'Roberto Gerente' },
         create: {
-            nome: 'Gerente Aprovador',
+            nome: 'Roberto Gerente',
             email: 'aprovador@example.com',
             password: 'apr',
             role: Role.APROVADOR,
@@ -84,9 +84,9 @@ async function main() {
     // Financeiro
     await prisma.user.upsert({
         where: { email: 'financeiro@example.com' },
-        update: {},
+        update: { nome: 'Ana Finanças' },
         create: {
-            nome: 'Analista Financeiro',
+            nome: 'Ana Finanças',
             email: 'financeiro@example.com',
             password: 'fin',
             role: Role.FINANCEIRO,
