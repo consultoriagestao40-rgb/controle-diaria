@@ -109,8 +109,16 @@ export default function NovaDiariaPage() {
             })
 
             if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}))
-                throw new Error(errorData.error || "Erro desconhecido")
+                const text = await res.text()
+                let errMsg = "Erro desconhecido"
+                try {
+                    const json = JSON.parse(text)
+                    errMsg = json.error || text
+                } catch {
+                    errMsg = text || `Erro HTTP ${res.status}`
+                }
+                alert(`FALHA AO SALVAR: ${errMsg}`) // Force user visibility
+                throw new Error(errMsg)
             }
 
             toast.success("Diária lançada com sucesso!")
