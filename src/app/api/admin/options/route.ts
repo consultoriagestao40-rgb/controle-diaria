@@ -29,12 +29,6 @@ export async function GET() {
 
         // 2. Diaristas
         const diaristasFn = prisma.diarista.findMany({
-            where: { ativo: true }, // Maybe show all even inactive for historical filtering?
-            // For filters, usually nice to see Inactive ones if they have history. 
-            // But for now let's stick to active to reduce clutter, or show all.
-            // Screenshot shows "Todos". Let's show all for Admin filters typically?
-            // Actually `supervisor/options` filters `ativo: true`.
-            // Let's filter `ativo: true` to avoid clutter unless requested otherwise.
             where: { ativo: true },
             orderBy: { nome: 'asc' },
             select: { id: true, nome: true }
