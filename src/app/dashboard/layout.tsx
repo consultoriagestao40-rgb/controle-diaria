@@ -34,8 +34,15 @@ export default async function DashboardLayout({
                 return [
                     { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
                     { label: "Usuários", href: "/dashboard/admin/usuarios", icon: UserIcon },
-                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Coberturas (Geral)", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
+                    // Supervisor Access
+                    { label: "Nova Diária (Sup)", href: "/dashboard/supervisor/nova", icon: FileText },
+                    { label: "Minhas Diárias (Sup)", href: "/dashboard/supervisor", icon: FileText },
+                    // Approver Access
+                    { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
+                    // Finance Access
+                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
                 ]
             case "SUPERVISOR":
                 return [
