@@ -169,24 +169,22 @@ export default function RelatoriosPage() {
             <Separator />
 
             {/* TOTAL COST CARD */}
-            {stats && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="bg-slate-50 border-primary/20">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Custo Total (Período)</CardTitle>
-                            <DollarSign className="h-4 w-4 text-green-600" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-green-700">
-                                {loadingStats ? "..." : `R$ ${Number(stats.totalValue || 0).toFixed(2)}`}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Soma de itens Pagos ou Aprovados.
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="bg-slate-50 border-primary/20">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Custo Total (Período)</CardTitle>
+                        <DollarSign className="h-4 w-4 text-red-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-700">
+                            {loadingStats ? "..." : `R$ ${Number(stats?.totalValue || 0).toFixed(2)}`}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Soma de itens Pagos ou Aprovados.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* FILTERS BAR */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-4 rounded-lg border shadow-sm">
