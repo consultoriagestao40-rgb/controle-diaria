@@ -166,7 +166,7 @@ export default function ApproverDashboard() {
                                     </div>
 
                                     {/* Actions Block */}
-                                    <div className="flex sm:flex-col gap-2 justify-center border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4">
+                                    <div className="flex flex-col gap-2 justify-center border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4 min-w-[120px]">
                                         <Button
                                             className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                                             size="sm"
