@@ -49,7 +49,7 @@ export default async function DashboardLayout({
             case "SUPERVISOR":
                 return [
                     { label: "Meus Lançamentos", href: "/dashboard/supervisor", icon: FileText },
-                    { label: "Novo Lançamento", href: "/dashboard/supervisor/novo", icon: FileText },
+                    { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
                     { label: "Diaristas", href: "/dashboard/admin/diaristas", icon: Users },
                     { label: "Colaboradores", href: "/dashboard/admin/colaboradores", icon: Calendar },
                 ]
