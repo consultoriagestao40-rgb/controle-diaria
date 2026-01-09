@@ -11,7 +11,9 @@ import {
     Settings,
     LogOut,
     User as UserIcon,
-    Menu
+    Menu,
+    Users,
+    Calendar
 } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 
@@ -48,6 +50,8 @@ export default async function DashboardLayout({
                 return [
                     { label: "Meus Lançamentos", href: "/dashboard/supervisor", icon: FileText },
                     { label: "Novo Lançamento", href: "/dashboard/supervisor/novo", icon: FileText },
+                    { label: "Diaristas", href: "/dashboard/admin/diaristas", icon: Users },
+                    { label: "Colaboradores", href: "/dashboard/admin/colaboradores", icon: Calendar },
                 ]
             case "APROVADOR":
                 return [
