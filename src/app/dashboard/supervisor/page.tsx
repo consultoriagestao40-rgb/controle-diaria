@@ -26,7 +26,7 @@ export default function SupervisorDashboard() {
 
     const fetchData = async () => {
         try {
-            const res = await fetch("/api/supervisor/coberturas")
+            const res = await fetch("/api/supervisor/coberturas", { cache: 'no-store' })
             if (!res.ok) throw new Error()
             const data = await res.json()
             setCoberturas(data)
