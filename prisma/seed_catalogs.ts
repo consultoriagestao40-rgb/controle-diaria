@@ -24,7 +24,7 @@ async function main() {
     // 3. Reservas (ensure at least "Banco de Reservas" exists if no specific person)
     const reservaPadrao = await prisma.reserva.findFirst({ where: { nome: "Banco de Reservas" } })
     if (!reservaPadrao) {
-        await prisma.reserva.create({ data: { nome: "Banco de Reservas" } })
+        await prisma.reserva.create({ data: { nome: "Banco de Reservas", cpf: "000.000.000-00", ativo: true } })
     }
 
     console.log('Seed catalogs updated!')
