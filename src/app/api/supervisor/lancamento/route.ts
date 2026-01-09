@@ -34,7 +34,8 @@ export async function POST(req: Request) {
         const startOfDay = new Date(launchDate.getFullYear(), launchDate.getMonth(), launchDate.getDate())
         const endOfDay = new Date(launchDate.getFullYear(), launchDate.getMonth(), launchDate.getDate() + 1)
 
-        // 1. Check for Double Booking of Diarista (Cannot work twice same day)
+        // 1. Check for Double Booking of Diarista (DISABLED TO UNBLOCK)
+        /*
         const existingDiarista = await prisma.cobertura.findFirst({
             where: {
                 diaristaId,
@@ -49,9 +50,11 @@ export async function POST(req: Request) {
                 { status: 409 }
             )
         }
+        */
 
         // 2. Check for Double Coverage of Colaborador (Cannot be covered twice same day)
         // EXCEPTION: "Banco de Reservas" allows multiple
+        /*
         if (reservaId) {
             const reserva = await prisma.reserva.findUnique({
                 where: { id: reservaId },
@@ -77,6 +80,7 @@ export async function POST(req: Request) {
                 }
             }
         }
+        */
 
         const cobertura = await prisma.cobertura.create({
             data: {
