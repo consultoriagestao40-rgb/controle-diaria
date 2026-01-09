@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  SUPERVISOR
+  APROVADOR
+  FINANCEIRO
+}
+
+enum StatusCobertura {
+  PENDENTE
+  AJUSTE
+  APROVADO
+  REPROVADO
+  PAGO
+  CANCELADO
+}
+
+// Auth & Users
+model User {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  password  String   // Simple auth for V1
+  role      Role     @default(SUPERVISOR)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  coberturasLancadas  Cobertura[] @relation("SupervisorLancamento")
+  coberturasAprovadas Cobertura[] @relation("AprovadorAcao")
+  coberturasPagas     Cobertura[] @relation("FinanceiroAcao")
+  anexos              Anexo[]
+  historico           HistoricoWorkflow[]
+  
+  postosAutorizados   Posto[]
+}
+
+// Catalogs
+model Posto {
+  id    String  @id @default(uuid())
+  nome  String
+  ativo Boolean @default(true)
+  coberturas Cobertura[]
+  
+  supervisores User[]
+}
+
+model Diarista {
+  id    String  @id @default(uuid())
+  nome  String
+  cpf   String  @unique // Added for uniqueness verification
+  ativo Boolean @default(true)
+  coberturas Cobertura[]
+}
+
+model Reserva {
+  id    String  @id @default(uuid())
+  nome  String  // Quem foi coberto (Banco de Reservas)
+  cpf   String  @unique // Added for uniqueness verification
+  ativo Boolean @default(true)
+  coberturas Cobertura[]
+}
+
+model Motivo {
+  id        String  @id @default(uuid())
+  descricao String
+  ativo     Boolean @default(true)
+  coberturas Cobertura[]
+}
+
+model CargaHoraria {
+  id        String  @id @default(uuid())
+  descricao String  // Ex: 06:00, 08:00
+  ativo     Boolean @default(true)
+  coberturas Cobertura[]
+}
+
+model MeioPagamento {
+  id        String  @id @default(uuid())
+  descricao String  // PIX, Dinheiro, etc.
+  ativo     Boolean @default(true)
+  
+  coberturasSolicitadas Cobertura[] @relation("MeioSolicitado")
+  coberturasEfetivadas  Cobertura[] @relation("MeioEfetivado")
+}
+
+// Main Transaction
+model Cobertura {
+  id            String   @id @default(uuid())
+  data          DateTime // Data da cobertura
+  valor         Decimal  // Armazenado como Decimal, cuidado com SQLite (vai virar Float/String)
+  observacao    String?
+  
+  // Status
+  status        StatusCobertura @default(PENDENTE)
+  
+  // Relationships (FKs)
+  postoId       String
+  posto         Posto    @relation(fields: [postoId], references: [id])
+  
+  diaristaId    String
+  diarista      Diarista @relation(fields: [diaristaId], references: [id])
+  
+  reservaId     String
+  reserva       Reserva  @relation(fields: [reservaId], references: [id]) // Coberto
+  
+  motivoId      String
+  motivo        Motivo   @relation(fields: [motivoId], references: [id])
+  
+  cargaHorariaId String
+  cargaHoraria   CargaHoraria @relation(fields: [cargaHorariaId], references: [id])
+
+  // Workflow User actors
+  supervisorId  String
+  supervisor    User     @relation("SupervisorLancamento", fields: [supervisorId], references: [id])
+  
+  aprovadorId   String?
+  aprovador     User?    @relation("AprovadorAcao", fields: [aprovadorId], references: [id])
+  dataAprovacao DateTime?
+  
+  financeiroId  String?
+  financeiro    User?    @relation("FinanceiroAcao", fields: [financeiroId], references: [id])
+  dataPagamento DateTime?
+  
+  // Payment Details
+  meioPagamentoSolicitadoId String
+  meioPagamentoSolicitado   MeioPagamento @relation("MeioSolicitado", fields: [meioPagamentoSolicitadoId], references: [id])
+  
+  meioPagamentoEfetivadoId  String?
+  meioPagamentoEfetivado    MeioPagamento? @relation("MeioEfetivado", fields: [meioPagamentoEfetivadoId], references: [id])
+
+  // Workflow feedback loops
+  ajusteSolicitado      String? // Texto do aprovador pedindo ajuste
+  respostaAjuste        String? // Texto do supervisor respondendo
+  justificativaReprovacao String? // Texto do aprovador ao reprovar
+  justificativaPagamento  String? // Se meio efetivado != solicitado
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  anexos        Anexo[]
+  historico     HistoricoWorkflow[]
+}
+
+// Evidence & Attachments
+model Anexo {
+  id          String   @id @default(uuid())
+  url         String   // Path to file
+  nomeOriginal String
+  tamanho     Int      // Bytes
+  tipo        String   // Mime type
+  
+  usuarioId   String
+  usuario     User     @relation(fields: [usuarioId], references: [id])
+  
+  coberturaId String?   // Pode ser anexo de baixa (financeiro) ou lançamento (supervisor)
+  cobertura   Cobertura? @relation(fields: [coberturaId], references: [id])
+  
+  auditUpload DateTime @default(now())
+  // Se precisar de soft delete ou audit de remocao, adicionar flag ativo
+  ativo       Boolean  @default(true)
+}
+
+// Audit Trail
+model HistoricoWorkflow {
+  id           String          @id @default(uuid())
+  coberturaId  String
+  cobertura    Cobertura       @relation(fields: [coberturaId], references: [id])
+  
+  deStatus     StatusCobertura?
+  paraStatus   StatusCobertura
+  
+  usuarioId    String
+  usuario      User            @relation(fields: [usuarioId], references: [id])
+  
+  data         DateTime        @default(now())
+  observacao   String?         // Texto livre de log ou snapshot de alteracao
+}
