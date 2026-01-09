@@ -49,7 +49,7 @@ import Link from "next/link"
 // Validation Schema
 const formSchema = z.object({
     data: z.date({
-        required_error: "Data é obrigatória.",
+        invalid_type_error: "Data é obrigatória.",
     }),
     postoId: z.string().min(1, "Posto é obrigatório."),
     diaristaId: z.string().min(1, "Diarista é obrigatória."),
