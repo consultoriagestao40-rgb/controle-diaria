@@ -18,20 +18,6 @@ export async function GET(req: Request) {
     const endStr = searchParams.get('end')
 
     const status = searchParams.get('status')
-
-    let where: any = {}
-    if (startStr && endStr) {
-        const startDate = new Date(startStr)
-        const endDate = new Date(endStr)
-        endDate.setHours(23, 59, 59, 999) // End of day
-
-        where.data = {
-            gte: startDate,
-            lte: endDate
-        }
-    }
-
-    const status = searchParams.get('status')
     const diaristaId = searchParams.get('diaristaId')
     const postoId = searchParams.get('postoId')
     const reservaId = searchParams.get('reservaId')
