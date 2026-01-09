@@ -36,9 +36,36 @@ export default function AdminCoberturasPage() {
 
     const [status, setStatus] = useState("ALL")
 
+    // New Filters State
+    const [filters, setFilters] = useState({
+        diaristaId: "ALL",
+        postoId: "ALL",
+        reservaId: "ALL",
+        motivoId: "ALL",
+        supervisorId: "ALL"
+    })
+
+    const [options, setOptions] = useState({
+        postos: [],
+        diaristas: [],
+        motivos: [],
+        reservas: [],
+        supervisores: []
+    })
+
     useEffect(() => {
+        fetchOptions()
         fetchItems()
     }, [])
+
+    const fetchOptions = async () => {
+        try {
+            const res = await fetch("/api/admin/options")
+            if (res.ok) setOptions(await res.json())
+        } catch (e) {
+            console.error("Failed to load options")
+        }
+    }
 
     const fetchItems = async () => {
         setLoading(true)
@@ -51,9 +78,12 @@ export default function AdminCoberturasPage() {
                 params.append("end", endDate)
             }
 
-            if (status && status !== "ALL") {
-                params.append("status", status)
-            }
+            if (status && status !== "ALL") params.append("status", status)
+            if (filters.diaristaId !== "ALL") params.append("diaristaId", filters.diaristaId)
+            if (filters.postoId !== "ALL") params.append("postoId", filters.postoId)
+            if (filters.reservaId !== "ALL") params.append("reservaId", filters.reservaId)
+            if (filters.motivoId !== "ALL") params.append("motivoId", filters.motivoId)
+            if (filters.supervisorId !== "ALL") params.append("supervisorId", filters.supervisorId)
 
             if (params.toString()) {
                 url += `?${params.toString()}`
@@ -74,6 +104,13 @@ export default function AdminCoberturasPage() {
         setStartDate("")
         setEndDate("")
         setStatus("ALL")
+        setFilters({
+            diaristaId: "ALL",
+            postoId: "ALL",
+            reservaId: "ALL",
+            motivoId: "ALL",
+            supervisorId: "ALL"
+        })
         // Fetch original list again to reset
         fetchItems() // This will see empty State, but state update is async.
         // Actually better to manually call with empty url or rely on useEffect if we added dependencies.
@@ -112,59 +149,108 @@ export default function AdminCoberturasPage() {
             </div>
 
             <Card>
-                <div className="p-4 border-b space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Buscar por Diarista, Posto ou Colaborador..."
-                            className="pl-9"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
+                <div className="flex flex-col gap-4">
+                    {/* New Filters Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <Select value={filters.diaristaId} onValueChange={(v) => setFilters(prev => ({ ...prev, diaristaId: v }))}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Diarista" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Todas Diaristas</SelectItem>
+                                {options.diaristas.map((i: any) => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={filters.reservaId} onValueChange={(v) => setFilters(prev => ({ ...prev, reservaId: v }))}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Colaborador" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Todos Colaboradores</SelectItem>
+                                {options.reservas.map((i: any) => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={filters.motivoId} onValueChange={(v) => setFilters(prev => ({ ...prev, motivoId: v }))}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Motivo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Todos Motivos</SelectItem>
+                                {options.motivos.map((i: any) => <SelectItem key={i.id} value={i.id}>{i.descricao}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={filters.postoId} onValueChange={(v) => setFilters(prev => ({ ...prev, postoId: v }))}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Posto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Todos Postos</SelectItem>
+                                {options.postos.map((i: any) => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={filters.supervisorId} onValueChange={(v) => setFilters(prev => ({ ...prev, supervisorId: v }))}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Supervisor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Todos Supervisores</SelectItem>
+                                {options.supervisores.map((i: any) => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">De:</span>
+                    {/* Existing Date/Status/Search Row */}
+                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <div className="relative flex-1 max-w-sm w-full">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Buscar por texto..."
+                                className="pl-9"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                             <Input
                                 type="date"
-                                className="w-auto"
+                                className="w-[150px]"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
                             />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">Até:</span>
+                            <span className="text-muted-foreground">-</span>
                             <Input
                                 type="date"
-                                className="w-auto"
+                                className="w-[150px]"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
                             />
-                        </div>
-                        <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger className="w-[140px]">
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ALL">Todos</SelectItem>
-                                <SelectItem value="PENDENTE">Pendente</SelectItem>
-                                <SelectItem value="APROVADO">Aprovado</SelectItem>
-                                <SelectItem value="PAGO">Pago</SelectItem>
-                                <SelectItem value="REPROVADO">Reprovado</SelectItem>
-                                <SelectItem value="AJUSTE">Ajuste</SelectItem>
-                                <SelectItem value="CANCELADO">Cancelado</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Button onClick={fetchItems} disabled={loading}>
-                            <Filter className="mr-2 h-4 w-4" />
-                            Filtrar
-                        </Button>
-                        {(startDate || endDate) && (
+                            <Select value={status} onValueChange={setStatus}>
+                                <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALL">Status: Todos</SelectItem>
+                                    <SelectItem value="PENDENTE">Pendente</SelectItem>
+                                    <SelectItem value="APROVADO">Aprovado</SelectItem>
+                                    <SelectItem value="PAGO">Pago</SelectItem>
+                                    <SelectItem value="REPROVADO">Reprovado</SelectItem>
+                                    <SelectItem value="AJUSTE">Ajuste</SelectItem>
+                                    <SelectItem value="CANCELADO">Cancelado</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button onClick={fetchItems} disabled={loading}>
+                                <Filter className="mr-2 h-4 w-4" />
+                                Filtrar
+                            </Button>
                             <Button variant="ghost" onClick={clearFilters}>
                                 Limpar
                             </Button>
-                        )}
+                        </div>
                     </div>
                 </div>
                 <CardContent className="p-0">
