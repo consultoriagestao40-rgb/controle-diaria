@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Building2, Users, Calendar, UserCog, FileText } from "lucide-react"
 
@@ -39,6 +42,20 @@ export default function AdminPage() {
         <div className="space-y-6">
             <h1 className="text-3xl font-bold tracking-tight">Administração</h1>
             <p className="text-muted-foreground">Gerencie os cadastros e tabelas do sistema.</p>
+
+            <div className="flex justify-end pt-4">
+                <Button
+                    variant="outline"
+                    onClick={async () => {
+                        if (!confirm("Atualizar nomes dos usuários padrão?")) return;
+                        await fetch("/api/admin/fix-names", { method: "POST" });
+                        alert("Nomes atualizados! Recarregue a página.");
+                    }}
+                >
+                    <UserCog className="mr-2 h-4 w-4" />
+                    Atualizar Nomes (Fix)
+                </Button>
+            </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {cards.map((card) => (
