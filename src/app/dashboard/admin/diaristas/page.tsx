@@ -22,6 +22,7 @@ interface Diarista {
     id: string
     nome: string
     cpf: string
+    chavePix?: string
     ativo: boolean
 }
 
@@ -33,7 +34,7 @@ export default function DiaristasPage() {
     // Dialog state
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingDiarista, setEditingDiarista] = useState<Diarista | null>(null)
-    const [formData, setFormData] = useState({ nome: "", cpf: "", ativo: true })
+    const [formData, setFormData] = useState({ nome: "", cpf: "", chavePix: "", ativo: true })
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
@@ -88,13 +89,13 @@ export default function DiaristasPage() {
 
     const openNew = () => {
         setEditingDiarista(null)
-        setFormData({ nome: "", cpf: "", ativo: true })
+        setFormData({ nome: "", cpf: "", chavePix: "", ativo: true })
         setIsDialogOpen(true)
     }
 
     const openEdit = (diarista: Diarista) => {
         setEditingDiarista(diarista)
-        setFormData({ nome: diarista.nome, cpf: diarista.cpf || "", ativo: diarista.ativo })
+        setFormData({ nome: diarista.nome, cpf: diarista.cpf || "", chavePix: diarista.chavePix || "", ativo: diarista.ativo })
         setIsDialogOpen(true)
     }
 
@@ -224,6 +225,16 @@ export default function DiaristasPage() {
                                     className="col-span-3"
                                     required
                                     placeholder="000.000.000-00"
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="pix" className="text-right">Chave Pix</Label>
+                                <Input
+                                    id="pix"
+                                    value={formData.chavePix}
+                                    onChange={(e) => setFormData({ ...formData, chavePix: e.target.value })}
+                                    className="col-span-3"
+                                    placeholder="CPF, Email, Telefone..."
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">

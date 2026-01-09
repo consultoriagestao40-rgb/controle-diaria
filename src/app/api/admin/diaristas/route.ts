@@ -36,6 +36,7 @@ export async function POST(req: Request) {
             data: {
                 nome,
                 cpf,
+                chavePix: body.chavePix,
                 ativo: ativo !== undefined ? ativo : true
             }
         })

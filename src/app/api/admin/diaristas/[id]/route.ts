@@ -19,7 +19,12 @@ export async function PUT(
 
         const diarista = await prisma.diarista.update({
             where: { id },
-            data: { nome, cpf, ativo }
+            data: {
+                nome,
+                cpf,
+                chavePix: body.chavePix,
+                ativo
+            }
         })
 
         return NextResponse.json(diarista)

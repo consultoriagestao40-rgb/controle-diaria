@@ -59,6 +59,7 @@ model Diarista {
   id    String  @id @default(uuid())
   nome  String
   cpf   String  @unique // Added for uniqueness verification
+  chavePix String? 
   ativo Boolean @default(true)
   coberturas Cobertura[]
 }

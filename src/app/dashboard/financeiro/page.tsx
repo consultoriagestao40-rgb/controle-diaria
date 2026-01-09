@@ -24,7 +24,7 @@ interface Item {
     id: string
     data: string
     posto: { nome: string }
-    diarista: { nome: string }
+    diarista: { nome: string; chavePix?: string }
     motivo: { descricao: string }
     valor: string
     supervisor: { nome: string }
@@ -171,6 +171,12 @@ export default function FinanceDashboard() {
                                             <div className="flex items-center gap-2">
                                                 <User className="h-4 w-4 text-muted-foreground" />
                                                 <span>{item.diarista.nome}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-4 w-4 flex items-center justify-center text-xs font-bold text-muted-foreground border rounded bg-slate-100">Pix</div>
+                                                <span className="text-xs text-slate-600 font-mono bg-slate-50 px-1 rounded border">
+                                                    {item.diarista.chavePix || "Sem Chave Pix"}
+                                                </span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <CreditCard className="h-4 w-4 text-muted-foreground" />
