@@ -74,6 +74,7 @@ export default function NovaDiariaPage() {
     const [openPosto, setOpenPosto] = useState(false)
     const [openDiarista, setOpenDiarista] = useState(false)
     const [openReserva, setOpenReserva] = useState(false)
+    const [openDate, setOpenDate] = useState(false)
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -146,7 +147,7 @@ export default function NovaDiariaPage() {
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>Data do Plantão</FormLabel>
-                                <Popover>
+                                <Popover open={openDate} onOpenChange={setOpenDate}>
                                     <PopoverTrigger asChild>
                                         <FormControl>
                                             <Button
@@ -169,7 +170,10 @@ export default function NovaDiariaPage() {
                                         <Calendar
                                             mode="single"
                                             selected={field.value}
-                                            onSelect={field.onChange}
+                                            onSelect={(e) => {
+                                                field.onChange(e)
+                                                setOpenDate(false)
+                                            }}
                                             disabled={(date) =>
                                                 date > new Date() || date < new Date("1900-01-01")
                                             }
