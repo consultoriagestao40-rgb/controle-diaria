@@ -23,8 +23,11 @@ export async function POST(req: Request) {
         } = body
 
         // Basic Validation
-        if (!data || !postoId || !diaristaId || !motivoId || !valor) {
-            return new NextResponse("Missing required fields", { status: 400 })
+        if (!data || !postoId || !diaristaId || !motivoId || !valor || !reservaId || !cargaHorariaId || !meioPagamentoSolicitadoId) {
+            return new NextResponse(
+                JSON.stringify({ error: "Todos os campos obrigatórios devem ser preenchidos." }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            )
         }
 
         const launchDate = new Date(data)
