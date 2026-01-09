@@ -17,6 +17,8 @@ export async function GET(req: Request) {
     const startStr = searchParams.get('start')
     const endStr = searchParams.get('end')
 
+    const status = searchParams.get('status')
+
     let where: any = {}
     if (startStr && endStr) {
         const startDate = new Date(startStr)
@@ -27,6 +29,10 @@ export async function GET(req: Request) {
             gte: startDate,
             lte: endDate
         }
+    }
+
+    if (status && status !== 'ALL') {
+        where.status = status
     }
 
     try {

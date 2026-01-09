@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { ArrowLeft, Loader2, Search, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -33,6 +34,8 @@ export default function AdminCoberturasPage() {
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
 
+    const [status, setStatus] = useState("ALL")
+
     useEffect(() => {
         fetchItems()
     }, [])
@@ -41,11 +44,18 @@ export default function AdminCoberturasPage() {
         setLoading(true)
         try {
             let url = "/api/admin/coberturas"
+            const params = new URLSearchParams()
 
             if (startDate && endDate) {
-                const params = new URLSearchParams()
                 params.append("start", startDate)
                 params.append("end", endDate)
+            }
+
+            if (status && status !== "ALL") {
+                params.append("status", status)
+            }
+
+            if (params.toString()) {
                 url += `?${params.toString()}`
             }
 
@@ -63,6 +73,7 @@ export default function AdminCoberturasPage() {
     const clearFilters = () => {
         setStartDate("")
         setEndDate("")
+        setStatus("ALL")
         // Fetch original list again to reset
         fetchItems() // This will see empty State, but state update is async.
         // Actually better to manually call with empty url or rely on useEffect if we added dependencies.
@@ -131,6 +142,20 @@ export default function AdminCoberturasPage() {
                                 onChange={(e) => setEndDate(e.target.value)}
                             />
                         </div>
+                        <Select value={status} onValueChange={setStatus}>
+                            <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Todos</SelectItem>
+                                <SelectItem value="PENDENTE">Pendente</SelectItem>
+                                <SelectItem value="APROVADO">Aprovado</SelectItem>
+                                <SelectItem value="PAGO">Pago</SelectItem>
+                                <SelectItem value="REPROVADO">Reprovado</SelectItem>
+                                <SelectItem value="AJUSTE">Ajuste</SelectItem>
+                                <SelectItem value="CANCELADO">Cancelado</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Button onClick={fetchItems} disabled={loading}>
                             <Filter className="mr-2 h-4 w-4" />
                             Filtrar
