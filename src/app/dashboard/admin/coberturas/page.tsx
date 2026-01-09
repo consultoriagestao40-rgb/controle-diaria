@@ -29,13 +29,27 @@ export default function AdminCoberturasPage() {
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
 
+    // Date Filters
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
+
     useEffect(() => {
         fetchItems()
     }, [])
 
     const fetchItems = async () => {
+        setLoading(true)
         try {
-            const res = await fetch("/api/admin/coberturas")
+            let url = "/api/admin/coberturas"
+
+            if (startDate && endDate) {
+                const params = new URLSearchParams()
+                params.append("start", startDate)
+                params.append("end", endDate)
+                url += `?${params.toString()}`
+            }
+
+            const res = await fetch(url)
             if (!res.ok) throw new Error()
             const data = await res.json()
             setItems(data)
@@ -44,6 +58,16 @@ export default function AdminCoberturasPage() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const clearFilters = () => {
+        setStartDate("")
+        setEndDate("")
+        // Fetch original list again to reset
+        fetchItems() // This will see empty State, but state update is async.
+        // Actually better to manually call with empty url or rely on useEffect if we added dependencies.
+        // For simplicity:
+        window.location.reload()
     }
 
     const filteredItems = items.filter(item =>
@@ -77,7 +101,7 @@ export default function AdminCoberturasPage() {
             </div>
 
             <Card>
-                <div className="p-4 border-b flex items-center gap-4">
+                <div className="p-4 border-b space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -86,6 +110,36 @@ export default function AdminCoberturasPage() {
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">De:</span>
+                            <Input
+                                type="date"
+                                className="w-auto"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Até:</span>
+                            <Input
+                                type="date"
+                                className="w-auto"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                            />
+                        </div>
+                        <Button onClick={fetchItems} disabled={loading}>
+                            <Filter className="mr-2 h-4 w-4" />
+                            Filtrar
+                        </Button>
+                        {(startDate || endDate) && (
+                            <Button variant="ghost" onClick={clearFilters}>
+                                Limpar
+                            </Button>
+                        )}
                     </div>
                 </div>
                 <CardContent className="p-0">
