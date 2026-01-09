@@ -117,7 +117,7 @@ export default function NovaDiariaPage() {
                 } catch {
                     errMsg = text || `Erro HTTP ${res.status}`
                 }
-                alert(`FALHA AO SALVAR: ${errMsg}`) // Force user visibility
+                // Removed debug alert, relying on toast in catch block
                 throw new Error(errMsg)
             }
 
