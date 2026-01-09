@@ -182,8 +182,9 @@ export default function FinanceDashboard() {
                                             </div>
                                         </div>
 
-                                        <div className="text-[10px] text-muted-foreground mt-1">
-                                            Supervisor: {item.supervisor.nome}
+                                        <div className="flex items-center gap-2 mt-3 p-2 bg-slate-50 rounded-md border border-slate-100">
+                                            <span className="text-xs text-muted-foreground">Solicitado por:</span>
+                                            <span className="text-sm font-medium text-slate-700">{item.supervisor.nome}</span>
                                         </div>
                                     </div>
 
