@@ -10,7 +10,7 @@ export async function GET() {
     const user = session.user as any
 
     try {
-        // 1. Postos: If admin, all. If supervisor, only authorized.
+        // 1. Postos
         const postosFn = prisma.posto.findMany({
             where: user.role === 'ADMIN' ? { ativo: true } : {
                 ativo: true,
@@ -34,16 +34,66 @@ export async function GET() {
             select: { id: true, descricao: true }
         })
 
-        // 4. Reservas (Quem foi coberto) - Fallback
-        let reservasFn = await prisma.reserva.findMany({
+        // 4. Reservas - Auto-seed if empty
+        let reservasCount = await prisma.reserva.count({ where: { ativo: true } })
+        if (reservasCount === 0) {
+            await prisma.reserva.create({
+                data: { nome: "Banco de Reservas", cpf: "000.000.000-00", ativo: true }
+            })
+        }
+        const reservasFn = prisma.reserva.findMany({
             where: { ativo: true },
             orderBy: { nome: 'asc' },
             select: { id: true, nome: true }
         })
-        meios
-    })
-} catch (error) {
-    console.error(error)
-    return new NextResponse("Internal Error", { status: 500 })
-}
+
+        // 5. Cargas Horarias - Auto-seed
+        let cargasCount = await prisma.cargaHoraria.count({ where: { ativo: true } })
+        if (cargasCount === 0) {
+            await prisma.cargaHoraria.createMany({
+                data: [
+                    { descricao: "06:00" },
+                    { descricao: "08:00" },
+                    { descricao: "09:00" },
+                    { descricao: "12:00" }
+                ]
+            })
+        }
+        const cargasFn = prisma.cargaHoraria.findMany({
+            where: { ativo: true },
+            orderBy: { descricao: 'asc' }
+        })
+
+        // 6. Meios Pagamento - Auto-seed
+        let meiosCount = await prisma.meioPagamento.count({ where: { ativo: true } })
+        if (meiosCount === 0) {
+            await prisma.meioPagamento.createMany({
+                data: [
+                    { descricao: "PIX" },
+                    { descricao: "Dinheiro" },
+                    { descricao: "Transferência" }
+                ]
+            })
+        }
+        const meiosFn = prisma.meioPagamento.findMany({
+            where: { ativo: true },
+            orderBy: { descricao: 'asc' }
+        })
+
+        const [postos, diaristas, motivos, reservas, cargas, meios] = await Promise.all([
+            postosFn, diaristasFn, motivosFn, reservasFn, cargasFn, meiosFn
+        ])
+
+        return NextResponse.json({
+            postos,
+            diaristas,
+            motivos,
+            reservas,
+            cargas,
+            meios
+        })
+    } catch (error) {
+        console.error(error)
+        return new NextResponse("Internal Error", { status: 500 })
+    }
 }
