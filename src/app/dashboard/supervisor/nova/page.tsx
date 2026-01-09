@@ -101,6 +101,7 @@ export default function NovaDiariaPage() {
     }
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        alert("Iniciando envio... (Aguarde)")
         try {
             const res = await fetch("/api/supervisor/lancamento", {
                 method: "POST",
@@ -110,21 +111,16 @@ export default function NovaDiariaPage() {
 
             if (!res.ok) {
                 const text = await res.text()
-                let errMsg = "Erro desconhecido"
-                try {
-                    const json = JSON.parse(text)
-                    errMsg = json.error || text
-                } catch {
-                    errMsg = text || `Erro HTTP ${res.status}`
-                }
-                // Removed debug alert, relying on toast in catch block
-                throw new Error(errMsg)
+                alert(`ERRO NO SERVIDOR: ${text}`)
+                throw new Error(text)
             }
 
+            alert("SUCESSO! Diária salva. Redirecionando...")
             toast.success("Diária lançada com sucesso!")
             router.push("/dashboard/supervisor")
         } catch (error: any) {
             console.log(error)
+            alert(`FALHA TÉCNICA: ${error.message}`)
             toast.error(error.message || "Erro ao enviar lançamento")
         }
     }
