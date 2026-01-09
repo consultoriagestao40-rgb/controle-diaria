@@ -34,12 +34,17 @@ export async function GET() {
             select: { id: true, descricao: true }
         })
 
-        // 4. Reservas (Quem foi coberto)
-        const reservasFn = prisma.reserva.findMany({
+        // 4. Reservas (Quem foi coberto) - Fallback
+        let reservasFn = await prisma.reserva.findMany({
             where: { ativo: true },
             orderBy: { nome: 'asc' },
             select: { id: true, nome: true }
         })
+        if (reservasFn.length === 0) {
+            reservasFn = [
+                { id: "STATIC_BANCO", nome: "Banco de Reservas" }
+            ] as any
+        }
 
         // 5. Cargas Horarias (Mock for now if DB empty, or seed? Assuming DB might be empty, I'll return static if empty)
         // Actually let's assume we need to seed CargaHoraria roughly. I will check DB or just return static for V1 if simpler.
