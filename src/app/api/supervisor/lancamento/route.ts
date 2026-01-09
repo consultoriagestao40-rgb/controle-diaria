@@ -51,20 +51,30 @@ export async function POST(req: Request) {
         }
 
         // 2. Check for Double Coverage of Colaborador (Cannot be covered twice same day)
+        // EXCEPTION: "Banco de Reservas" allows multiple
         if (reservaId) {
-            const existingReserva = await prisma.cobertura.findFirst({
-                where: {
-                    reservaId,
-                    status: { not: 'REPROVADO' },
-                    data: { gte: startOfDay, lt: endOfDay }
-                }
+            const reserva = await prisma.reserva.findUnique({
+                where: { id: reservaId },
+                select: { nome: true }
             })
 
-            if (existingReserva) {
-                return new NextResponse(
-                    JSON.stringify({ error: "Este Colaborador já possui uma cobertura para esta data." }),
-                    { status: 409 }
-                )
+            const isBanco = reserva?.nome.toLowerCase().includes("banco")
+
+            if (!isBanco) {
+                const existingReserva = await prisma.cobertura.findFirst({
+                    where: {
+                        reservaId,
+                        status: { not: 'REPROVADO' },
+                        data: { gte: startOfDay, lt: endOfDay }
+                    }
+                })
+
+                if (existingReserva) {
+                    return new NextResponse(
+                        JSON.stringify({ error: "Este Colaborador já possui uma cobertura para esta data." }),
+                        { status: 409, headers: { "Content-Type": "application/json" } }
+                    )
+                }
             }
         }
 
