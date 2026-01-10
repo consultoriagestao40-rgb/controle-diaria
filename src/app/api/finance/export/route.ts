@@ -15,6 +15,13 @@ export async function GET(req: Request) {
         const start = searchParams.get('start')
         const end = searchParams.get('end')
 
+        const status = searchParams.get('status')
+        const diaristaId = searchParams.get('diaristaId')
+        const postoId = searchParams.get('postoId')
+        const reservaId = searchParams.get('reservaId')
+        const motivoId = searchParams.get('motivoId')
+        const supervisorId = searchParams.get('supervisorId')
+
         const where: any = {}
 
         if (start && end) {
@@ -23,6 +30,13 @@ export async function GET(req: Request) {
                 lte: new Date(end)
             }
         }
+
+        if (status && status !== 'ALL') where.status = status
+        if (diaristaId && diaristaId !== 'ALL') where.diaristaId = diaristaId
+        if (postoId && postoId !== 'ALL') where.postoId = postoId
+        if (reservaId && reservaId !== 'ALL') where.reservaId = reservaId
+        if (motivoId && motivoId !== 'ALL') where.motivoId = motivoId
+        if (supervisorId && supervisorId !== 'ALL') where.supervisorId = supervisorId
 
         const coberturas = await prisma.cobertura.findMany({
             where,

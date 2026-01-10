@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Loader2, Search, Filter } from "lucide-react"
+import { ArrowLeft, Loader2, Search, Filter, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
@@ -249,6 +249,24 @@ export default function AdminCoberturasPage() {
                             </Button>
                             <Button variant="ghost" onClick={clearFilters}>
                                 Limpar
+                            </Button>
+                            <Button variant="outline" onClick={() => {
+                                const params = new URLSearchParams()
+                                if (startDate && endDate) {
+                                    params.append("start", startDate)
+                                    params.append("end", endDate)
+                                }
+                                if (status && status !== "ALL") params.append("status", status)
+                                if (filters.diaristaId !== "ALL") params.append("diaristaId", filters.diaristaId)
+                                if (filters.postoId !== "ALL") params.append("postoId", filters.postoId)
+                                if (filters.reservaId !== "ALL") params.append("reservaId", filters.reservaId)
+                                if (filters.motivoId !== "ALL") params.append("motivoId", filters.motivoId)
+                                if (filters.supervisorId !== "ALL") params.append("supervisorId", filters.supervisorId)
+
+                                window.open(`/api/finance/export?${params.toString()}`, '_blank')
+                            }}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Exportar Excel
                             </Button>
                         </div>
                     </div>
