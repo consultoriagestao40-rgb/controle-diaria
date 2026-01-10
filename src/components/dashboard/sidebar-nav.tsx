@@ -65,7 +65,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
     return (
         <aside
             className={cn(
-                "relative hidden flex-col bg-white border-r shadow-sm md:flex transition-all duration-300 ease-in-out",
+                "relative z-40 hidden flex-col bg-white border-r shadow-sm md:flex transition-all duration-300 ease-in-out",
                 isCollapsed ? "w-20" : "w-64"
             )}
         >
