@@ -83,12 +83,48 @@ export async function GET(req: NextRequest) {
 
         const totalValue = items.reduce((acc, item) => acc + (Number(item.valor) || 0), 0)
 
+        // --- MONTHLY STATS (Current Year - IGNORING FILTERS) ---
+        const currentYear = new Date().getFullYear()
+        const startYear = new Date(currentYear, 0, 1)
+        const endYear = new Date(currentYear, 11, 31, 23, 59, 59)
+
+        // For monthly stats, user requested NO filters to apply, just the raw totals
+        const whereYear: any = {
+            status: { in: ['PAGO', 'APROVADO'] },
+            data: {
+                gte: startYear,
+                lte: endYear
+            }
+        }
+
+        const yearItems = await prisma.cobertura.findMany({
+            where: whereYear,
+            select: { data: true, valor: true }
+        })
+
+        // Initialize 12 months
+        const monthlyStats = Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(currentYear, i, 1)
+            const monthName = date.toLocaleString('pt-BR', { month: 'short' }) // jan, fev...
+            return {
+                name: monthName.charAt(0).toUpperCase() + monthName.slice(1), // Jan, Fev
+                total: 0,
+                monthIndex: i
+            }
+        })
+
+        yearItems.forEach(item => {
+            const month = item.data.getMonth() // 0-11
+            monthlyStats[month].total += Number(item.valor) || 0
+        })
+
         return NextResponse.json({
             diaristaStats,
             postoStats,
             motivoStats,
             colaboradorStats,
-            totalValue
+            totalValue,
+            monthlyStats
         })
 
     } catch (error) {
