@@ -8,6 +8,12 @@ export async function GET() {
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
 
     const user = session.user as any
+    // Allow all roles that need options (Supervisor, Admin, Financeiro, Encarregado)
+    // Actually, Financeiro uses admin/reports which calls admin/options (usually), but let's be safe.
+    // If this API is used by Financeiro's report filters (which I saw earlier uses /api/supervisor/options), add them.
+    if (user.role !== 'SUPERVISOR' && user.role !== 'ADMIN' && user.role !== 'ENCARREGADO' && user.role !== 'FINANCEIRO') {
+        return new NextResponse("Forbidden", { status: 403 })
+    }
 
     try {
         // 1. Postos

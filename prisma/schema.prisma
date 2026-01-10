@@ -13,6 +13,7 @@ enum Role {
   SUPERVISOR
   APROVADOR
   FINANCEIRO
+  ENCARREGADO
 }
 
 enum StatusCobertura {
