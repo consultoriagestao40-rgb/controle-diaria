@@ -265,7 +265,11 @@ export default function RelatoriosPage() {
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value: any) => [`R$ ${Number(value || 0).toFixed(2)}`, 'Valor']} />
+                                        <Tooltip formatter={(value: any) => {
+                                            const total = stats.motivoStats.reduce((acc: number, item: any) => acc + (Number(item.value) || 0), 0);
+                                            const percent = total > 0 ? ((Number(value) / total) * 100).toFixed(1) : '0';
+                                            return [`R$ ${Number(value || 0).toFixed(2)} (${percent}%)`, 'Valor'];
+                                        }} />
                                         <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
                                     </PieChart>
                                 </ResponsiveContainer>
