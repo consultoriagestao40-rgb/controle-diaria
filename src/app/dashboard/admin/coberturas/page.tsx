@@ -23,6 +23,9 @@ interface Item {
     supervisor: { nome: string }
     aprovador?: { nome: string }
     financeiro?: { nome: string }
+    createdAt: string
+    dataAprovacao?: string
+    dataPagamento?: string
 }
 
 export default function AdminCoberturasPage() {
@@ -111,10 +114,7 @@ export default function AdminCoberturasPage() {
             motivoId: "ALL",
             supervisorId: "ALL"
         })
-        // Fetch original list again to reset
-        fetchItems() // This will see empty State, but state update is async.
-        // Actually better to manually call with empty url or rely on useEffect if we added dependencies.
-        // For simplicity:
+        fetchItems()
         window.location.reload()
     }
 
@@ -134,6 +134,13 @@ export default function AdminCoberturasPage() {
             case 'CANCELADO': return <Badge variant="secondary">Cancelado</Badge>
             default: return <Badge variant="outline">{status}</Badge>
         }
+    }
+
+    const formatDateTime = (dateStr?: string) => {
+        if (!dateStr) return null
+        return new Date(dateStr).toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+        })
     }
 
     return (
@@ -286,8 +293,8 @@ export default function AdminCoberturasPage() {
                                     <TableHead>Quem Faltou</TableHead>
                                     <TableHead>Valor</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Solicitante</TableHead>
-                                    <TableHead>Aprovador</TableHead>
+                                    <TableHead>Solicitante (Criado)</TableHead>
+                                    <TableHead>Fluxo (Aprov/Baixa)</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -298,12 +305,39 @@ export default function AdminCoberturasPage() {
                                         <TableCell className="font-medium">{item.diarista.nome}</TableCell>
                                         <TableCell className="text-muted-foreground">{item.reserva?.nome || '-'}</TableCell>
                                         <TableCell>R$ {Number(item.valor).toFixed(2)}</TableCell>
-                                        <TableCell>{getStatusBadge(item.status)}</TableCell>
-                                        <TableCell className="text-xs text-muted-foreground">
-                                            {item.supervisor.nome}
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1 items-start">
+                                                {getStatusBadge(item.status)}
+                                                {item.status === 'PAGO' && item.dataPagamento && (
+                                                    <span className="text-[10px] text-muted-foreground">
+                                                        Pago: {formatDateTime(item.dataPagamento)}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </TableCell>
-                                        <TableCell className="text-xs text-muted-foreground">
-                                            {item.aprovador?.nome || '-'}
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-medium">{item.supervisor.nome}</span>
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    Criado: {formatDateTime(item.createdAt)}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1">
+                                                {item.aprovador && (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] text-muted-foreground">Aprov: {item.aprovador.nome}</span>
+                                                        <span className="text-[10px] text-muted-foreground">{formatDateTime(item.dataAprovacao)}</span>
+                                                    </div>
+                                                )}
+                                                {item.financeiro && item.status === 'PAGO' && (
+                                                    <div className="flex flex-col mt-1">
+                                                        <span className="text-[10px] text-muted-foreground">Baixa: {item.financeiro.nome}</span>
+                                                    </div>
+                                                )}
+                                                {!item.aprovador && !item.financeiro && <span className="text-muted-foreground text-xs">-</span>}
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
