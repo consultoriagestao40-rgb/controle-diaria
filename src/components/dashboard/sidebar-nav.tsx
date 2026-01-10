@@ -3,22 +3,64 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { LogOut, ChevronLeft, ChevronRight, User as UserIcon } from "lucide-react"
+import {
+    LogOut,
+    ChevronLeft,
+    ChevronRight,
+    User as UserIcon,
+    Settings,
+    FileText,
+    CheckSquare,
+    DollarSign,
+    BarChart
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface NavItem {
-    label: string
-    href: string
-    icon: any
-}
-
 interface SidebarNavProps {
-    navItems: NavItem[]
     user: { name?: string | null, role?: string }
 }
 
-export function SidebarNav({ navItems, user }: SidebarNavProps) {
+export function SidebarNav({ user }: SidebarNavProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
+    const role = user.role
+
+    const getNavItems = () => {
+        switch (role) {
+            case "ADMIN":
+                return [
+                    { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
+                    { label: "Usuários", href: "/dashboard/admin/usuarios", icon: UserIcon },
+                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
+                    // Supervisor Access
+                    { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText },
+                    { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
+                    // Approver Access
+                    { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
+                    // Finance Access
+                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
+                ]
+            case "SUPERVISOR":
+                return [
+                    { label: "Meus Lançamentos", href: "/dashboard/supervisor", icon: FileText },
+                    { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
+                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
+                ]
+            case "APROVADOR":
+                return [
+                    { label: "Aprovações", href: "/dashboard/aprovador", icon: CheckSquare },
+                ]
+            case "FINANCEIRO":
+                return [
+                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
+                ]
+            default:
+                return []
+        }
+    }
+
+    const navItems = getNavItems()
 
     return (
         <aside
