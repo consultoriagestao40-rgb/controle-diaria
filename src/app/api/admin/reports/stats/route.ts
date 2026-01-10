@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
     const user = session.user as any
-    if (user.role !== 'ADMIN') return new NextResponse("Forbidden", { status: 403 })
+    if (user.role !== 'ADMIN' && user.role !== 'FINANCEIRO') return new NextResponse("Forbidden", { status: 403 })
 
     const searchParams = req.nextUrl.searchParams
     const start = searchParams.get('start')

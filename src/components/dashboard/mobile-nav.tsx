@@ -48,6 +48,8 @@ export function MobileNav({ user }: MobileNavProps) {
             case "FINANCEIRO":
                 return [
                     { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
+                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
                 ]
             default:
                 return []

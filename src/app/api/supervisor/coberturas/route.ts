@@ -15,8 +15,7 @@ export async function GET() {
 
     try {
         const coberturas = await prisma.cobertura.findMany({
-            // DEBUG: SHOW EVERYTHING. REMOVED USER FILTER.
-            // where: user.role === 'ADMIN' ? {} : { supervisorId: user.id },
+            where: user.role === 'ADMIN' ? {} : { supervisorId: user.id },
             include: {
                 posto: true,
                 diarista: true,
