@@ -17,6 +17,7 @@ import {
     Building2
 } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
+import { SidebarNav } from "@/components/dashboard/sidebar-nav"
 
 export default async function DashboardLayout({
     children,
@@ -71,44 +72,8 @@ export default async function DashboardLayout({
 
     return (
         <div className="flex min-h-screen flex-col md:flex-row bg-slate-100">
-            {/* Sidebar for Desktop / Hidden on Mobile (simplified for V1) */}
-            <aside className="hidden w-64 flex-col bg-white border-r shadow-sm md:flex">
-                <div className="flex h-16 items-center border-b px-6">
-                    <span className="text-xl font-bold text-primary">Diárias</span>
-                </div>
-                <nav className="flex-1 overflow-y-auto py-4">
-                    <ul className="space-y-1 px-4">
-                        {navItems.map((item) => (
-                            <li key={item.href}>
-                                <Link
-                                    href={item.href}
-                                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-primary transition-colors"
-                                >
-                                    <item.icon className="h-5 w-5" />
-                                    {item.label}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </nav>
-                <div className="border-t p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-500">
-                            <UserIcon className="h-6 w-6" />
-                        </div>
-                        <div className="overflow-hidden">
-                            <p className="text-sm font-medium truncate">{session.user?.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{role}</p>
-                        </div>
-                    </div>
-                    <Button variant="ghost" className="mt-4 w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" asChild>
-                        <Link href="/api/auth/signout">
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Sair
-                        </Link>
-                    </Button>
-                </div>
-            </aside>
+            {/* Sidebar for Desktop (Client Component) */}
+            <SidebarNav navItems={navItems} user={{ name: session.user?.name, role: role }} />
 
             {/* Main Content */}
             <div className="flex flex-1 flex-col overflow-hidden">
