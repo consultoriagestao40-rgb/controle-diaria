@@ -156,7 +156,7 @@ export default function AdminCoberturasPage() {
             </div>
 
             <Card>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 p-6">
                     {/* New Filters Row */}
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <Select value={filters.diaristaId} onValueChange={(v) => setFilters(prev => ({ ...prev, diaristaId: v }))}>
