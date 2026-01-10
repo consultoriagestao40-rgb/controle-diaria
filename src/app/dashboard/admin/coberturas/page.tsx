@@ -5,7 +5,7 @@ import { ArrowLeft, Loader2, Search, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
@@ -286,6 +286,15 @@ export default function AdminCoberturasPage() {
                                     </TableRow>
                                 ))}
                             </TableBody>
+                            <TableFooter>
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-right font-bold">Total</TableCell>
+                                    <TableCell className="font-bold">
+                                        R$ {filteredItems.reduce((acc, item) => acc + Number(item.valor), 0).toFixed(2)}
+                                    </TableCell>
+                                    <TableCell colSpan={2}></TableCell>
+                                </TableRow>
+                            </TableFooter>
                         </Table>
                     )}
                 </CardContent>
