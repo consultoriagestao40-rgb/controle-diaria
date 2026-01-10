@@ -32,48 +32,10 @@ export default async function DashboardLayout({
 
     const role = (session.user as any).role
 
-    const getNavItems = () => {
-        switch (role) {
-            case "ADMIN":
-                return [
-                    { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
-                    { label: "Usuários", href: "/dashboard/admin/usuarios", icon: UserIcon },
-                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
-                    { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
-                    // Supervisor Access
-                    { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText },
-                    { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
-                    // Approver Access
-                    { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
-                    // Finance Access
-                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
-                ]
-            case "SUPERVISOR":
-                return [
-                    { label: "Meus Lançamentos", href: "/dashboard/supervisor", icon: FileText },
-                    { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
-                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
-                    { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
-                ]
-            case "APROVADOR":
-                return [
-                    { label: "Aprovações", href: "/dashboard/aprovador", icon: CheckSquare },
-                ]
-            case "FINANCEIRO":
-                return [
-                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
-                ]
-            default:
-                return []
-        }
-    }
-
-    const navItems = getNavItems()
-
     return (
         <div className="flex min-h-screen flex-col md:flex-row bg-slate-100">
             {/* Sidebar for Desktop (Client Component) */}
-            <SidebarNav navItems={navItems} user={{ name: session.user?.name, role: role }} />
+            <SidebarNav user={{ name: session.user?.name, role: role }} />
 
             {/* Main Content */}
             <div className="flex flex-1 flex-col overflow-hidden">
