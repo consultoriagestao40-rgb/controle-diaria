@@ -262,24 +262,24 @@ export default function AdminCoberturasPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Status</TableHead>
                                     <TableHead>Data</TableHead>
                                     <TableHead>Posto</TableHead>
                                     <TableHead>Diarista</TableHead>
                                     <TableHead>Quem Faltou</TableHead>
                                     <TableHead>Valor</TableHead>
+                                    <TableHead>Status</TableHead>
                                     <TableHead>Resp.</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredItems.map((item) => (
                                     <TableRow key={item.id}>
-                                        <TableCell>{getStatusBadge(item.status)}</TableCell>
                                         <TableCell>{new Date(item.data).toLocaleDateString()}</TableCell>
                                         <TableCell>{item.posto.nome}</TableCell>
                                         <TableCell className="font-medium">{item.diarista.nome}</TableCell>
                                         <TableCell className="text-muted-foreground">{item.reserva?.nome || '-'}</TableCell>
                                         <TableCell>R$ {Number(item.valor).toFixed(2)}</TableCell>
+                                        <TableCell>{getStatusBadge(item.status)}</TableCell>
                                         <TableCell className="text-xs text-muted-foreground">
                                             {item.supervisor.nome}
                                         </TableCell>
