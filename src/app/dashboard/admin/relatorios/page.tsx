@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Calendar as CalendarIcon, Download, FileSpreadsheet, List, MapPin, User, AlertCircle, Loader2, DollarSign } from "lucide-react"
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, Legend } from "recharts"
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -188,7 +190,7 @@ export default function RelatoriosPage() {
                 </Card>
 
                 {/* Monthly Chart */}
-                <Card className="lg:col-span-3">
+                <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle className="text-sm font-medium">Evolução Mensal (Ano Corrente)</CardTitle>
                     </CardHeader>
@@ -226,6 +228,46 @@ export default function RelatoriosPage() {
                                         />
                                         <Bar dataKey="total" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={40} />
                                     </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Donut Chart - Percent Motivo */}
+                <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle className="text-sm font-medium">Custos por Motivo</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-0 pb-2">
+                        <div className="h-[200px] w-full">
+                            {loadingStats ? (
+                                <div className="flex h-full items-center justify-center">
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : (!stats || !stats.motivoStats || stats.motivoStats.length === 0) ? (
+                                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                    Sem dados.
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={stats.motivoStats}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={40}
+                                            outerRadius={60}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {stats.motivoStats.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(value: any) => [`R$ ${Number(value || 0).toFixed(2)}`, 'Valor']} />
+                                        <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
+                                    </PieChart>
                                 </ResponsiveContainer>
                             )}
                         </div>
