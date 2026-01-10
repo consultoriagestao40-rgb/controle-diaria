@@ -169,142 +169,140 @@ export default function RelatoriosPage() {
 
             <Separator />
 
-        </div>
-
-            {/* TOTAL COST & CHART */ }
-    <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-4">
-        {/* Total Cost Card */}
-        <Card className="bg-slate-50 border-primary/20 lg:col-span-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Custo Total (Período)</CardTitle>
-                <DollarSign className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold text-red-700">
-                    {loadingStats ? "..." : `R$ ${Number(stats?.totalValue || 0).toFixed(2)}`}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                    Soma de itens Pagos ou Aprovados.
-                </p>
-            </CardContent>
-        </Card>
-
-        {/* Monthly Chart */}
-        <Card className="lg:col-span-3">
-            <CardHeader>
-                <CardTitle className="text-sm font-medium">Evolução Mensal (Ano Corrente)</CardTitle>
-            </CardHeader>
-            <CardContent className="pl-0">
-                <div className="h-[200px] w-full">
-                    {loadingStats ? (
-                        <div className="flex h-full items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            {/* TOTAL COST & CHART */}
+            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-4">
+                {/* Total Cost Card */}
+                <Card className="bg-slate-50 border-primary/20 lg:col-span-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Custo Total (Período)</CardTitle>
+                        <DollarSign className="h-4 w-4 text-red-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-700">
+                            {loadingStats ? "..." : `R$ ${Number(stats?.totalValue || 0).toFixed(2)}`}
                         </div>
-                    ) : (!stats || !stats.monthlyStats) ? (
-                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                            Sem dados para o gráfico.
+                        <p className="text-xs text-muted-foreground">
+                            Soma de itens Pagos ou Aprovados.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* Monthly Chart */}
+                <Card className="lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle className="text-sm font-medium">Evolução Mensal (Ano Corrente)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-0">
+                        <div className="h-[200px] w-full">
+                            {loadingStats ? (
+                                <div className="flex h-full items-center justify-center">
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : (!stats || !stats.monthlyStats) ? (
+                                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                    Sem dados para o gráfico.
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={stats.monthlyStats}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis
+                                            dataKey="name"
+                                            stroke="#888888"
+                                            fontSize={12}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+                                        <YAxis
+                                            stroke="#888888"
+                                            fontSize={12}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tickFormatter={(value) => `R$${value}`}
+                                        />
+                                        <Tooltip
+                                            formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Total']}
+                                            cursor={{ fill: 'transparent' }}
+                                        />
+                                        <Bar dataKey="total" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={40} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
-                    ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={stats.monthlyStats}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis
-                                    dataKey="name"
-                                    stroke="#888888"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                />
-                                <YAxis
-                                    stroke="#888888"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickFormatter={(value) => `R$${value}`}
-                                />
-                                <Tooltip
-                                    formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Total']}
-                                    cursor={{ fill: 'transparent' }}
-                                />
-                                <Bar dataKey="total" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={40} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* FILTERS BAR */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-4 rounded-lg border shadow-sm">
+                <div className="space-y-1">
+                    <Label className="text-xs">Diarista</Label>
+                    <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        value={filters.diaristaId}
+                        onChange={(e) => setFilters(prev => ({ ...prev, diaristaId: e.target.value }))}
+                    >
+                        <option value="all">Todos</option>
+                        {options.diaristas.map((i: any) => (
+                            <option key={i.id} value={i.id}>{i.nome}</option>
+                        ))}
+                    </select>
                 </div>
-            </CardContent>
-        </Card>
-    </div>
+                <div className="space-y-1">
+                    <Label className="text-xs">Colaborador</Label>
+                    <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        value={filters.colaboradorId}
+                        onChange={(e) => setFilters(prev => ({ ...prev, colaboradorId: e.target.value }))}
+                    >
+                        <option value="all">Todos</option>
+                        {options.colaboradores.map((i: any) => (
+                            <option key={i.id} value={i.id}>{i.nome}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="space-y-1">
+                    <Label className="text-xs">Motivo</Label>
+                    <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        value={filters.motivoId}
+                        onChange={(e) => setFilters(prev => ({ ...prev, motivoId: e.target.value }))}
+                    >
+                        <option value="all">Todos</option>
+                        {options.motivos.map((i: any) => (
+                            <option key={i.id} value={i.id}>{i.descricao}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="space-y-1">
+                    <Label className="text-xs">Posto</Label>
+                    <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        value={filters.postoId}
+                        onChange={(e) => setFilters(prev => ({ ...prev, postoId: e.target.value }))}
+                    >
+                        <option value="all">Todos</option>
+                        {options.postos.map((i: any) => (
+                            <option key={i.id} value={i.id}>{i.nome}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="space-y-1">
+                    <Label className="text-xs">Supervisor</Label>
+                    <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        value={filters.supervisorId}
+                        onChange={(e) => setFilters(prev => ({ ...prev, supervisorId: e.target.value }))}
+                    >
+                        <option value="all">Todos</option>
+                        {options.supervisores.map((i: any) => (
+                            <option key={i.id} value={i.id}>{i.nome}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
 
-    {/* FILTERS BAR */ }
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-4 rounded-lg border shadow-sm">
-        <div className="space-y-1">
-            <Label className="text-xs">Diarista</Label>
-            <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                value={filters.diaristaId}
-                onChange={(e) => setFilters(prev => ({ ...prev, diaristaId: e.target.value }))}
-            >
-                <option value="all">Todos</option>
-                {options.diaristas.map((i: any) => (
-                    <option key={i.id} value={i.id}>{i.nome}</option>
-                ))}
-            </select>
-        </div>
-        <div className="space-y-1">
-            <Label className="text-xs">Colaborador</Label>
-            <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                value={filters.colaboradorId}
-                onChange={(e) => setFilters(prev => ({ ...prev, colaboradorId: e.target.value }))}
-            >
-                <option value="all">Todos</option>
-                {options.colaboradores.map((i: any) => (
-                    <option key={i.id} value={i.id}>{i.nome}</option>
-                ))}
-            </select>
-        </div>
-        <div className="space-y-1">
-            <Label className="text-xs">Motivo</Label>
-            <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                value={filters.motivoId}
-                onChange={(e) => setFilters(prev => ({ ...prev, motivoId: e.target.value }))}
-            >
-                <option value="all">Todos</option>
-                {options.motivos.map((i: any) => (
-                    <option key={i.id} value={i.id}>{i.descricao}</option>
-                ))}
-            </select>
-        </div>
-        <div className="space-y-1">
-            <Label className="text-xs">Posto</Label>
-            <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                value={filters.postoId}
-                onChange={(e) => setFilters(prev => ({ ...prev, postoId: e.target.value }))}
-            >
-                <option value="all">Todos</option>
-                {options.postos.map((i: any) => (
-                    <option key={i.id} value={i.id}>{i.nome}</option>
-                ))}
-            </select>
-        </div>
-        <div className="space-y-1">
-            <Label className="text-xs">Supervisor</Label>
-            <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                value={filters.supervisorId}
-                onChange={(e) => setFilters(prev => ({ ...prev, supervisorId: e.target.value }))}
-            >
-                <option value="all">Todos</option>
-                {options.supervisores.map((i: any) => (
-                    <option key={i.id} value={i.id}>{i.nome}</option>
-                ))}
-            </select>
-        </div>
-    </div>
-
-    {/* Quick Actions / Export */ }
+            {/* Quick Actions / Export */}
             <div className="flex justify-end">
                 <Button variant="outline" onClick={handleExport}>
                     <Download className="mr-2 h-4 w-4" /> Exportar Dados (.xlsx)
