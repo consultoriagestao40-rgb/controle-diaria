@@ -161,6 +161,7 @@ export default function UsuariosPage() {
             case 'SUPERVISOR': return <Badge variant="secondary">Supervisor</Badge>
             case 'APROVADOR': return <Badge variant="default" className="bg-purple-600">Aprovador</Badge>
             case 'FINANCEIRO': return <Badge variant="default" className="bg-green-600">Financeiro</Badge>
+            case 'ENCARREGADO': return <Badge variant="outline" className="border-orange-500 text-orange-600">Encarregado</Badge>
             default: return <Badge variant="outline">{role}</Badge>
         }
     }
@@ -214,7 +215,7 @@ export default function UsuariosPage() {
                                         <TableCell>{u.email}</TableCell>
                                         <TableCell>{getRoleBadge(u.role)}</TableCell>
                                         <TableCell>
-                                            {u.role === 'SUPERVISOR' && (
+                                            {(u.role === 'SUPERVISOR' || u.role === 'ENCARREGADO') && (
                                                 <div className="flex flex-wrap gap-1">
                                                     {u.postosAutorizados.length > 0 ? (
                                                         u.postosAutorizados.slice(0, 2).map(p => (
@@ -283,6 +284,7 @@ export default function UsuariosPage() {
                                         <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
                                         <SelectItem value="APROVADOR">Aprovador</SelectItem>
                                         <SelectItem value="FINANCEIRO">Financeiro</SelectItem>
+                                        <SelectItem value="ENCARREGADO">Encarregado</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -299,9 +301,9 @@ export default function UsuariosPage() {
                             </div>
                         </div>
 
-                        {formData.role === 'SUPERVISOR' && (
+                        {(formData.role === 'SUPERVISOR' || formData.role === 'ENCARREGADO') && (
                             <div className="space-y-2">
-                                <Label className="text-amber-600 font-medium">Postos Autorizados (Apenas Supervisor)</Label>
+                                <Label className="text-amber-600 font-medium">Postos Autorizados (Supervisor/Encarregado)</Label>
                                 <div className="border rounded-md p-4 max-h-[200px] overflow-y-auto grid grid-cols-2 gap-2 bg-amber-50/10">
                                     {postos.map(posto => {
                                         const isSelected = formData.postosIds.includes(posto.id)
