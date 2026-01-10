@@ -221,7 +221,7 @@ export default function RelatoriosPage() {
                                             tickFormatter={(value) => `R$${value}`}
                                         />
                                         <Tooltip
-                                            formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Total']}
+                                            formatter={(value: any) => [`R$ ${Number(value || 0).toFixed(2)}`, 'Total']}
                                             cursor={{ fill: 'transparent' }}
                                         />
                                         <Bar dataKey="total" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={40} />
