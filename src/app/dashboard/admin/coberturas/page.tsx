@@ -268,7 +268,8 @@ export default function AdminCoberturasPage() {
                                     <TableHead>Quem Faltou</TableHead>
                                     <TableHead>Valor</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Resp.</TableHead>
+                                    <TableHead>Solicitante</TableHead>
+                                    <TableHead>Aprovador</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -283,6 +284,9 @@ export default function AdminCoberturasPage() {
                                         <TableCell className="text-xs text-muted-foreground">
                                             {item.supervisor.nome}
                                         </TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">
+                                            {item.aprovador?.nome || '-'}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -292,7 +296,7 @@ export default function AdminCoberturasPage() {
                                     <TableCell className="font-bold">
                                         R$ {filteredItems.reduce((acc, item) => acc + Number(item.valor), 0).toFixed(2)}
                                     </TableCell>
-                                    <TableCell colSpan={2}></TableCell>
+                                    <TableCell colSpan={3}></TableCell>
                                 </TableRow>
                             </TableFooter>
                         </Table>
