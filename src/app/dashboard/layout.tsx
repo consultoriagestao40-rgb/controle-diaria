@@ -51,7 +51,7 @@ export default async function DashboardLayout({
                 return [
                     { label: "Meus Lançamentos", href: "/dashboard/supervisor", icon: FileText },
                     { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
-                    { label: "Coberturas (Geral)", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
                 ]
             case "APROVADOR":
