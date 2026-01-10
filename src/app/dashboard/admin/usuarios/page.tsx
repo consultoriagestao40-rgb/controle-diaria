@@ -162,6 +162,7 @@ export default function UsuariosPage() {
             case 'APROVADOR': return <Badge variant="default" className="bg-purple-600">Aprovador</Badge>
             case 'FINANCEIRO': return <Badge variant="default" className="bg-green-600">Financeiro</Badge>
             case 'ENCARREGADO': return <Badge variant="outline" className="border-orange-500 text-orange-600">Encarregado</Badge>
+            case 'RH': return <Badge variant="outline" className="border-cyan-500 text-cyan-600">Recursos Humanos</Badge>
             default: return <Badge variant="outline">{role}</Badge>
         }
     }
@@ -285,6 +286,7 @@ export default function UsuariosPage() {
                                         <SelectItem value="APROVADOR">Aprovador</SelectItem>
                                         <SelectItem value="FINANCEIRO">Financeiro</SelectItem>
                                         <SelectItem value="ENCARREGADO">Encarregado</SelectItem>
+                                        <SelectItem value="RH">Recursos Humanos (RH)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

@@ -11,7 +11,10 @@ export async function GET() {
     // Let's enforce Admin to be safe, or at least authenticated.
     // The page is dashboard/admin, so user is likely Admin.
     const user = session.user as any
-    if (user.role !== 'ADMIN') {
+    // Allow access to all roles that need filters (Admin, Supervisor, Financeiro, RH)
+    // Basically, only block if needed, but standard roles are fine.
+    const allowedRoles = ['ADMIN', 'SUPERVISOR', 'FINANCEIRO', 'RH']
+    if (!allowedRoles.includes(user.role)) {
         // Supervisors might view this page too? 
         // Current dashboard/admin page doesn't block Supervisor (client side).
         // But API route /api/admin/coberturas BLOCKS non-admin.

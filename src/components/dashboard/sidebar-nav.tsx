@@ -61,6 +61,11 @@ export function SidebarNav({ user }: SidebarNavProps) {
                 return [
                     { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
                 ]
+            case "RH":
+                return [
+                    { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
+                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                ]
             default:
                 return []
         }

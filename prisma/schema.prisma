@@ -14,6 +14,7 @@ enum Role {
   APROVADOR
   FINANCEIRO
   ENCARREGADO
+  RH
 }
 
 enum StatusCobertura {
