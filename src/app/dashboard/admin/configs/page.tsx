@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Pencil, Trash2, Loader2, List } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, List, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -34,10 +34,14 @@ export default function ConfigsPage() {
             <Tabs defaultValue="motivos" className="w-full" onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="motivos">Motivos de Cobertura</TabsTrigger>
+                    <TabsTrigger value="maintenance" className="text-red-600 data-[state=active]:text-red-700">Manutenção de Dados</TabsTrigger>
                     <TabsTrigger value="outros">Outros Cadastros</TabsTrigger>
                 </TabsList>
                 <TabsContent value="motivos" className="mt-4">
                     <MotivosTab />
+                </TabsContent>
+                <TabsContent value="maintenance" className="mt-4">
+                    <MaintenanceTab />
                 </TabsContent>
                 <TabsContent value="outros" className="mt-4">
                     <Card>
@@ -199,5 +203,88 @@ function MotivosTab() {
                 </DialogContent>
             </Dialog>
         </>
+    )
+}
+
+function MaintenanceTab() {
+    const [open, setOpen] = useState(false)
+    const [confirmText, setConfirmText] = useState("")
+    const [loading, setLoading] = useState(false)
+
+    const handleReset = async () => {
+        if (confirmText !== "ZERAR") return
+        setLoading(true)
+        try {
+            const res = await fetch("/api/admin/maintenance/reset", { method: "DELETE" })
+            if (!res.ok) throw new Error()
+            toast.success("Dados limpos com sucesso!")
+            setOpen(false)
+        } catch {
+            toast.error("Erro ao limpar dados.")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <Card className="border-red-200 bg-red-50/50">
+            <CardHeader>
+                <div className="flex items-center gap-2 text-red-700">
+                    <TriangleAlert className="h-5 w-5" />
+                    <CardTitle>Zona de Perigo</CardTitle>
+                </div>
+                <CardDescription className="text-red-600/80">
+                    Ações irreversíveis que afetam todo o sistema.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-white">
+                    <div>
+                        <h3 className="font-medium text-red-900">Zerar Lançamentos</h3>
+                        <p className="text-sm text-red-700/70">
+                            Remove <strong>TODAS</strong> as coberturas, históricos e anexos vinculados.<br />
+                            Mantém usuários, postos, diaristas e motivos.
+                        </p>
+                    </div>
+                    <Button variant="destructive" onClick={() => { setConfirmText(""); setOpen(true); }}>
+                        Limpar Tudo
+                    </Button>
+                </div>
+
+                <Dialog open={open} onOpenChange={setOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle className="text-red-700 flex items-center gap-2">
+                                <TriangleAlert className="h-5 w-5" />
+                                Confirmação Crítica
+                            </DialogTitle>
+                            <DialogDescription>
+                                Esta ação apagará permanentemente todos os lançamentos do sistema. Não pode ser desfeita.
+                                <br /><br />
+                                Digite <strong>ZERAR</strong> abaixo para confirmar.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-2">
+                            <Input
+                                value={confirmText}
+                                onChange={(e) => setConfirmText(e.target.value)}
+                                placeholder="Digite ZERAR"
+                                className="border-red-300 focus-visible:ring-red-500"
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+                            <Button
+                                variant="destructive"
+                                disabled={confirmText !== "ZERAR" || loading}
+                                onClick={handleReset}
+                            >
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar Limpeza"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </CardContent>
+        </Card>
     )
 }
