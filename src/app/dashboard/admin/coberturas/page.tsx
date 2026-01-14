@@ -50,7 +50,6 @@ export default function AdminCoberturasPage() {
         postoId: "ALL",
         reservaId: "ALL",
         motivoId: "ALL",
-        motivoId: "ALL",
         supervisorId: "ALL"
     })
 
