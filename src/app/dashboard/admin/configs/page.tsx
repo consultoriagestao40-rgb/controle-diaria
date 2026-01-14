@@ -41,6 +41,7 @@ export default function ConfigsPage() {
                 <TabsList>
                     <TabsTrigger value="motivos">Motivos de Cobertura</TabsTrigger>
                     <TabsTrigger value="cargas">Cargas Horárias</TabsTrigger>
+                    <TabsTrigger value="empresas">Empresas</TabsTrigger>
                     <TabsTrigger value="maintenance" className="text-red-600 data-[state=active]:text-red-700">Manutenção de Dados</TabsTrigger>
                     <TabsTrigger value="outros">Outros Cadastros</TabsTrigger>
                 </TabsList>
@@ -49,6 +50,9 @@ export default function ConfigsPage() {
                 </TabsContent>
                 <TabsContent value="cargas" className="mt-4">
                     <CargasTab />
+                </TabsContent>
+                <TabsContent value="empresas" className="mt-4">
+                    <EmpresasTab />
                 </TabsContent>
                 <TabsContent value="maintenance" className="mt-4">
                     <MaintenanceTab />
@@ -446,5 +450,155 @@ function MaintenanceTab() {
                 </Dialog>
             </CardContent>
         </Card>
+    )
+}
+
+function EmpresasTab() {
+    const [empresas, setEmpresas] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [editingItem, setEditingItem] = useState<any | null>(null)
+    const [formData, setFormData] = useState({ nome: "", ativo: true })
+    const [saving, setSaving] = useState(false)
+
+    useEffect(() => {
+        fetchEmpresas()
+    }, [])
+
+    const fetchEmpresas = async () => {
+        try {
+            const res = await fetch("/api/admin/empresas")
+            if (!res.ok) throw new Error()
+            const data = await res.json()
+            setEmpresas(data)
+        } catch {
+            toast.error("Erro ao carregar empresas")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setSaving(true)
+        try {
+            if (editingItem) {
+                await fetch(`/api/admin/empresas/${editingItem.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData),
+                })
+                toast.success("Empresa atualizada")
+            } else {
+                await fetch("/api/admin/empresas", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData),
+                })
+                toast.success("Empresa criada")
+            }
+            setIsDialogOpen(false)
+            fetchEmpresas()
+        } catch {
+            toast.error("Erro ao salvar")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const openNew = () => {
+        setEditingItem(null)
+        setFormData({ nome: "", ativo: true })
+        setIsDialogOpen(true)
+    }
+
+    const openEdit = (item: any) => {
+        setEditingItem(item)
+        setFormData({ nome: item.nome, ativo: item.ativo })
+        setIsDialogOpen(true)
+    }
+
+    const deleteItem = async (id: string) => {
+        if (!confirm("Excluir empresa?")) return
+        try {
+            await fetch(`/api/admin/empresas/${id}`, { method: "DELETE" })
+            toast.success("Excluída")
+            fetchEmpresas()
+        } catch {
+            toast.error("Erro ao excluir. Pode estar em uso.")
+        }
+    }
+
+    return (
+        <>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Empresas do Grupo</CardTitle>
+                        <CardDescription>Cadastro de empresas para vincular aos lançamentos.</CardDescription>
+                    </div>
+                    <Button onClick={openNew}>
+                        <Plus className="mr-2 h-4 w-4" /> Nova Empresa
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Nome</TableHead>
+                                    <TableHead className="w-[100px]">Status</TableHead>
+                                    <TableHead className="text-right">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {empresas.map((item) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="font-medium">{item.nome}</TableCell>
+                                        <TableCell>
+                                            <span className={`text-xs px-2 py-1 rounded-full ${item.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {item.ativo ? 'Ativa' : 'Inativa'}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
+                                                <Pencil className="h-4 w-4 text-blue-500" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => deleteItem(item.id)}>
+                                                <Trash2 className="h-4 w-4 text-red-500" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingItem ? 'Editar' : 'Nova'} Empresa</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSave} className="space-y-4">
+                        <div>
+                            <Label htmlFor="nome-empresa">Nome da Empresa</Label>
+                            <Input id="nome-empresa" value={formData.nome} onChange={e => setFormData({ ...formData, nome: e.target.value })} required />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Switch id="ativo-empresa" checked={formData.ativo} onCheckedChange={c => setFormData({ ...formData, ativo: c })} />
+                            <Label htmlFor="ativo-empresa">Ativa</Label>
+                        </div>
+                        <DialogFooter>
+                            <Button type="submit" disabled={saving}>Salvar</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </>
     )
 }

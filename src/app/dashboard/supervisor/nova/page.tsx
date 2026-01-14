@@ -57,6 +57,7 @@ const formSchema = z.object({
     valor: z.string().min(1, "Valor é obrigatório."),
     meioPagamentoSolicitadoId: z.string().min(1, "Meio de pagamento é obrigatório."),
     observacao: z.string().optional(),
+    empresaId: z.string().optional(), // Optional for now, or mandatory? User implies manual entry. Let's make it optional but available.
 })
 
 export default function NovaDiariaPage() {
@@ -68,7 +69,8 @@ export default function NovaDiariaPage() {
         motivos: [],
         reservas: [],
         cargas: [],
-        meios: []
+        meios: [],
+        empresas: []
     })
 
     const [openPosto, setOpenPosto] = useState(false)
@@ -472,6 +474,30 @@ export default function NovaDiariaPage() {
                             )}
                         />
                     </div>
+
+                    {/* EMPRESA DO GRUPO */}
+                    <FormField
+                        control={form.control}
+                        name="empresaId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Empresa do Grupo</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione a empresa" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {options.empresas.map((i: any) => (
+                                            <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
 
                     {/* OBSERVACAO */}
                     <FormField

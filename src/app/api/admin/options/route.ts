@@ -64,8 +64,15 @@ export async function GET() {
             select: { id: true, nome: true }
         })
 
-        const [postos, diaristas, motivos, reservas, supervisores] = await Promise.all([
-            postosFn, diaristasFn, motivosFn, reservasFn, supervisoresFn
+        // 6. Empresas
+        const empresasFn = prisma.empresa.findMany({
+            where: { ativo: true },
+            orderBy: { nome: 'asc' },
+            select: { id: true, nome: true }
+        })
+
+        const [postos, diaristas, motivos, reservas, supervisores, empresas] = await Promise.all([
+            postosFn, diaristasFn, motivosFn, reservasFn, supervisoresFn, empresasFn
         ])
 
         return NextResponse.json({
@@ -73,7 +80,8 @@ export async function GET() {
             diaristas,
             motivos,
             reservas,
-            supervisores
+            supervisores,
+            empresas
         })
     } catch (error) {
         console.error(error)

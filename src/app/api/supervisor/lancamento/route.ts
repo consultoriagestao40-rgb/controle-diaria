@@ -94,6 +94,7 @@ export async function POST(req: Request) {
                 motivoId, // Motivo da falta
                 cargaHorariaId,
                 meioPagamentoSolicitadoId, // Como a diarista quer receber
+                empresaId: body.empresaId,
                 valor: parseFloat(valor), // Ensure float
                 observacao,
                 supervisorId: user.id,

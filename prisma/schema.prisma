@@ -97,6 +97,13 @@ model MeioPagamento {
   coberturasEfetivadas  Cobertura[] @relation("MeioEfetivado")
 }
 
+model Empresa {
+  id        String  @id @default(uuid())
+  nome      String
+  ativo     Boolean @default(true)
+  coberturas Cobertura[]
+}
+
 // Main Transaction
 model Cobertura {
   id            String   @id @default(uuid())
@@ -141,6 +148,9 @@ model Cobertura {
   
   meioPagamentoEfetivadoId  String?
   meioPagamentoEfetivado    MeioPagamento? @relation("MeioEfetivado", fields: [meioPagamentoEfetivadoId], references: [id])
+
+  empresaId     String?
+  empresa       Empresa? @relation(fields: [empresaId], references: [id])
 
   // Workflow feedback loops
   ajusteSolicitado      String? // Texto do aprovador pedindo ajuste
