@@ -53,7 +53,8 @@ export async function GET(req: Request) {
                 financeiro: true,
                 meioPagamentoSolicitado: true,
                 meioPagamentoEfetivado: true,
-                empresa: true
+                empresa: true,
+                reserva: true
             },
             orderBy: { data: 'desc' }
         })
@@ -67,6 +68,7 @@ export async function GET(req: Request) {
             { header: "Posto", key: "posto", width: 25 },
             { header: "Empresa", key: "empresa", width: 25 },
             { header: "Diarista", key: "diarista", width: 20 },
+            { header: "Quem Faltou", key: "quemFaltou", width: 20 },
             { header: "Chave Pix", key: "chavePix", width: 25 },
             { header: "Motivo", key: "motivo", width: 20 },
             { header: "Valor", key: "valor", width: 15 },
@@ -86,6 +88,7 @@ export async function GET(req: Request) {
                 posto: c.posto.nome,
                 empresa: c.empresa?.nome || '-',
                 diarista: c.diarista.nome,
+                quemFaltou: c.reserva?.nome || '-',
                 chavePix: c.diarista.chavePix || '-',
                 motivo: c.motivo.descricao,
                 valor: Number(c.valor),
