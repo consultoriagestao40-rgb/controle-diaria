@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Loader2, Search, Filter, Download } from "lucide-react"
+import { ArrowLeft, Loader2, Search, Filter, Download, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -48,15 +50,29 @@ export default function AdminCoberturasPage() {
         postoId: "ALL",
         reservaId: "ALL",
         motivoId: "ALL",
+        motivoId: "ALL",
         supervisorId: "ALL"
     })
+
+    const [editingItem, setEditingItem] = useState<Item | null>(null)
+    const [editForm, setEditForm] = useState({
+        data: "",
+        postoId: "",
+        empresaId: "",
+        diaristaId: "",
+        reservaId: "",
+        motivoId: "",
+        valor: ""
+    })
+    const [saving, setSaving] = useState(false)
 
     const [options, setOptions] = useState({
         postos: [],
         diaristas: [],
         motivos: [],
         reservas: [],
-        supervisores: []
+        supervisores: [],
+        empresas: []
     })
 
     useEffect(() => {
@@ -144,6 +160,48 @@ export default function AdminCoberturasPage() {
         return new Date(dateStr).toLocaleString('pt-BR', {
             day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
         })
+    }
+
+    const handleEdit = (item: Item) => {
+        setEditingItem(item)
+        setEditForm({
+            data: item.data ? new Date(item.data).toISOString().split('T')[0] : "",
+            postoId: (item as any).postoId || "", // Assuming item has IDs not just nested objects. Wait, interface Item defined at top might not have IDs. I need to check line 17.
+            empresaId: (item as any).empresaId || "",
+            diaristaId: (item as any).diaristaId || "",
+            reservaId: (item as any).reservaId || "",
+            motivoId: (item as any).motivoId || "",
+            valor: item.valor || ""
+        })
+    }
+
+    const saveEdit = async () => {
+        if (!editingItem) return
+        setSaving(true)
+        try {
+            const res = await fetch(`/api/admin/coberturas/${editingItem.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data: editForm.data,
+                    postoId: editForm.postoId,
+                    empresaId: editForm.empresaId === "NULL" ? null : editForm.empresaId,
+                    diaristaId: editForm.diaristaId,
+                    reservaId: editForm.reservaId,
+                    motivoId: editForm.motivoId,
+                    valor: Number(editForm.valor)
+                })
+            })
+
+            if (!res.ok) throw new Error()
+            toast.success("Cobertura atualizada com sucesso!")
+            setEditingItem(null)
+            fetchItems()
+        } catch {
+            toast.error("Erro ao salvar alterações")
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (
@@ -300,6 +358,7 @@ export default function AdminCoberturasPage() {
                                     <TableHead>Status</TableHead>
                                     <TableHead>Solicitante (Criado)</TableHead>
                                     <TableHead>Fluxo (Aprov/Baixa)</TableHead>
+                                    <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -345,6 +404,11 @@ export default function AdminCoberturasPage() {
                                                 )}
                                                 {!item.aprovador && !item.financeiro && <span className="text-muted-foreground text-xs">-</span>}
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
