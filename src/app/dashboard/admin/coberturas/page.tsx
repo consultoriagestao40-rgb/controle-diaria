@@ -370,7 +370,7 @@ export default function AdminCoberturasPage() {
                                     <TableHead>Status</TableHead>
                                     <TableHead>Solicitante (Criado)</TableHead>
                                     <TableHead>Fluxo (Aprov/Baixa)</TableHead>
-                                    <TableHead className="w-[50px]"></TableHead>
+                                    {isAdmin && <TableHead className="w-[50px]"></TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -417,11 +417,13 @@ export default function AdminCoberturasPage() {
                                                 {!item.aprovador && !item.financeiro && <span className="text-muted-foreground text-xs">-</span>}
                                             </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
+                                        {isAdmin && (
+                                            <TableCell>
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))}
                             </TableBody>
