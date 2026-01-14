@@ -25,6 +25,12 @@ interface Motivo {
     ativo: boolean
 }
 
+interface CargaHoraria {
+    id: string
+    descricao: string
+    ativo: boolean
+}
+
 export default function ConfigsPage() {
     const [activeTab, setActiveTab] = useState("motivos")
     return (
@@ -34,11 +40,15 @@ export default function ConfigsPage() {
             <Tabs defaultValue="motivos" className="w-full" onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="motivos">Motivos de Cobertura</TabsTrigger>
+                    <TabsTrigger value="cargas">Cargas Horárias</TabsTrigger>
                     <TabsTrigger value="maintenance" className="text-red-600 data-[state=active]:text-red-700">Manutenção de Dados</TabsTrigger>
                     <TabsTrigger value="outros">Outros Cadastros</TabsTrigger>
                 </TabsList>
                 <TabsContent value="motivos" className="mt-4">
                     <MotivosTab />
+                </TabsContent>
+                <TabsContent value="cargas" className="mt-4">
+                    <CargasTab />
                 </TabsContent>
                 <TabsContent value="maintenance" className="mt-4">
                     <MaintenanceTab />
@@ -195,6 +205,156 @@ function MotivosTab() {
                         <div className="flex items-center gap-2">
                             <Switch id="ativo" checked={formData.ativo} onCheckedChange={c => setFormData({ ...formData, ativo: c })} />
                             <Label htmlFor="ativo">Ativo</Label>
+                        </div>
+                        <DialogFooter>
+                            <Button type="submit" disabled={saving}>Salvar</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </>
+    )
+}
+
+function CargasTab() {
+    const [cargas, setCargas] = useState<CargaHoraria[]>([])
+    const [loading, setLoading] = useState(true)
+
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [editingItem, setEditingItem] = useState<CargaHoraria | null>(null)
+    const [formData, setFormData] = useState({ descricao: "", ativo: true })
+    const [saving, setSaving] = useState(false)
+
+    useEffect(() => {
+        fetchCargas()
+    }, [])
+
+    const fetchCargas = async () => {
+        try {
+            const res = await fetch("/api/admin/cargas")
+            if (!res.ok) throw new Error()
+            const data = await res.json()
+            setCargas(data)
+        } catch {
+            toast.error("Erro ao carregar cargas")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setSaving(true)
+        try {
+            if (editingItem) {
+                await fetch(`/api/admin/cargas/${editingItem.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData),
+                })
+                toast.success("Carga atualizada")
+            } else {
+                await fetch("/api/admin/cargas", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData),
+                })
+                toast.success("Carga criada")
+            }
+            setIsDialogOpen(false)
+            fetchCargas()
+        } catch {
+            toast.error("Erro ao salvar")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const openNew = () => {
+        setEditingItem(null)
+        setFormData({ descricao: "", ativo: true })
+        setIsDialogOpen(true)
+    }
+
+    const openEdit = (item: CargaHoraria) => {
+        setEditingItem(item)
+        setFormData({ descricao: item.descricao, ativo: item.ativo })
+        setIsDialogOpen(true)
+    }
+
+    const deleteItem = async (id: string) => {
+        if (!confirm("Excluir carga?")) return
+        try {
+            await fetch(`/api/admin/cargas/${id}`, { method: "DELETE" })
+            toast.success("Excluída")
+            fetchCargas()
+        } catch {
+            toast.error("Erro ao excluir. Pode estar em uso.")
+        }
+    }
+
+    return (
+        <>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Cargas Horárias</CardTitle>
+                        <CardDescription>Turnos de trabalho disponíveis (08:00, 12x36, etc).</CardDescription>
+                    </div>
+                    <Button onClick={openNew}>
+                        <Plus className="mr-2 h-4 w-4" /> Nova Carga
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Descrição</TableHead>
+                                    <TableHead className="w-[100px]">Status</TableHead>
+                                    <TableHead className="text-right">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {cargas.map((item) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="font-medium">{item.descricao}</TableCell>
+                                        <TableCell>
+                                            <span className={`text-xs px-2 py-1 rounded-full ${item.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {item.ativo ? 'Ativo' : 'Inativo'}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
+                                                <Pencil className="h-4 w-4 text-blue-500" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => deleteItem(item.id)}>
+                                                <Trash2 className="h-4 w-4 text-red-500" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingItem ? 'Editar' : 'Nova'} Carga</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSave} className="space-y-4">
+                        <div>
+                            <Label htmlFor="desc-carga">Descrição (Ex: 08:00)</Label>
+                            <Input id="desc-carga" value={formData.descricao} onChange={e => setFormData({ ...formData, descricao: e.target.value })} required />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Switch id="ativo-carga" checked={formData.ativo} onCheckedChange={c => setFormData({ ...formData, ativo: c })} />
+                            <Label htmlFor="ativo-carga">Ativo</Label>
                         </div>
                         <DialogFooter>
                             <Button type="submit" disabled={saving}>Salvar</Button>
