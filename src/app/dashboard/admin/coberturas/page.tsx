@@ -295,6 +295,7 @@ export default function AdminCoberturasPage() {
                                     <TableHead>Empresa</TableHead>
                                     <TableHead>Diarista</TableHead>
                                     <TableHead>Quem Faltou</TableHead>
+                                    <TableHead>Motivo</TableHead>
                                     <TableHead>Valor</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead>Solicitante (Criado)</TableHead>
@@ -309,6 +310,7 @@ export default function AdminCoberturasPage() {
                                         <TableCell className="text-muted-foreground">{(item as any).empresa?.nome || '-'}</TableCell>
                                         <TableCell className="font-medium">{item.diarista.nome}</TableCell>
                                         <TableCell className="text-muted-foreground">{item.reserva?.nome || '-'}</TableCell>
+                                        <TableCell>{item.motivo.descricao}</TableCell>
                                         <TableCell>{formatCurrency(item.valor)}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-col gap-1 items-start">
