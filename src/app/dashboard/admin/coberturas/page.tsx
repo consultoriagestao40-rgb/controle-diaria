@@ -434,6 +434,95 @@ export default function AdminCoberturasPage() {
                     )}
                 </CardContent>
             </Card>
+
+            <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Editar Cobertura</DialogTitle>
+                        <DialogDescription>
+                            Faça alterações nos dados do lançamento. Cuidado ao alterar valores financeiros.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Data</Label>
+                            <Input
+                                type="date"
+                                value={editForm.data}
+                                onChange={e => setEditForm(prev => ({ ...prev, data: e.target.value }))}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Valor</Label>
+                            <Input
+                                type="number" step="0.01"
+                                value={editForm.valor}
+                                onChange={e => setEditForm(prev => ({ ...prev, valor: e.target.value }))}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Posto</Label>
+                            <Select value={editForm.postoId} onValueChange={v => setEditForm(prev => ({ ...prev, postoId: v }))}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {(options.postos || []).map((i: any) => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Empresa</Label>
+                            <Select value={editForm.empresaId || "NULL"} onValueChange={v => setEditForm(prev => ({ ...prev, empresaId: v }))}>
+                                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NULL">Sem empresa</SelectItem>
+                                    {((options as any).empresas || []).map((i: any) => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Diarista</Label>
+                            <Select value={editForm.diaristaId} onValueChange={v => setEditForm(prev => ({ ...prev, diaristaId: v }))}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {(options.diaristas || []).map((i: any) => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Colaborador (Quem Faltou)</Label>
+                            <Select value={editForm.reservaId} onValueChange={v => setEditForm(prev => ({ ...prev, reservaId: v }))}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {(options.reservas || []).map((i: any) => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Motivo</Label>
+                            <Select value={editForm.motivoId} onValueChange={v => setEditForm(prev => ({ ...prev, motivoId: v }))}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {(options.motivos || []).map((i: any) => <SelectItem key={i.id} value={i.id}>{i.descricao}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingItem(null)} disabled={saving}>Cancelar</Button>
+                        <Button onClick={saveEdit} disabled={saving}>
+                            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Salvar Alterações"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
