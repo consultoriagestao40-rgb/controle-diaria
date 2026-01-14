@@ -292,6 +292,7 @@ export default function AdminCoberturasPage() {
                                 <TableRow>
                                     <TableHead>Data</TableHead>
                                     <TableHead>Posto</TableHead>
+                                    <TableHead>Empresa</TableHead>
                                     <TableHead>Diarista</TableHead>
                                     <TableHead>Quem Faltou</TableHead>
                                     <TableHead>Valor</TableHead>
@@ -305,6 +306,7 @@ export default function AdminCoberturasPage() {
                                     <TableRow key={item.id}>
                                         <TableCell>{new Date(item.data).toLocaleDateString()}</TableCell>
                                         <TableCell>{item.posto.nome}</TableCell>
+                                        <TableCell className="text-muted-foreground">{(item as any).empresa?.nome || '-'}</TableCell>
                                         <TableCell className="font-medium">{item.diarista.nome}</TableCell>
                                         <TableCell className="text-muted-foreground">{item.reserva?.nome || '-'}</TableCell>
                                         <TableCell>{formatCurrency(item.valor)}</TableCell>

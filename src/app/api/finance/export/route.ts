@@ -52,7 +52,8 @@ export async function GET(req: Request) {
                 aprovador: true,
                 financeiro: true,
                 meioPagamentoSolicitado: true,
-                meioPagamentoEfetivado: true
+                meioPagamentoEfetivado: true,
+                empresa: true
             },
             orderBy: { data: 'desc' }
         })
@@ -64,6 +65,7 @@ export async function GET(req: Request) {
             { header: "ID", key: "id", width: 10 },
             { header: "Data", key: "data", width: 15 },
             { header: "Posto", key: "posto", width: 25 },
+            { header: "Empresa", key: "empresa", width: 25 },
             { header: "Diarista", key: "diarista", width: 20 },
             { header: "Chave Pix", key: "chavePix", width: 25 },
             { header: "Motivo", key: "motivo", width: 20 },
@@ -82,6 +84,7 @@ export async function GET(req: Request) {
                 id: c.id.substring(0, 8),
                 data: c.data.toISOString().split('T')[0],
                 posto: c.posto.nome,
+                empresa: c.empresa?.nome || '-',
                 diarista: c.diarista.nome,
                 chavePix: c.diarista.chavePix || '-',
                 motivo: c.motivo.descricao,

@@ -53,7 +53,8 @@ export async function GET(req: Request) {
                 motivo: true,
                 supervisor: { select: { nome: true } },
                 aprovador: { select: { nome: true } },
-                financeiro: { select: { nome: true } }
+                financeiro: { select: { nome: true } },
+                empresa: { select: { nome: true } }
             },
             orderBy: { data: 'desc' },
             take: (startStr && endStr) ? undefined : 200 // Remove limit if filtering, else safety limit

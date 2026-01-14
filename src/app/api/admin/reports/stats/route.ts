@@ -52,7 +52,8 @@ export async function GET(req: NextRequest) {
                 diarista: true,
                 posto: true,
                 motivo: true,
-                reserva: true
+                reserva: true,
+                empresa: true
             }
         })
 
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
         const aggregate = (keyExtractor: (item: any) => string, nameExtractor: (item: any) => string) => {
             const map = new Map<string, { name: string, value: number }>()
             items.forEach(item => {
-                const key = keyExtractor(item)
+                const key = keyExtractor(item) || 'null' // Handle null keys
                 const name = nameExtractor(item) || 'N/A'
                 const val = Number(item.valor) || 0
 
@@ -80,6 +81,8 @@ export async function GET(req: NextRequest) {
         const motivoStats = aggregate(i => i.motivoId, i => i.motivo?.descricao)
         // Add Colaborador (Reserva) Stats
         const colaboradorStats = aggregate(i => i.reservaId, i => i.reserva?.nome)
+        // Add Empresa Stats
+        const empresaStats = aggregate(i => i.empresaId, i => i.empresa?.nome)
 
         const totalValue = items.reduce((acc, item) => acc + (Number(item.valor) || 0), 0)
 
@@ -123,6 +126,7 @@ export async function GET(req: NextRequest) {
             postoStats,
             motivoStats,
             colaboradorStats,
+            empresaStats,
             totalValue,
             monthlyStats
         })

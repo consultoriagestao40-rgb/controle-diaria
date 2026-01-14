@@ -278,78 +278,123 @@ export default function RelatoriosPage() {
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+            </Card>
 
-            {/* FILTERS BAR */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-4 rounded-lg border shadow-sm">
-                <div className="space-y-1">
-                    <Label className="text-xs">Diarista</Label>
-                    <select
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        value={filters.diaristaId}
-                        onChange={(e) => setFilters(prev => ({ ...prev, diaristaId: e.target.value }))}
-                    >
-                        <option value="all">Todos</option>
-                        {options.diaristas.map((i: any) => (
-                            <option key={i.id} value={i.id}>{i.nome}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-xs">Colaborador</Label>
-                    <select
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        value={filters.colaboradorId}
-                        onChange={(e) => setFilters(prev => ({ ...prev, colaboradorId: e.target.value }))}
-                    >
-                        <option value="all">Todos</option>
-                        {options.colaboradores.map((i: any) => (
-                            <option key={i.id} value={i.id}>{i.nome}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-xs">Motivo</Label>
-                    <select
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        value={filters.motivoId}
-                        onChange={(e) => setFilters(prev => ({ ...prev, motivoId: e.target.value }))}
-                    >
-                        <option value="all">Todos</option>
-                        {options.motivos.map((i: any) => (
-                            <option key={i.id} value={i.id}>{i.descricao}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-xs">Posto</Label>
-                    <select
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        value={filters.postoId}
-                        onChange={(e) => setFilters(prev => ({ ...prev, postoId: e.target.value }))}
-                    >
-                        <option value="all">Todos</option>
-                        {options.postos.map((i: any) => (
-                            <option key={i.id} value={i.id}>{i.nome}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-xs">Supervisor</Label>
-                    <select
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        value={filters.supervisorId}
-                        onChange={(e) => setFilters(prev => ({ ...prev, supervisorId: e.target.value }))}
-                    >
-                        <option value="all">Todos</option>
-                        {options.supervisores.map((i: any) => (
-                            <option key={i.id} value={i.id}>{i.nome}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+            {/* Donut Chart - Percent Empresa */}
+            <Card className="lg:col-span-1">
+                <CardHeader>
+                    <CardTitle className="text-sm font-medium">Custos por Empresa</CardTitle>
+                </CardHeader>
+                <CardContent className="pl-0 pb-2">
+                    <div className="h-[200px] w-full">
+                        {loadingStats ? (
+                            <div className="flex h-full items-center justify-center">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : (!stats || !stats.empresaStats || stats.empresaStats.length === 0) ? (
+                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                Sem dados.
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={stats.empresaStats}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={40}
+                                        outerRadius={60}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {stats.empresaStats.map((entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value: any) => {
+                                        const total = stats.empresaStats.reduce((acc: number, item: any) => acc + (Number(item.value) || 0), 0);
+                                        const percent = total > 0 ? ((Number(value) / total) * 100).toFixed(1).replace('.', ',') : '0';
+                                        return [`${formatCurrency(value)} (${percent}%)`, 'Valor'];
+                                    }} />
+                                    <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
 
-            {/* Quick Actions / Export */}
+            {/* FILTERS BAR */ }
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-4 rounded-lg border shadow-sm">
+        <div className="space-y-1">
+            <Label className="text-xs">Diarista</Label>
+            <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                value={filters.diaristaId}
+                onChange={(e) => setFilters(prev => ({ ...prev, diaristaId: e.target.value }))}
+            >
+                <option value="all">Todos</option>
+                {options.diaristas.map((i: any) => (
+                    <option key={i.id} value={i.id}>{i.nome}</option>
+                ))}
+            </select>
+        </div>
+        <div className="space-y-1">
+            <Label className="text-xs">Colaborador</Label>
+            <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                value={filters.colaboradorId}
+                onChange={(e) => setFilters(prev => ({ ...prev, colaboradorId: e.target.value }))}
+            >
+                <option value="all">Todos</option>
+                {options.colaboradores.map((i: any) => (
+                    <option key={i.id} value={i.id}>{i.nome}</option>
+                ))}
+            </select>
+        </div>
+        <div className="space-y-1">
+            <Label className="text-xs">Motivo</Label>
+            <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                value={filters.motivoId}
+                onChange={(e) => setFilters(prev => ({ ...prev, motivoId: e.target.value }))}
+            >
+                <option value="all">Todos</option>
+                {options.motivos.map((i: any) => (
+                    <option key={i.id} value={i.id}>{i.descricao}</option>
+                ))}
+            </select>
+        </div>
+        <div className="space-y-1">
+            <Label className="text-xs">Posto</Label>
+            <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                value={filters.postoId}
+                onChange={(e) => setFilters(prev => ({ ...prev, postoId: e.target.value }))}
+            >
+                <option value="all">Todos</option>
+                {options.postos.map((i: any) => (
+                    <option key={i.id} value={i.id}>{i.nome}</option>
+                ))}
+            </select>
+        </div>
+        <div className="space-y-1">
+            <Label className="text-xs">Supervisor</Label>
+            <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                value={filters.supervisorId}
+                onChange={(e) => setFilters(prev => ({ ...prev, supervisorId: e.target.value }))}
+            >
+                <option value="all">Todos</option>
+                {options.supervisores.map((i: any) => (
+                    <option key={i.id} value={i.id}>{i.nome}</option>
+                ))}
+            </select>
+        </div>
+    </div>
+
+    {/* Quick Actions / Export */ }
             <div className="flex justify-end">
                 <Button variant="outline" onClick={handleExport}>
                     <Download className="mr-2 h-4 w-4" /> Exportar Dados (.xlsx)
