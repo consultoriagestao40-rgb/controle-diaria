@@ -223,8 +223,7 @@ export default function DiaristasPage() {
                                     value={formData.cpf}
                                     onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                                     className="col-span-3"
-                                    required
-                                    placeholder="000.000.000-00"
+                                    placeholder="000.000.000-00 (Opcional)"
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">

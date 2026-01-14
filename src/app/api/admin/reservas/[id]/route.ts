@@ -19,7 +19,7 @@ export async function PUT(
 
         const reserva = await prisma.reserva.update({
             where: { id },
-            data: { nome, cpf, ativo }
+            data: { nome, cpf: cpf || null, ativo }
         })
 
         return NextResponse.json(reserva)

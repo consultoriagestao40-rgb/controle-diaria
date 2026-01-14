@@ -30,12 +30,12 @@ export async function POST(req: Request) {
         const body = await req.json()
         const { nome, cpf, ativo } = body
 
-        if (!nome || !cpf) return new NextResponse("Nome and CPF are required", { status: 400 })
+        if (!nome) return new NextResponse("Nome is required", { status: 400 })
 
         const diarista = await prisma.diarista.create({
             data: {
                 nome,
-                cpf,
+                cpf: cpf || null,
                 chavePix: body.chavePix,
                 ativo: ativo !== undefined ? ativo : true
             }

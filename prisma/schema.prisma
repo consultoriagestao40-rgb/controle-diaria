@@ -60,7 +60,7 @@ model Posto {
 model Diarista {
   id    String  @id @default(uuid())
   nome  String
-  cpf   String  @unique // Added for uniqueness verification
+  cpf   String? @unique // Added for uniqueness verification
   chavePix String? 
   ativo Boolean @default(true)
   coberturas Cobertura[]
@@ -69,7 +69,7 @@ model Diarista {
 model Reserva {
   id    String  @id @default(uuid())
   nome  String  // Quem foi coberto (Banco de Reservas)
-  cpf   String  @unique // Added for uniqueness verification
+  cpf   String? @unique // Added for uniqueness verification
   ativo Boolean @default(true)
   coberturas Cobertura[]
 }

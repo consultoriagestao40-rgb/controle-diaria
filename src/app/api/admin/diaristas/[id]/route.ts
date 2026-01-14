@@ -21,7 +21,7 @@ export async function PUT(
             where: { id },
             data: {
                 nome,
-                cpf,
+                cpf: cpf || null,
                 chavePix: body.chavePix,
                 ativo
             }
