@@ -25,6 +25,7 @@ interface Item {
     diarista: { nome: string }
     reserva?: { nome: string }
     motivo: { descricao: string }
+    observacao?: string
     supervisor: { nome: string }
     aprovador?: { nome: string }
     financeiro?: { nome: string }
@@ -368,6 +369,9 @@ export default function AdminCoberturasPage() {
                                     <TableHead>Diarista</TableHead>
                                     <TableHead>Quem Faltou</TableHead>
                                     <TableHead>Motivo</TableHead>
+                                    <TableHead>Quem Faltou</TableHead>
+                                    <TableHead>Motivo</TableHead>
+                                    <TableHead>Observação/Justificativas</TableHead>
                                     <TableHead>Valor</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead>Solicitante (Criado)</TableHead>
@@ -384,6 +388,7 @@ export default function AdminCoberturasPage() {
                                         <TableCell className="font-medium">{item.diarista.nome}</TableCell>
                                         <TableCell className="text-muted-foreground">{item.reserva?.nome || '-'}</TableCell>
                                         <TableCell>{item.motivo.descricao}</TableCell>
+                                        <TableCell className="max-w-[200px] truncate" title={item.observacao || ""}>{item.observacao || "-"}</TableCell>
                                         <TableCell>{formatCurrency(item.valor)}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-col gap-1 items-start">
@@ -431,11 +436,11 @@ export default function AdminCoberturasPage() {
                             </TableBody>
                             <TableFooter>
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-right font-bold">Total</TableCell>
+                                    <TableCell colSpan={7} className="text-right font-bold">Total</TableCell>
                                     <TableCell className="font-bold">
                                         {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
                                     </TableCell>
-                                    <TableCell colSpan={3}></TableCell>
+                                    <TableCell colSpan={4}></TableCell>
                                 </TableRow>
                             </TableFooter>
                         </Table>
