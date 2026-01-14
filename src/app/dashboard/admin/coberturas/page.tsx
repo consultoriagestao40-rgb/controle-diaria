@@ -15,6 +15,7 @@ import { cn, formatCurrency } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 
 interface Item {
     id: string
@@ -34,6 +35,9 @@ interface Item {
 }
 
 export default function AdminCoberturasPage() {
+    const { data: session } = useSession()
+    const isAdmin = (session?.user as any)?.role === 'ADMIN'
+
     const [items, setItems] = useState<Item[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
