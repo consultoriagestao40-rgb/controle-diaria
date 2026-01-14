@@ -156,9 +156,11 @@ export default function AdminCoberturasPage() {
 
     const formatDateTime = (dateStr?: string) => {
         if (!dateStr) return null
-        return new Date(dateStr).toLocaleString('pt-BR', {
-            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-        })
+        try {
+            return new Date(dateStr).toLocaleString('pt-BR', {
+                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+            })
+        } catch { return dateStr }
     }
 
     const handleEdit = (item: Item) => {
