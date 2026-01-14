@@ -78,6 +78,11 @@ export default function AdminCoberturasPage() {
     useEffect(() => {
         fetchOptions()
         fetchItems()
+        fetch("/api/auth/session").then(res => res.json()).then((session: any) => {
+            if (session?.user?.role === 'ADMIN') {
+                setIsAdmin(true)
+            }
+        }).catch(() => { })
     }, [])
 
     const fetchOptions = async () => {
