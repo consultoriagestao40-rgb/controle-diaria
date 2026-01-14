@@ -369,8 +369,7 @@ export default function AdminCoberturasPage() {
                                     <TableHead>Diarista</TableHead>
                                     <TableHead>Quem Faltou</TableHead>
                                     <TableHead>Motivo</TableHead>
-                                    <TableHead>Quem Faltou</TableHead>
-                                    <TableHead>Motivo</TableHead>
+
                                     <TableHead>Observação/Justificativas</TableHead>
                                     <TableHead>Valor</TableHead>
                                     <TableHead>Status</TableHead>
@@ -388,7 +387,7 @@ export default function AdminCoberturasPage() {
                                         <TableCell className="font-medium">{item.diarista.nome}</TableCell>
                                         <TableCell className="text-muted-foreground">{item.reserva?.nome || '-'}</TableCell>
                                         <TableCell>{item.motivo.descricao}</TableCell>
-                                        <TableCell className="max-w-[200px] truncate" title={item.observacao || ""}>{item.observacao || "-"}</TableCell>
+                                        <TableCell className="max-w-[200px] text-[10px] whitespace-normal break-words leading-tight" title={item.observacao || ""}>{item.observacao || "-"}</TableCell>
                                         <TableCell>{formatCurrency(item.valor)}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-col gap-1 items-start">
