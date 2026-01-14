@@ -14,7 +14,7 @@ const updateSchema = z.object({
     empresaId: z.string().optional().nullable() // Allow null to clear if needed, or just optional string
 })
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)
 
     const user = session?.user as any
@@ -25,7 +25,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     try {
         const body = await req.json()
-        const { id } = params
+        const { id } = await params
         const data = updateSchema.parse(body)
 
         // Find existing to check if exists
