@@ -165,14 +165,19 @@ export default function AdminCoberturasPage() {
 
     const handleEdit = (item: Item) => {
         setEditingItem(item)
+        let formattedDate = ""
+        try {
+            formattedDate = item.data ? new Date(item.data).toISOString().split('T')[0] : ""
+        } catch (e) { console.error("Bad date", e) }
+
         setEditForm({
-            data: item.data ? new Date(item.data).toISOString().split('T')[0] : "",
-            postoId: (item as any).postoId || "", // Assuming item has IDs not just nested objects. Wait, interface Item defined at top might not have IDs. I need to check line 17.
+            data: formattedDate,
+            postoId: (item as any).postoId || "",
             empresaId: (item as any).empresaId || "",
             diaristaId: (item as any).diaristaId || "",
             reservaId: (item as any).reservaId || "",
             motivoId: (item as any).motivoId || "",
-            valor: item.valor || ""
+            valor: String(item.valor || "")
         })
     }
 
