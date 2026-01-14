@@ -164,6 +164,8 @@ export default function AdminCoberturasPage() {
     }
 
     const handleEdit = (item: Item) => {
+        // Debug check
+        // alert(`Editando: ${item.id}`) 
         setEditingItem(item)
         let formattedDate = ""
         try {
