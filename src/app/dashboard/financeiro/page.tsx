@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { CheckCircle, DollarSign, Loader2, Calendar, MapPin, User, FileText, CreditCard, Upload, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { cn, formatCurrency } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
@@ -184,7 +187,7 @@ export default function FinanceDashboard() {
                                             </div>
                                             <div className="flex items-center gap-2 font-bold text-lg text-green-700">
                                                 <DollarSign className="h-4 w-4" />
-                                                <span>{Number(item.valor).toFixed(2)}</span>
+                                                <span>{formatCurrency(item.valor)}</span>
                                             </div>
                                         </div>
 

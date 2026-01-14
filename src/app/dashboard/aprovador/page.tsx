@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { CheckCircle, XCircle, AlertTriangle, Loader2, Calendar, MapPin, User, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { cn, formatCurrency } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
@@ -150,7 +153,7 @@ export default function ApproverDashboard() {
                                                 <span>{item.cargaHoraria?.descricao || 'N/A'}</span>
                                             </div>
                                             <div className="flex items-center gap-2 font-semibold text-slate-800">
-                                                <span>R$ {Number(item.valor).toFixed(2)}</span>
+                                                <span>{formatCurrency(item.valor)}</span>
                                             </div>
                                         </div>
 

@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { cn, formatCurrency } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -304,7 +307,7 @@ export default function AdminCoberturasPage() {
                                         <TableCell>{item.posto.nome}</TableCell>
                                         <TableCell className="font-medium">{item.diarista.nome}</TableCell>
                                         <TableCell className="text-muted-foreground">{item.reserva?.nome || '-'}</TableCell>
-                                        <TableCell>R$ {Number(item.valor).toFixed(2)}</TableCell>
+                                        <TableCell>{formatCurrency(item.valor)}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-col gap-1 items-start">
                                                 {getStatusBadge(item.status)}
@@ -346,7 +349,7 @@ export default function AdminCoberturasPage() {
                                 <TableRow>
                                     <TableCell colSpan={4} className="text-right font-bold">Total</TableCell>
                                     <TableCell className="font-bold">
-                                        R$ {filteredItems.reduce((acc, item) => acc + Number(item.valor), 0).toFixed(2)}
+                                        {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
                                     </TableCell>
                                     <TableCell colSpan={3}></TableCell>
                                 </TableRow>

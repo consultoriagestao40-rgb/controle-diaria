@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { format } from "date-fns"
+import { format, subMonths, startOfMonth, startOfYear, endOfMonth, endOfDay } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Calendar as CalendarIcon, Download, FileSpreadsheet, List, MapPin, User, AlertCircle, Loader2, DollarSign } from "lucide-react"
+import { cn, formatCurrency } from "@/lib/utils"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, Legend } from "recharts"
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -180,8 +181,8 @@ export default function RelatoriosPage() {
                         <DollarSign className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-700">
-                            {loadingStats ? "..." : `R$ ${Number(stats?.totalValue || 0).toFixed(2)}`}
+                        <div className="text-4xl font-bold tracking-tight text-red-600 mt-2">
+                            {loadingStats ? "..." : formatCurrency(stats?.totalValue)}
                         </div>
                         <p className="text-xs text-muted-foreground">
                             Soma de itens Pagos ou Aprovados.
@@ -220,11 +221,11 @@ export default function RelatoriosPage() {
                                             fontSize={12}
                                             tickLine={false}
                                             axisLine={false}
-                                            tickFormatter={(value) => `R$${value}`}
+                                            tickFormatter={(value) => formatCurrency(value)}
                                         />
                                         <Tooltip
-                                            formatter={(value: any) => [`R$ ${Number(value || 0).toFixed(2)}`, 'Total']}
-                                            cursor={{ fill: 'transparent' }}
+                                            formatter={(value: any) => [formatCurrency(value), 'Total']}
+                                            cursor={{ fill: '#f3f4f6' }}
                                         />
                                         <Bar dataKey="total" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={40} />
                                     </BarChart>
@@ -267,8 +268,8 @@ export default function RelatoriosPage() {
                                         </Pie>
                                         <Tooltip formatter={(value: any) => {
                                             const total = stats.motivoStats.reduce((acc: number, item: any) => acc + (Number(item.value) || 0), 0);
-                                            const percent = total > 0 ? ((Number(value) / total) * 100).toFixed(1) : '0';
-                                            return [`R$ ${Number(value || 0).toFixed(2)} (${percent}%)`, 'Valor'];
+                                            const percent = total > 0 ? ((Number(value) / total) * 100).toFixed(1).replace('.', ',') : '0';
+                                            return [`${formatCurrency(value)} (${percent}%)`, 'Valor'];
                                         }} />
                                         <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
                                     </PieChart>
@@ -376,7 +377,7 @@ export default function RelatoriosPage() {
                                     {stats.diaristaStats.map((item: any, idx: number) => (
                                         <TableRow key={idx}>
                                             <TableCell className="py-2 text-sm font-medium">{item.name}</TableCell>
-                                            <TableCell className="py-2 text-right text-sm">R$ {Number(item.value).toFixed(2)}</TableCell>
+                                            <TableCell className="py-2 text-right text-sm">{formatCurrency(item.value)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -405,7 +406,7 @@ export default function RelatoriosPage() {
                                     {stats.colaboradorStats.map((item: any, idx: number) => (
                                         <TableRow key={idx}>
                                             <TableCell className="py-2 text-sm font-medium">{item.name}</TableCell>
-                                            <TableCell className="py-2 text-right text-sm">R$ {Number(item.value).toFixed(2)}</TableCell>
+                                            <TableCell className="py-2 text-right text-sm">{formatCurrency(item.value)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -434,7 +435,7 @@ export default function RelatoriosPage() {
                                     {stats.postoStats.map((item: any, idx: number) => (
                                         <TableRow key={idx}>
                                             <TableCell className="py-2 text-sm font-medium">{item.name}</TableCell>
-                                            <TableCell className="py-2 text-right text-sm">R$ {Number(item.value).toFixed(2)}</TableCell>
+                                            <TableCell className="py-2 text-right text-sm">{formatCurrency(item.value)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -463,7 +464,7 @@ export default function RelatoriosPage() {
                                     {stats.motivoStats.map((item: any, idx: number) => (
                                         <TableRow key={idx}>
                                             <TableCell className="py-2 text-sm font-medium">{item.name}</TableCell>
-                                            <TableCell className="py-2 text-right text-sm">R$ {Number(item.value).toFixed(2)}</TableCell>
+                                            <TableCell className="py-2 text-right text-sm">{formatCurrency(item.value)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

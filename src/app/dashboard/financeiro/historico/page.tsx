@@ -8,6 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import Link from "next/link"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { cn, formatCurrency } from "@/lib/utils"
 
 interface Item {
     id: string
@@ -91,7 +94,7 @@ export default function FinanceHistoryPage() {
                                             <Badge variant="outline">{item.meioPagamentoEfetivado?.descricao || '-'}</Badge>
                                         </TableCell>
                                         <TableCell className="font-bold text-green-700">
-                                            R$ {Number(item.valor).toFixed(2)}
+                                            {formatCurrency(item.valor)}
                                         </TableCell>
                                         <TableCell>
                                             {item.anexos && item.anexos.length > 0 ? (
