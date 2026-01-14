@@ -323,6 +323,50 @@ export default function RelatoriosPage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Donut Chart - Percent Posto */}
+                <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle className="text-sm font-medium">Custos por Posto</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-0 pb-2">
+                        <div className="h-[200px] w-full">
+                            {loadingStats ? (
+                                <div className="flex h-full items-center justify-center">
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : (!stats || !stats.postoStats || stats.postoStats.length === 0) ? (
+                                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                    Sem dados.
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={stats.postoStats}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={40}
+                                            outerRadius={60}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {stats.postoStats.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(value: any) => {
+                                            const total = stats.postoStats.reduce((acc: number, item: any) => acc + (Number(item.value) || 0), 0);
+                                            const percent = total > 0 ? ((Number(value) / total) * 100).toFixed(1).replace('.', ',') : '0';
+                                            return [`${formatCurrency(value)} (${percent}%)`, 'Valor'];
+                                        }} />
+                                        <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* FILTERS BAR */}
