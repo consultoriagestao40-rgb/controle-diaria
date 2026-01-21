@@ -457,19 +457,18 @@ export default function AdminCoberturasPage() {
                                         </TableRow>
                                     ))}
                                 </TableBody>
-                                <TableFooter className="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] ring-1 ring-slate-200">
-                                    <TableRow className="bg-white hover:bg-white border-t-2 border-slate-200">
-                                        <TableCell colSpan={7} className="text-right font-bold bg-white text-lg">Total</TableCell>
-                                        <TableCell className="font-bold text-primary text-lg bg-white">
-                                            {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
-                                        </TableCell>
-                                        <TableCell colSpan={isAdmin ? 5 : 4} className="bg-white"></TableCell>
-                                    </TableRow>
-                                </TableFooter>
                             </Table>
                         </div>
                     )}
                 </CardContent>
+                <div className="flex-none border-t bg-slate-50 p-4 flex justify-end items-center gap-4 shadow-inner z-30">
+                    <span className="font-bold text-lg text-slate-700">Total:</span>
+                    <span className="font-bold text-primary text-xl">
+                        {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
+                    </span>
+                    {/* Placeholder for alignment if needed, or just keep it simple right-aligned */}
+                    <div className="w-[80px]"></div>
+                </div>
             </Card>
 
             <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
