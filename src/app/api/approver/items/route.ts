@@ -24,7 +24,9 @@ export async function GET() {
                 motivo: true,
                 reserva: true,
                 cargaHoraria: true,
-                supervisor: { select: { nome: true } }
+                supervisor: { select: { nome: true } },
+                meioPagamentoSolicitado: true,
+                empresa: true
             },
             orderBy: { data: 'asc' }
         })
