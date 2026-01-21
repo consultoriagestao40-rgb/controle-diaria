@@ -33,20 +33,20 @@ export default async function DashboardLayout({
     const role = (session.user as any).role
 
     return (
-        <div className="flex min-h-screen flex-col md:flex-row bg-slate-100">
+        <div className="flex h-screen flex-col md:flex-row bg-slate-100 overflow-hidden">
             {/* Sidebar for Desktop (Client Component) */}
             <SidebarNav user={{ name: session.user?.name, role: role }} />
 
             {/* Main Content */}
-            <div className="flex flex-1 flex-col overflow-hidden">
-                <header className="flex h-16 items-center justify-between border-b bg-white px-4 md:hidden">
+            <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden">
+                <header className="flex h-16 items-center justify-between border-b bg-white px-4 md:hidden flex-none">
                     <span className="font-bold">Diárias App</span>
 
                     {/* Mobile Navigation (Client Component) */}
                     <MobileNav user={{ name: session.user?.name, role: role }} />
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 min-h-0">
                     {children}
                 </main>
             </div>

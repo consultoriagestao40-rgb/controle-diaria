@@ -238,7 +238,7 @@ export default function AdminCoberturasPage() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-6rem)] gap-4">
+        <div className="flex flex-col h-full gap-4">
             <div className="flex items-center gap-4 flex-none">
                 <Link href="/dashboard/admin">
                     <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
@@ -249,8 +249,8 @@ export default function AdminCoberturasPage() {
                 </div>
             </div>
 
-            <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                <div className="flex flex-col gap-4 p-6 flex-none border-b">
+            <Card className="flex flex-col flex-1 min-h-0 overflow-hidden shadow-md">
+                <div className="flex flex-col gap-4 p-6 flex-none border-b bg-white">
                     {/* New Filters Row */}
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <Select value={filters.diaristaId} onValueChange={(v) => setFilters(prev => ({ ...prev, diaristaId: v }))}>
@@ -372,34 +372,34 @@ export default function AdminCoberturasPage() {
                         </div>
                     </div>
                 </div>
-                <CardContent className="p-0 flex flex-col flex-1 min-h-0 relative">
+                <CardContent className="p-0 flex flex-col flex-1 min-h-0 relative bg-white">
                     {loading ? (
                         <div className="flex justify-center items-center w-full h-full p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                     ) : filteredItems.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground w-full">Nenhum registro encontrado.</div>
                     ) : (
-                        <div className="w-full h-full overflow-auto relative">
+                        <div className="w-full h-full overflow-auto relative scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                             <Table>
-                                <TableHeader className="sticky top-0 bg-white z-20 shadow-sm">
+                                <TableHeader className="sticky top-0 bg-white z-20 shadow-sm ring-1 ring-slate-200">
                                     <TableRow>
-                                        <TableHead className="bg-white">Data</TableHead>
-                                        <TableHead className="bg-white">Posto</TableHead>
-                                        <TableHead className="bg-white">Empresa</TableHead>
-                                        <TableHead className="bg-white">Diarista</TableHead>
-                                        <TableHead className="bg-white">Quem Faltou</TableHead>
-                                        <TableHead className="bg-white">Motivo</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Data</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Posto</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Empresa</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Diarista</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Quem Faltou</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Motivo</TableHead>
 
-                                        <TableHead className="bg-white">Observação/Justificativas</TableHead>
-                                        <TableHead className="bg-white">Valor</TableHead>
-                                        <TableHead className="bg-white">Status</TableHead>
-                                        <TableHead className="bg-white">Solicitante (Criado)</TableHead>
-                                        <TableHead className="bg-white">Fluxo (Aprov/Baixa)</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Observação/Justificativas</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Valor</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Status</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Solicitante (Criado)</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900">Fluxo (Aprov/Baixa)</TableHead>
                                         {isAdmin && <TableHead className="w-[50px] bg-white"></TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredItems.map((item) => (
-                                        <TableRow key={item.id}>
+                                        <TableRow key={item.id} className="hover:bg-slate-50">
                                             <TableCell>{new Date(item.data).toLocaleDateString()}</TableCell>
                                             <TableCell>{item.posto.nome}</TableCell>
                                             <TableCell className="text-muted-foreground">{(item as any).empresa?.nome || '-'}</TableCell>
@@ -457,10 +457,10 @@ export default function AdminCoberturasPage() {
                                         </TableRow>
                                     ))}
                                 </TableBody>
-                                <TableFooter className="sticky bottom-0 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
-                                    <TableRow className="bg-white hover:bg-white border-t border-slate-200">
-                                        <TableCell colSpan={7} className="text-right font-bold bg-white">Total</TableCell>
-                                        <TableCell className="font-bold text-primary text-base bg-white">
+                                <TableFooter className="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] ring-1 ring-slate-200">
+                                    <TableRow className="bg-white hover:bg-white border-t-2 border-slate-200">
+                                        <TableCell colSpan={7} className="text-right font-bold bg-white text-lg">Total</TableCell>
+                                        <TableCell className="font-bold text-primary text-lg bg-white">
                                             {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
                                         </TableCell>
                                         <TableCell colSpan={isAdmin ? 5 : 4} className="bg-white"></TableCell>
