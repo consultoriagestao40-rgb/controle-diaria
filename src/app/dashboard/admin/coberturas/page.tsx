@@ -238,7 +238,7 @@ export default function AdminCoberturasPage() {
     }
 
     return (
-        <div className="flex flex-col gap-4 overflow-hidden h-[calc(100vh-3rem)] md:h-[calc(100vh-5rem)]">
+        <div className="flex flex-col gap-4 overflow-hidden h-[calc(100vh-4rem)] md:h-[calc(100vh-8rem)]">
             <div className="flex items-center gap-4 flex-none">
                 <Link href="/dashboard/admin">
                     <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
