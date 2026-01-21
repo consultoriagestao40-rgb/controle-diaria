@@ -46,7 +46,7 @@ export default async function DashboardLayout({
                     <MobileNav user={{ name: session.user?.name, role: role }} />
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 min-h-0">
+                <main className="flex-1 flex flex-col overflow-hidden p-4 md:p-8 min-h-0">
                     {children}
                 </main>
             </div>
