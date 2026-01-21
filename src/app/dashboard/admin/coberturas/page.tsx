@@ -378,8 +378,8 @@ export default function AdminCoberturasPage() {
                     ) : filteredItems.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground w-full">Nenhum registro encontrado.</div>
                     ) : (
-                        <div className="w-full h-full overflow-x-scroll overflow-y-auto relative scrollbar-always-visible pb-1">
-                            <Table>
+                        <div className="w-full h-full overflow-x-scroll overflow-y-auto relative scrollbar-always-visible pb-2 transform translate-z-0">
+                            <table className="w-full caption-bottom text-sm min-w-[100%] table-auto">
                                 <TableHeader className="sticky top-0 bg-white z-20 shadow-sm ring-1 ring-slate-200">
                                     <TableRow>
                                         <TableHead className="bg-white font-bold text-slate-900">Data</TableHead>
@@ -457,7 +457,7 @@ export default function AdminCoberturasPage() {
                                         </TableRow>
                                     ))}
                                 </TableBody>
-                            </Table>
+                            </table>
                         </div>
                     )}
                 </CardContent>
