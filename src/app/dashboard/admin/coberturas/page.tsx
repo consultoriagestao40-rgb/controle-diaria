@@ -238,8 +238,8 @@ export default function AdminCoberturasPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-4">
+        <div className="flex flex-col h-[calc(100vh-6rem)] gap-4">
+            <div className="flex items-center gap-4 flex-none">
                 <Link href="/dashboard/admin">
                     <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
                 </Link>
@@ -249,8 +249,8 @@ export default function AdminCoberturasPage() {
                 </div>
             </div>
 
-            <Card>
-                <div className="flex flex-col gap-4 p-6">
+            <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="flex flex-col gap-4 p-6 flex-none border-b">
                     {/* New Filters Row */}
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <Select value={filters.diaristaId} onValueChange={(v) => setFilters(prev => ({ ...prev, diaristaId: v }))}>
@@ -372,13 +372,13 @@ export default function AdminCoberturasPage() {
                         </div>
                     </div>
                 </div>
-                <CardContent className="p-0">
+                <CardContent className="p-0 flex flex-1 min-h-0 relative">
                     {loading ? (
-                        <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                        <div className="flex justify-center items-center w-full h-full p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                     ) : filteredItems.length === 0 ? (
-                        <div className="p-8 text-center text-muted-foreground">Nenhum registro encontrado.</div>
+                        <div className="p-8 text-center text-muted-foreground w-full">Nenhum registro encontrado.</div>
                     ) : (
-                        <div className="overflow-auto h-[calc(100vh-280px)] border-t relative">
+                        <div className="w-full h-full overflow-auto">
                             <Table>
                                 <TableHeader className="sticky top-0 bg-white z-20 shadow-sm">
                                     <TableRow>
