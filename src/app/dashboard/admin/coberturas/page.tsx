@@ -372,29 +372,29 @@ export default function AdminCoberturasPage() {
                         </div>
                     </div>
                 </div>
-                <CardContent className="p-0 flex flex-1 min-h-0 relative">
+                <CardContent className="p-0 flex flex-col flex-1 min-h-0 relative">
                     {loading ? (
                         <div className="flex justify-center items-center w-full h-full p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                     ) : filteredItems.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground w-full">Nenhum registro encontrado.</div>
                     ) : (
-                        <div className="w-full h-full overflow-auto">
+                        <div className="w-full h-full overflow-auto relative">
                             <Table>
                                 <TableHeader className="sticky top-0 bg-white z-20 shadow-sm">
                                     <TableRow>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Posto</TableHead>
-                                        <TableHead>Empresa</TableHead>
-                                        <TableHead>Diarista</TableHead>
-                                        <TableHead>Quem Faltou</TableHead>
-                                        <TableHead>Motivo</TableHead>
+                                        <TableHead className="bg-white">Data</TableHead>
+                                        <TableHead className="bg-white">Posto</TableHead>
+                                        <TableHead className="bg-white">Empresa</TableHead>
+                                        <TableHead className="bg-white">Diarista</TableHead>
+                                        <TableHead className="bg-white">Quem Faltou</TableHead>
+                                        <TableHead className="bg-white">Motivo</TableHead>
 
-                                        <TableHead>Observação/Justificativas</TableHead>
-                                        <TableHead>Valor</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Solicitante (Criado)</TableHead>
-                                        <TableHead>Fluxo (Aprov/Baixa)</TableHead>
-                                        {isAdmin && <TableHead className="w-[50px]"></TableHead>}
+                                        <TableHead className="bg-white">Observação/Justificativas</TableHead>
+                                        <TableHead className="bg-white">Valor</TableHead>
+                                        <TableHead className="bg-white">Status</TableHead>
+                                        <TableHead className="bg-white">Solicitante (Criado)</TableHead>
+                                        <TableHead className="bg-white">Fluxo (Aprov/Baixa)</TableHead>
+                                        {isAdmin && <TableHead className="w-[50px] bg-white"></TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -457,13 +457,13 @@ export default function AdminCoberturasPage() {
                                         </TableRow>
                                     ))}
                                 </TableBody>
-                                <TableFooter className="sticky bottom-0 bg-white z-20 shadow-inner border-t">
-                                    <TableRow className="bg-slate-50 hover:bg-slate-50">
-                                        <TableCell colSpan={7} className="text-right font-bold">Total</TableCell>
-                                        <TableCell className="font-bold text-primary text-base">
+                                <TableFooter className="sticky bottom-0 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
+                                    <TableRow className="bg-white hover:bg-white border-t border-slate-200">
+                                        <TableCell colSpan={7} className="text-right font-bold bg-white">Total</TableCell>
+                                        <TableCell className="font-bold text-primary text-base bg-white">
                                             {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
                                         </TableCell>
-                                        <TableCell colSpan={isAdmin ? 5 : 4}></TableCell>
+                                        <TableCell colSpan={isAdmin ? 5 : 4} className="bg-white"></TableCell>
                                     </TableRow>
                                 </TableFooter>
                             </Table>
