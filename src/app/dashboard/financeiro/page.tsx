@@ -129,9 +129,16 @@ export default function FinanceDashboard() {
     return (
         <div className="space-y-6 pb-20">
             <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Pagamentos</h1>
+                        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-4">
+                            Pagamentos
+                            {!loading && (
+                                <Badge variant="secondary" className="text-lg px-2 py-1 bg-green-50 text-green-700 border-green-200">
+                                    Total: {formatCurrency(items.reduce((acc, item) => acc + Number(item.valor), 0))}
+                                </Badge>
+                            )}
+                        </h1>
                         <p className="text-muted-foreground">Itens aprovados aguardando baixa financeira.</p>
                     </div>
                     <div className="flex gap-2">

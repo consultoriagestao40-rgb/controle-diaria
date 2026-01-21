@@ -113,9 +113,19 @@ export default function ApproverDashboard() {
 
     return (
         <div className="space-y-6 pb-20">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-bold tracking-tight">Painel de Aprovação</h1>
-                <p className="text-muted-foreground">Analise as coberturas pendentes.</p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Painel de Aprovação</h1>
+                    <p className="text-muted-foreground">Analise as coberturas pendentes.</p>
+                </div>
+                {!loading && (
+                    <div className="flex flex-col items-end">
+                        <span className="text-sm text-muted-foreground">Total a Aprovar</span>
+                        <div className="text-2xl font-bold text-slate-800">
+                            {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Search Bar */}
