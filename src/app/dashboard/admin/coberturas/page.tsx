@@ -378,9 +378,9 @@ export default function AdminCoberturasPage() {
                     ) : filteredItems.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">Nenhum registro encontrado.</div>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <div className="overflow-auto h-[600px] border-t">
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
                                     <TableRow>
                                         <TableHead>Data</TableHead>
                                         <TableHead>Posto</TableHead>
