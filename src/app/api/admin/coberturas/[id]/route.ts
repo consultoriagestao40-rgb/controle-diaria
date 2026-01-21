@@ -68,3 +68,29 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         return new NextResponse("Internal Error", { status: 500 })
     }
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const session = await getServerSession(authOptions)
+    const user = session?.user as any
+
+    if (!user || user.role !== "ADMIN") {
+        return new NextResponse("Unauthorized", { status: 401 })
+    }
+
+    try {
+        const { id } = await params
+
+        // Delete dependencies first (History, Anexos if any)
+        // Using transaction for atomicity
+        await prisma.$transaction([
+            prisma.historicoWorkflow.deleteMany({ where: { coberturaId: id } }),
+            prisma.anexo.deleteMany({ where: { coberturaId: id } }),
+            prisma.cobertura.delete({ where: { id } })
+        ])
+
+        return new NextResponse(null, { status: 204 })
+    } catch (error) {
+        console.error("Delete error:", error)
+        return new NextResponse("Internal Error", { status: 500 })
+    }
+}

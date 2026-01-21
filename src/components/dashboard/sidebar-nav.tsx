@@ -83,7 +83,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
             {/* Toggle Button - Centered Vertically */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="absolute -right-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full border bg-white shadow-md hover:bg-slate-100"
+                className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 flex h-6 w-6 items-center justify-center rounded-full border bg-white shadow-md hover:bg-slate-100"
             >
                 {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
             </button>

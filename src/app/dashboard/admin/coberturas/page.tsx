@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Loader2, Search, Filter, Download, Pencil } from "lucide-react"
+import { ArrowLeft, Loader2, Search, Filter, Download, Pencil, Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -219,6 +219,24 @@ export default function AdminCoberturasPage() {
         }
     }
 
+    const handleDelete = async (id: string) => {
+        if (!confirm("Tem certeza que deseja EXCLUIR este lançamento? Esta ação não pode ser desfeita.")) return
+
+        setLoading(true)
+        try {
+            const res = await fetch(`/api/admin/coberturas/${id}`, {
+                method: 'DELETE'
+            })
+            if (!res.ok) throw new Error()
+            toast.success("Lançamento excluído com sucesso")
+            fetchItems()
+        } catch {
+            toast.error("Erro ao excluir lançamento")
+        } finally {
+            setLoading(false)
+        }
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -360,89 +378,96 @@ export default function AdminCoberturasPage() {
                     ) : filteredItems.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">Nenhum registro encontrado.</div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Data</TableHead>
-                                    <TableHead>Posto</TableHead>
-                                    <TableHead>Empresa</TableHead>
-                                    <TableHead>Diarista</TableHead>
-                                    <TableHead>Quem Faltou</TableHead>
-                                    <TableHead>Motivo</TableHead>
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Data</TableHead>
+                                        <TableHead>Posto</TableHead>
+                                        <TableHead>Empresa</TableHead>
+                                        <TableHead>Diarista</TableHead>
+                                        <TableHead>Quem Faltou</TableHead>
+                                        <TableHead>Motivo</TableHead>
 
-                                    <TableHead>Observação/Justificativas</TableHead>
-                                    <TableHead>Valor</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Solicitante (Criado)</TableHead>
-                                    <TableHead>Fluxo (Aprov/Baixa)</TableHead>
-                                    {isAdmin && <TableHead className="w-[50px]"></TableHead>}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredItems.map((item) => (
-                                    <TableRow key={item.id}>
-                                        <TableCell>{new Date(item.data).toLocaleDateString()}</TableCell>
-                                        <TableCell>{item.posto.nome}</TableCell>
-                                        <TableCell className="text-muted-foreground">{(item as any).empresa?.nome || '-'}</TableCell>
-                                        <TableCell className="font-medium">{item.diarista.nome}</TableCell>
-                                        <TableCell className="text-muted-foreground">{item.reserva?.nome || '-'}</TableCell>
-                                        <TableCell>{item.motivo.descricao}</TableCell>
-                                        <TableCell className="max-w-[200px] text-[10px] whitespace-normal break-words leading-tight" title={item.observacao || ""}>{item.observacao || "-"}</TableCell>
-                                        <TableCell>{formatCurrency(item.valor)}</TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col gap-1 items-start">
-                                                {getStatusBadge(item.status)}
-                                                {item.status === 'PAGO' && item.dataPagamento && (
-                                                    <span className="text-[10px] text-muted-foreground">
-                                                        Pago: {formatDateTime(item.dataPagamento)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="text-xs font-medium">{item.supervisor.nome}</span>
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    Criado: {formatDateTime(item.createdAt)}
-                                                </span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col gap-1">
-                                                {item.aprovador && (
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] text-muted-foreground">Aprov: {item.aprovador.nome}</span>
-                                                        <span className="text-[10px] text-muted-foreground">{formatDateTime(item.dataAprovacao)}</span>
-                                                    </div>
-                                                )}
-                                                {item.financeiro && item.status === 'PAGO' && (
-                                                    <div className="flex flex-col mt-1">
-                                                        <span className="text-[10px] text-muted-foreground">Baixa: {item.financeiro.nome}</span>
-                                                    </div>
-                                                )}
-                                                {!item.aprovador && !item.financeiro && <span className="text-muted-foreground text-xs">-</span>}
-                                            </div>
-                                        </TableCell>
-                                        {isAdmin && (
-                                            <TableCell>
-                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        )}
+                                        <TableHead>Observação/Justificativas</TableHead>
+                                        <TableHead>Valor</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Solicitante (Criado)</TableHead>
+                                        <TableHead>Fluxo (Aprov/Baixa)</TableHead>
+                                        {isAdmin && <TableHead className="w-[50px]"></TableHead>}
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                            <TableFooter>
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-right font-bold">Total</TableCell>
-                                    <TableCell className="font-bold">
-                                        {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
-                                    </TableCell>
-                                    <TableCell colSpan={4}></TableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredItems.map((item) => (
+                                        <TableRow key={item.id}>
+                                            <TableCell>{new Date(item.data).toLocaleDateString()}</TableCell>
+                                            <TableCell>{item.posto.nome}</TableCell>
+                                            <TableCell className="text-muted-foreground">{(item as any).empresa?.nome || '-'}</TableCell>
+                                            <TableCell className="font-medium">{item.diarista.nome}</TableCell>
+                                            <TableCell className="text-muted-foreground">{item.reserva?.nome || '-'}</TableCell>
+                                            <TableCell>{item.motivo.descricao}</TableCell>
+                                            <TableCell className="max-w-[200px] text-[10px] whitespace-normal break-words leading-tight" title={item.observacao || ""}>{item.observacao || "-"}</TableCell>
+                                            <TableCell>{formatCurrency(item.valor)}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    {getStatusBadge(item.status)}
+                                                    {item.status === 'PAGO' && item.dataPagamento && (
+                                                        <span className="text-[10px] text-muted-foreground">
+                                                            Pago: {formatDateTime(item.dataPagamento)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-medium">{item.supervisor.nome}</span>
+                                                    <span className="text-[10px] text-muted-foreground">
+                                                        Criado: {formatDateTime(item.createdAt)}
+                                                    </span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1">
+                                                    {item.aprovador && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] text-muted-foreground">Aprov: {item.aprovador.nome}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{formatDateTime(item.dataAprovacao)}</span>
+                                                        </div>
+                                                    )}
+                                                    {item.financeiro && item.status === 'PAGO' && (
+                                                        <div className="flex flex-col mt-1">
+                                                            <span className="text-[10px] text-muted-foreground">Baixa: {item.financeiro.nome}</span>
+                                                        </div>
+                                                    )}
+                                                    {!item.aprovador && !item.financeiro && <span className="text-muted-foreground text-xs">-</span>}
+                                                </div>
+                                            </TableCell>
+                                            {isAdmin && (
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
+                                                            <Trash className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            )}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                                <TableFooter>
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-right font-bold">Total</TableCell>
+                                        <TableCell className="font-bold">
+                                            {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
+                                        </TableCell>
+                                        <TableCell colSpan={4}></TableCell>
+                                    </TableRow>
+                                </TableFooter>
+                            </Table>
+                        </div>
                     )}
                 </CardContent>
             </Card>
