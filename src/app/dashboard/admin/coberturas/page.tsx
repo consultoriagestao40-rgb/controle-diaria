@@ -378,9 +378,9 @@ export default function AdminCoberturasPage() {
                     ) : filteredItems.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">Nenhum registro encontrado.</div>
                     ) : (
-                        <div className="overflow-auto h-[600px] border-t">
+                        <div className="overflow-auto h-[calc(100vh-280px)] border-t relative">
                             <Table>
-                                <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
+                                <TableHeader className="sticky top-0 bg-white z-20 shadow-sm">
                                     <TableRow>
                                         <TableHead>Data</TableHead>
                                         <TableHead>Posto</TableHead>
@@ -457,13 +457,13 @@ export default function AdminCoberturasPage() {
                                         </TableRow>
                                     ))}
                                 </TableBody>
-                                <TableFooter>
-                                    <TableRow>
+                                <TableFooter className="sticky bottom-0 bg-white z-20 shadow-inner border-t">
+                                    <TableRow className="bg-slate-50 hover:bg-slate-50">
                                         <TableCell colSpan={7} className="text-right font-bold">Total</TableCell>
-                                        <TableCell className="font-bold">
+                                        <TableCell className="font-bold text-primary text-base">
                                             {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
                                         </TableCell>
-                                        <TableCell colSpan={4}></TableCell>
+                                        <TableCell colSpan={isAdmin ? 5 : 4}></TableCell>
                                     </TableRow>
                                 </TableFooter>
                             </Table>
