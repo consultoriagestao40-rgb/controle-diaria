@@ -167,6 +167,7 @@ model Cobertura {
   respostaAjuste        String? // Texto do supervisor respondendo
   justificativaReprovacao String? // Texto do aprovador ao reprovar
   justificativaPagamento  String? // Se meio efetivado != solicitado
+  justificativaAprovacaoN1 String? // Parecer do Aprovador N1
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

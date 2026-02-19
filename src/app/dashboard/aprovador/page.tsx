@@ -43,15 +43,15 @@ export default function ApproverDashboard() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
 
-    // Action State
-    const [selectedItem, setSelectedItem] = useState<Item | null>(null)
-    const [detailItem, setDetailItem] = useState<Item | null>(null)
-    const [actionType, setActionType] = useState<'REPROVAR' | 'AJUSTE' | null>(null)
-    const [justificativa, setJustificativa] = useState("")
-    const [processing, setProcessing] = useState(false)
+    const [userRole, setUserRole] = useState("")
 
     useEffect(() => {
         fetchItems()
+        fetch("/api/auth/session").then(res => res.json()).then((session: any) => {
+            if (session?.user?.role) {
+                setUserRole(session.user.role)
+            }
+        }).catch(() => { })
     }, [])
 
     const fetchItems = async () => {
@@ -78,13 +78,24 @@ export default function ApproverDashboard() {
         )
     })
 
-    const handleQuickApprove = async (id: string, e: React.MouseEvent) => {
+    // Action State
+    const [selectedItem, setSelectedItem] = useState<Item | null>(null)
+    const [detailItem, setDetailItem] = useState<Item | null>(null)
+    const [actionType, setActionType] = useState<'APROVAR' | 'REPROVAR' | 'AJUSTE' | null>(null)
+    const [justificativa, setJustificativa] = useState("")
+    const [processing, setProcessing] = useState(false)
+
+    const handleQuickApprove = async (item: Item, e: React.MouseEvent) => {
         e.stopPropagation()
-        if (!confirm("Confirmar aprovação?")) return
-        await submitAction(id, 'APROVAR')
+        if (userRole === 'APROVADOR_N1') {
+            openActionDialog(item, 'APROVAR', e)
+        } else {
+            if (!confirm("Confirmar aprovação final?")) return
+            await submitAction(item.id, 'APROVAR')
+        }
     }
 
-    const openActionDialog = (item: Item, type: 'REPROVAR' | 'AJUSTE', e: React.MouseEvent) => {
+    const openActionDialog = (item: Item, type: 'APROVAR' | 'REPROVAR' | 'AJUSTE', e: React.MouseEvent) => {
         e.stopPropagation()
         setSelectedItem(item)
         setActionType(type)
@@ -122,7 +133,7 @@ export default function ApproverDashboard() {
                     <div className="flex flex-col items-end">
                         <span className="text-sm text-muted-foreground">Total a Aprovar</span>
                         <div className="text-2xl font-bold text-slate-800">
-                            {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
+                            {formatCurrency(filteredItems.reduce((acc: number, item: Item) => acc + Number(item.valor), 0))}
                         </div>
                     </div>
                 )}
@@ -218,7 +229,7 @@ export default function ApproverDashboard() {
                                         <Button
                                             className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                                             size="sm"
-                                            onClick={(e) => handleQuickApprove(item.id, e)}
+                                            onClick={(e) => handleQuickApprove(item, e)}
                                         >
                                             <CheckCircle className="mr-1 h-4 w-4" /> Aprovar
                                         </Button>
@@ -251,12 +262,14 @@ export default function ApproverDashboard() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {actionType === 'REPROVAR' ? 'Reprovar Cobertura' : 'Solicitar Ajuste'}
+                            {actionType === 'REPROVAR' ? 'Reprovar Cobertura' : actionType === 'APROVAR' ? 'Aprovar Cobertura (N1)' : 'Solicitar Ajuste'}
                         </DialogTitle>
                         <DialogDescription>
                             {actionType === 'REPROVAR'
                                 ? 'Justifique a reprovação. O item será cancelado.'
-                                : 'Descreva o que precisa ser corrigido. O supervisor será notificado.'
+                                : actionType === 'APROVAR'
+                                    ? 'Por favor, insira uma justificativa/parecer obrigatório para prosseguir com a aprovação.'
+                                    : 'Descreva o que precisa ser corrigido. O supervisor será notificado.'
                             }
                         </DialogDescription>
                     </DialogHeader>

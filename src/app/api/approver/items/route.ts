@@ -127,6 +127,7 @@ export async function POST(req: Request) {
                 newStatus = 'APROVADO_N1'
                 dataUpdate.aprovadorN1Id = user.id
                 dataUpdate.dataAprovacaoN1 = new Date()
+                dataUpdate.justificativaAprovacaoN1 = justificativa
             } else if (acao === 'REPROVAR') {
                 newStatus = 'REPROVADO'
                 dataUpdate.justificativaReprovacao = `[N1] ${justificativa}`

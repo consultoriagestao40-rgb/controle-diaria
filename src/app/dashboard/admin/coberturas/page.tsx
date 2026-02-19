@@ -27,6 +27,9 @@ interface Item {
     motivo: { descricao: string }
     observacao?: string
     supervisor: { nome: string }
+    aprovadorN1?: { nome: string }
+    dataAprovacaoN1?: string
+    justificativaAprovacaoN1?: string
     aprovador?: { nome: string }
     financeiro?: { nome: string }
     createdAt: string
@@ -393,7 +396,8 @@ export default function AdminCoberturasPage() {
                                         <TableHead className="bg-white font-bold text-slate-900">Valor</TableHead>
                                         <TableHead className="bg-white font-bold text-slate-900">Status</TableHead>
                                         <TableHead className="bg-white font-bold text-slate-900">Solicitante (Criado)</TableHead>
-                                        <TableHead className="bg-white font-bold text-slate-900">Fluxo (Aprov/Baixa)</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900 min-w-[120px]">Aprovador N1</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900 min-w-[120px]">Aprov. Final / Baixa</TableHead>
                                         {isAdmin && <TableHead className="w-[50px] bg-white"></TableHead>}
                                     </TableRow>
                                 </TableHeader>
@@ -428,14 +432,29 @@ export default function AdminCoberturasPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col gap-1">
+                                                    {item.aprovadorN1 ? (
+                                                        <>
+                                                            <span className="text-[10px] font-medium text-slate-700">{item.aprovadorN1.nome}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{formatDateTime(item.dataAprovacaoN1)}</span>
+                                                            {item.justificativaAprovacaoN1 && (
+                                                                <span className="text-[10px] text-muted-foreground italic border-t pt-1 mt-1 leading-tight" title={item.justificativaAprovacaoN1}>
+                                                                    "{item.justificativaAprovacaoN1}"
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    ) : <span className="text-muted-foreground text-xs">-</span>}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1">
                                                     {item.aprovador && (
-                                                        <div className="flex flex-col">
+                                                        <div className="flex flex-col pb-1 border-b mb-1">
                                                             <span className="text-[10px] text-muted-foreground">Aprov: {item.aprovador.nome}</span>
                                                             <span className="text-[10px] text-muted-foreground">{formatDateTime(item.dataAprovacao)}</span>
                                                         </div>
                                                     )}
                                                     {item.financeiro && item.status === 'PAGO' && (
-                                                        <div className="flex flex-col mt-1">
+                                                        <div className="flex flex-col">
                                                             <span className="text-[10px] text-muted-foreground">Baixa: {item.financeiro.nome}</span>
                                                         </div>
                                                     )}
