@@ -11,7 +11,7 @@ export async function GET() {
     // Allow all roles that need options (Supervisor, Admin, Financeiro, Encarregado)
     // Actually, Financeiro uses admin/reports which calls admin/options (usually), but let's be safe.
     // If this API is used by Financeiro's report filters (which I saw earlier uses /api/supervisor/options), add them.
-    if (user.role !== 'SUPERVISOR' && user.role !== 'ADMIN' && user.role !== 'ENCARREGADO' && user.role !== 'FINANCEIRO') {
+    if (user.role !== 'SUPERVISOR' && user.role !== 'ADMIN' && user.role !== 'ENCARREGADO' && user.role !== 'FINANCEIRO' && user.role !== 'APROVADOR_N1' && user.role !== 'APROVADOR_N2' && user.role !== 'APROVADOR') {
         return new NextResponse("Forbidden", { status: 403 })
     }
 

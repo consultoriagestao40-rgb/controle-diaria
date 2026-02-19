@@ -48,10 +48,17 @@ export function SidebarNav({ user }: SidebarNavProps) {
                     { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
                 ]
             case "APROVADOR":
-            case "APROVADOR_N1":
             case "APROVADOR_N2":
                 return [
                     { label: "Aprovações", href: "/dashboard/aprovador", icon: CheckSquare },
+                ]
+            case "APROVADOR_N1":
+                return [
+                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
+                    { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText },
+                    { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
+                    { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
                 ]
             case "FINANCEIRO":
                 return [

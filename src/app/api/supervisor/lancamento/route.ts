@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
     const user = session.user as any
-    if (user.role !== 'SUPERVISOR' && user.role !== 'ADMIN' && user.role !== 'ENCARREGADO') {
+    if (user.role !== 'SUPERVISOR' && user.role !== 'ADMIN' && user.role !== 'ENCARREGADO' && user.role !== 'APROVADOR_N1' && user.role !== 'APROVADOR_N2' && user.role !== 'APROVADOR') {
         return new NextResponse("Forbidden", { status: 403 })
     }
 

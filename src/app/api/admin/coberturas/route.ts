@@ -9,7 +9,7 @@ export async function GET(req: Request) {
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
     const user = session.user as any
 
-    if (user.role !== 'ADMIN' && user.role !== 'SUPERVISOR' && user.role !== 'FINANCEIRO' && user.role !== 'RH') {
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERVISOR' && user.role !== 'FINANCEIRO' && user.role !== 'RH' && user.role !== 'APROVADOR_N1' && user.role !== 'APROVADOR_N2' && user.role !== 'APROVADOR') {
         return new NextResponse("Forbidden", { status: 403 })
     }
 

@@ -17,6 +17,8 @@ export default async function DashboardPage() {
         case 'SUPERVISOR':
             redirect('/dashboard/supervisor')
         case 'APROVADOR':
+        case 'APROVADOR_N1':
+        case 'APROVADOR_N2':
             redirect('/dashboard/aprovador')
         case 'FINANCEIRO':
             redirect('/dashboard/financeiro')
