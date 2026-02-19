@@ -15,13 +15,14 @@ export async function PUT(
     try {
         const { id } = await params
         const body = await req.json()
-        const { nome, email, password, postosIds, ativo } = body
+        const { nome, email, password, postosIds, ativo, role } = body
 
         // Prepare update data
         const data: any = {
             nome,
             email,
-            ativo
+            ativo,
+            role
         }
 
         if (password) data.password = password // Only update if provided
