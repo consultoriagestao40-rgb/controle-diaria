@@ -11,7 +11,9 @@ datasource db {
 enum Role {
   ADMIN
   SUPERVISOR
-  APROVADOR
+  APROVADOR     // Deprecated: Migrating to N2
+  APROVADOR_N1  // New Level 1
+  APROVADOR_N2  // New Level 2 (Final)
   FINANCEIRO
   ENCARREGADO
   RH
@@ -20,7 +22,8 @@ enum Role {
 enum StatusCobertura {
   PENDENTE
   AJUSTE
-  APROVADO
+  APROVADO_N1   // Approved by Level 1, waiting for Level 2
+  APROVADO      // Final approval (Level 2)
   REPROVADO
   PAGO
   CANCELADO
@@ -39,6 +42,7 @@ model User {
 
   // Relationships
   coberturasLancadas  Cobertura[] @relation("SupervisorLancamento")
+  coberturasAprovadasN1 Cobertura[] @relation("AprovadorN1Acao")
   coberturasAprovadas Cobertura[] @relation("AprovadorAcao")
   coberturasPagas     Cobertura[] @relation("FinanceiroAcao")
   anexos              Anexo[]
@@ -134,6 +138,12 @@ model Cobertura {
   supervisorId  String
   supervisor    User     @relation("SupervisorLancamento", fields: [supervisorId], references: [id])
   
+  // Approval Level 1
+  aprovadorN1Id String?
+  aprovadorN1   User?    @relation("AprovadorN1Acao", fields: [aprovadorN1Id], references: [id])
+  dataAprovacaoN1 DateTime?
+
+  // Approval Level 2 (Final) - Preserving old field for compatibility
   aprovadorId   String?
   aprovador     User?    @relation("AprovadorAcao", fields: [aprovadorId], references: [id])
   dataAprovacao DateTime?

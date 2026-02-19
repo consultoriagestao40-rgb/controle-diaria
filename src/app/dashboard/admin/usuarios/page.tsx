@@ -159,7 +159,9 @@ export default function UsuariosPage() {
         switch (role) {
             case 'ADMIN': return <Badge>Admin</Badge>
             case 'SUPERVISOR': return <Badge variant="secondary">Supervisor</Badge>
-            case 'APROVADOR': return <Badge variant="default" className="bg-purple-600">Aprovador</Badge>
+            case 'APROVADOR': return <Badge variant="default" className="bg-purple-600">Aprovador (N2 Legado)</Badge>
+            case 'APROVADOR_N1': return <Badge variant="default" className="bg-purple-400">Aprovador N1</Badge>
+            case 'APROVADOR_N2': return <Badge variant="default" className="bg-purple-700">Aprovador N2</Badge>
             case 'FINANCEIRO': return <Badge variant="default" className="bg-green-600">Financeiro</Badge>
             case 'ENCARREGADO': return <Badge variant="outline" className="border-orange-500 text-orange-600">Encarregado</Badge>
             case 'RH': return <Badge variant="outline" className="border-cyan-500 text-cyan-600">Recursos Humanos</Badge>
@@ -283,7 +285,9 @@ export default function UsuariosPage() {
                                     <SelectContent>
                                         <SelectItem value="ADMIN">Administrador</SelectItem>
                                         <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
-                                        <SelectItem value="APROVADOR">Aprovador</SelectItem>
+                                        <SelectItem value="APROVADOR_N1">Aprovador N1</SelectItem>
+                                        <SelectItem value="APROVADOR_N2">Aprovador N2</SelectItem>
+                                        <SelectItem value="APROVADOR">Aprovador (Legado)</SelectItem>
                                         <SelectItem value="FINANCEIRO">Financeiro</SelectItem>
                                         <SelectItem value="ENCARREGADO">Encarregado</SelectItem>
                                         <SelectItem value="RH">Recursos Humanos (RH)</SelectItem>
