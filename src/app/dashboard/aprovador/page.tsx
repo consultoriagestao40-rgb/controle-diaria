@@ -37,6 +37,8 @@ interface Item {
     meioPagamentoSolicitado?: { descricao: string }
     empresa?: { nome: string }
     createdAt?: string
+    aprovadorN1?: { nome: string }
+    justificativaAprovacaoN1?: string
 }
 
 export default function ApproverDashboard() {
@@ -219,6 +221,11 @@ export default function ApproverDashboard() {
                                                 "{item.observacao}"
                                             </div>
                                         )}
+                                        {item.justificativaAprovacaoN1 && (
+                                            <div className="mt-2 text-xs bg-blue-50 border border-blue-100 p-2 rounded text-blue-800">
+                                                <span className="font-semibold">{item.aprovadorN1?.nome || 'Aprovador N1'}:</span> "{item.justificativaAprovacaoN1}"
+                                            </div>
+                                        )}
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mt-3 p-2 bg-slate-50 rounded-md border border-slate-100">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">Solicitado por:</span>
@@ -370,6 +377,15 @@ export default function ApproverDashboard() {
                                     {detailItem.observacao || "Sem observações."}
                                 </div>
                             </div>
+
+                            {detailItem.justificativaAprovacaoN1 && (
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Parecer Aprovador N1 ({detailItem.aprovadorN1?.nome || 'N/A'})</Label>
+                                    <div className="p-3 border rounded-md bg-blue-50 text-blue-800 border-blue-100 text-sm italic min-h-[40px]">
+                                        "{detailItem.justificativaAprovacaoN1}"
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="pt-2 border-t mt-2">
                                 <div className="flex justify-between items-center text-sm">
