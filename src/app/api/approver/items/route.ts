@@ -160,6 +160,7 @@ export async function POST(req: Request) {
                 newStatus = 'APROVADO'
                 dataUpdate.aprovadorId = user.id
                 dataUpdate.dataAprovacao = new Date()
+                dataUpdate.justificativaAprovacaoN2 = justificativa
             } else if (acao === 'REPROVAR') {
                 newStatus = 'REPROVADO'
                 dataUpdate.justificativaReprovacao = justificativa
@@ -185,6 +186,7 @@ export async function POST(req: Request) {
                     newStatus = 'APROVADO'
                     dataUpdate.aprovadorId = user.id
                     dataUpdate.dataAprovacao = new Date()
+                    dataUpdate.justificativaAprovacaoN2 = justificativa
                 }
             }
             // Common rejection logic

@@ -90,12 +90,7 @@ export default function ApproverDashboard() {
 
     const handleQuickApprove = async (item: Item, e: React.MouseEvent) => {
         e.stopPropagation()
-        if (userRole === 'APROVADOR_N1') {
-            openActionDialog(item, 'APROVAR', e)
-        } else {
-            if (!confirm("Confirmar aprovação final?")) return
-            await submitAction(item.id, 'APROVAR')
-        }
+        openActionDialog(item, 'APROVAR', e)
     }
 
     const openActionDialog = (item: Item, type: 'APROVAR' | 'REPROVAR' | 'AJUSTE', e: React.MouseEvent) => {
@@ -277,7 +272,7 @@ export default function ApproverDashboard() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {actionType === 'REPROVAR' ? 'Reprovar Cobertura' : actionType === 'APROVAR' ? 'Aprovar Cobertura (N1)' : 'Solicitar Ajuste'}
+                            {actionType === 'REPROVAR' ? 'Reprovar Cobertura' : actionType === 'APROVAR' ? `Aprovar Cobertura (${userRole === 'APROVADOR_N1' ? 'N1' : 'N2'})` : 'Solicitar Ajuste'}
                         </DialogTitle>
                         <DialogDescription>
                             {actionType === 'REPROVAR'

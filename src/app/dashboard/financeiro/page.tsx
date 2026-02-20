@@ -33,6 +33,10 @@ interface Item {
     supervisor: { nome: string }
     meioPagamentoSolicitado: { id: string; descricao: string }
     observacao?: string
+    aprovadorN1?: { nome: string }
+    justificativaAprovacaoN1?: string
+    aprovador?: { nome: string }
+    justificativaAprovacaoN2?: string
 }
 
 interface Meio {
@@ -198,9 +202,26 @@ export default function FinanceDashboard() {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2 mt-3 p-2 bg-slate-50 rounded-md border border-slate-100">
-                                            <span className="text-xs text-muted-foreground">Solicitado por:</span>
-                                            <span className="text-sm font-medium text-slate-700">{item.supervisor.nome}</span>
+                                        {item.observacao && (
+                                            <div className="mt-2 text-xs bg-slate-50 p-2 rounded text-slate-600 italic">
+                                                "{item.observacao}"
+                                            </div>
+                                        )}
+                                        <div className="flex flex-col gap-2 mt-3 p-3 bg-slate-50 rounded-md border border-slate-100">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">Solicitado por:</span>
+                                                <span className="text-sm font-medium text-slate-700">{item.supervisor.nome}</span>
+                                            </div>
+                                            {item.justificativaAprovacaoN1 && (
+                                                <div className="text-xs bg-blue-50 border border-blue-100 p-2 rounded text-blue-800">
+                                                    <span className="font-semibold">{item.aprovadorN1?.nome || 'Aprovador N1'} (N1):</span> "{item.justificativaAprovacaoN1}"
+                                                </div>
+                                            )}
+                                            {item.justificativaAprovacaoN2 && (
+                                                <div className="text-xs bg-emerald-50 border border-emerald-100 p-2 rounded text-emerald-800">
+                                                    <span className="font-semibold">{item.aprovador?.nome || 'Aprovador N2'} (N2):</span> "{item.justificativaAprovacaoN2}"
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

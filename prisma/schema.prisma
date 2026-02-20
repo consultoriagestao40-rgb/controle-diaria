@@ -168,6 +168,7 @@ model Cobertura {
   justificativaReprovacao String? // Texto do aprovador ao reprovar
   justificativaPagamento  String? // Se meio efetivado != solicitado
   justificativaAprovacaoN1 String? // Parecer do Aprovador N1
+  justificativaAprovacaoN2 String? // Parecer do Aprovador N2
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

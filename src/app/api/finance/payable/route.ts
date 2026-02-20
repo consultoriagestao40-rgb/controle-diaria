@@ -23,7 +23,9 @@ export async function GET() {
                 diarista: true,
                 motivo: true,
                 meioPagamentoSolicitado: true,
-                supervisor: { select: { nome: true } }
+                supervisor: { select: { nome: true } },
+                aprovadorN1: { select: { nome: true } },
+                aprovador: { select: { nome: true } }
             },
             orderBy: { data: 'asc' }
         })
