@@ -35,8 +35,11 @@ interface Item {
     observacao?: string
     aprovadorN1?: { nome: string }
     justificativaAprovacaoN1?: string
+    dataAprovacaoN1?: string
     aprovador?: { nome: string }
     justificativaAprovacaoN2?: string
+    dataAprovacao?: string
+    createdAt?: string
 }
 
 interface Meio {
@@ -208,18 +211,41 @@ export default function FinanceDashboard() {
                                             </div>
                                         )}
                                         <div className="flex flex-col gap-2 mt-3 p-3 bg-slate-50 rounded-md border border-slate-100">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-muted-foreground">Solicitado por:</span>
-                                                <span className="text-sm font-medium text-slate-700">{item.supervisor.nome}</span>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-muted-foreground">Solicitado por:</span>
+                                                    <span className="text-sm font-medium text-slate-700">{item.supervisor.nome}</span>
+                                                </div>
+                                                {item.createdAt && (
+                                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                                        {new Date(item.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                )}
                                             </div>
                                             {item.justificativaAprovacaoN1 && (
                                                 <div className="text-xs bg-blue-50 border border-blue-100 p-2 rounded text-blue-800">
-                                                    <span className="font-semibold">{item.aprovadorN1?.nome || 'Aprovador N1'} (N1):</span> "{item.justificativaAprovacaoN1}"
+                                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                                        <span className="font-semibold">{item.aprovadorN1?.nome || 'Aprovador N1'} (N1)</span>
+                                                        {item.dataAprovacaoN1 && (
+                                                            <span className="text-[10px] text-blue-600/70 whitespace-nowrap">
+                                                                {new Date(item.dataAprovacaoN1).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    "{item.justificativaAprovacaoN1}"
                                                 </div>
                                             )}
                                             {item.justificativaAprovacaoN2 && (
                                                 <div className="text-xs bg-emerald-50 border border-emerald-100 p-2 rounded text-emerald-800">
-                                                    <span className="font-semibold">{item.aprovador?.nome || 'Aprovador N2'} (N2):</span> "{item.justificativaAprovacaoN2}"
+                                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                                        <span className="font-semibold">{item.aprovador?.nome || 'Aprovador N2'} (N2)</span>
+                                                        {item.dataAprovacao && (
+                                                            <span className="text-[10px] text-emerald-600/70 whitespace-nowrap">
+                                                                {new Date(item.dataAprovacao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    "{item.justificativaAprovacaoN2}"
                                                 </div>
                                             )}
                                         </div>
