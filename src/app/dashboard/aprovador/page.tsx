@@ -36,6 +36,7 @@ interface Item {
     faltasNoMes?: number
     meioPagamentoSolicitado?: { descricao: string }
     empresa?: { nome: string }
+    createdAt?: string
 }
 
 export default function ApproverDashboard() {
@@ -218,9 +219,16 @@ export default function ApproverDashboard() {
                                                 "{item.observacao}"
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-2 mt-3 p-2 bg-slate-50 rounded-md border border-slate-100">
-                                            <span className="text-xs text-muted-foreground">Solicitado por:</span>
-                                            <span className="text-sm font-medium text-slate-700">{item.supervisor.nome}</span>
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mt-3 p-2 bg-slate-50 rounded-md border border-slate-100">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">Solicitado por:</span>
+                                                <span className="text-sm font-medium text-slate-700">{item.supervisor.nome}</span>
+                                            </div>
+                                            {item.createdAt && (
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    Registrado em: {new Date(item.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 

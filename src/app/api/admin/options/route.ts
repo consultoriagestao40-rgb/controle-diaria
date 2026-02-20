@@ -12,8 +12,7 @@ export async function GET() {
     // The page is dashboard/admin, so user is likely Admin.
     const user = session.user as any
     // Allow access to all roles that need filters (Admin, Supervisor, Financeiro, RH)
-    // Basically, only block if needed, but standard roles are fine.
-    const allowedRoles = ['ADMIN', 'SUPERVISOR', 'FINANCEIRO', 'RH']
+    const allowedRoles = ['ADMIN', 'SUPERVISOR', 'FINANCEIRO', 'RH', 'APROVADOR', 'APROVADOR_N1', 'APROVADOR_N2']
     if (!allowedRoles.includes(user.role)) {
         // Supervisors might view this page too? 
         // Current dashboard/admin page doesn't block Supervisor (client side).
