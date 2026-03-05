@@ -85,45 +85,66 @@ export function SidebarNav({ user }: SidebarNavProps) {
     return (
         <aside
             className={cn(
-                "relative z-40 hidden flex-col bg-white border-r shadow-sm md:flex transition-all duration-300 ease-in-out",
-                isCollapsed ? "w-20" : "w-64"
+                "relative z-40 hidden flex-col bg-sidebar border-r shadow-2xl md:flex transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)",
+                isCollapsed ? "w-20" : "w-72"
             )}
         >
-            {/* Toggle Button - Centered Vertically */}
+            {/* Toggle Button - Sophisticated Design */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 flex h-6 w-6 items-center justify-center rounded-full border bg-white shadow-md hover:bg-slate-100"
+                className="absolute -right-3 top-24 z-50 flex h-7 w-7 items-center justify-center rounded-full border bg-white shadow-[0_4px_10px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.15)] hover:scale-110 transition-all duration-300 group"
             >
-                {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+                {isCollapsed ?
+                    <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-primary transition-colors" /> :
+                    <ChevronLeft className="h-4 w-4 text-slate-600 group-hover:text-primary transition-colors" />
+                }
             </button>
 
-            {/* Header */}
+            {/* Header with Logo */}
             <div className={cn(
-                "flex h-16 items-center border-b px-6 transition-all",
+                "flex h-28 items-center border-b border-white/5 px-6 transition-all duration-500",
                 isCollapsed ? "justify-center px-2" : "justify-start"
             )}>
                 {isCollapsed ? (
-                    <span className="text-xl font-bold text-primary">D</span>
+                    <div className="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
+                        <span className="text-xl font-black text-white tracking-tighter">JVS</span>
+                    </div>
                 ) : (
-                    <span className="text-xl font-bold text-primary">Diárias</span>
+                    <div className="flex flex-col gap-1 active:scale-95 transition-transform duration-200">
+                        <img
+                            src="https://grupojvsserv.com.br/wp-content/uploads/2023/11/logo-horizontal-300px.png"
+                            alt="Grupo JVS"
+                            className="h-12 w-auto object-contain brightness-0 invert"
+                        />
+                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] ml-1">Controle de Diárias</span>
+                    </div>
                 )}
             </div>
 
             {/* Nav Items */}
-            <nav className="flex-1 overflow-y-auto py-4">
-                <ul className="space-y-1 px-3">
+            <nav className="flex-1 overflow-y-auto py-8 scrollbar-hide">
+                <ul className="space-y-2 px-4">
                     {navItems.map((item) => (
                         <li key={item.href}>
                             <Link
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-primary transition-colors",
+                                    "group flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all duration-300",
+                                    "text-slate-400 hover:text-white hover:bg-white/5 active:scale-[0.98]",
                                     isCollapsed && "justify-center px-2"
                                 )}
                                 title={isCollapsed ? item.label : undefined}
                             >
-                                <item.icon className="h-5 w-5 shrink-0" />
-                                {!isCollapsed && <span>{item.label}</span>}
+                                <item.icon className={cn(
+                                    "h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
+                                    "text-slate-500 group-hover:text-primary"
+                                )} />
+                                {!isCollapsed && (
+                                    <span className="tracking-tight">{item.label}</span>
+                                )}
+                                {!isCollapsed && (
+                                    <div className="ml-auto w-1 h-1 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
                             </Link>
                         </li>
                     ))}

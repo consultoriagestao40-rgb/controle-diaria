@@ -74,21 +74,28 @@ export function MobileNav({ user }: MobileNavProps) {
                     <Menu className="h-6 w-6" />
                 </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] sm:w-[400px] p-0 bg-white">
+            <SheetContent side="left" className="w-[320px] p-0 bg-sidebar border-none shadow-3xl text-white">
                 <div className="flex flex-col h-full">
-                    <div className="flex h-16 items-center border-b px-6">
-                        <span className="text-xl font-bold text-primary">Diárias</span>
+                    <div className="flex h-24 items-center border-b border-white/5 px-8">
+                        <div className="flex flex-col gap-1">
+                            <img
+                                src="https://grupojvsserv.com.br/wp-content/uploads/2023/11/logo-horizontal-300px.png"
+                                alt="Grupo JVS"
+                                className="h-10 w-auto object-contain brightness-0 invert"
+                            />
+                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Diárias</span>
+                        </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto py-4 px-4">
-                        <ul className="space-y-1">
+                    <div className="flex-1 overflow-y-auto py-8 px-6">
+                        <ul className="space-y-2">
                             {navItems.map((item) => (
                                 <li key={item.href}>
                                     <SheetClose asChild>
                                         <Link
                                             href={item.href}
-                                            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-primary transition-colors"
+                                            className="flex items-center gap-4 rounded-xl px-4 py-4 text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-300"
                                         >
-                                            <item.icon className="h-5 w-5" />
+                                            <item.icon className="h-5 w-5 text-slate-500" />
                                             {item.label}
                                         </Link>
                                     </SheetClose>

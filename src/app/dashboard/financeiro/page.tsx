@@ -144,15 +144,15 @@ export default function FinanceDashboard() {
             <div className="flex flex-col gap-2">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-4">
+                        <h1 className="text-3xl font-black tracking-tight flex items-center gap-4 text-slate-900">
                             Pagamentos
                             {!loading && (
-                                <Badge variant="secondary" className="text-lg px-2 py-1 bg-green-50 text-green-700 border-green-200">
+                                <Badge variant="secondary" className="text-sm px-3 py-1 bg-primary/10 text-primary border-primary/20 backdrop-blur-sm">
                                     Total: {formatCurrency(items.reduce((acc, item) => acc + Number(item.valor), 0))}
                                 </Badge>
                             )}
                         </h1>
-                        <p className="text-muted-foreground">Itens aprovados aguardando baixa financeira.</p>
+                        <p className="text-slate-500 font-medium">Gestão financeira de diárias e coberturas aprovadas.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row w-full md:w-auto gap-2">
                         <div className="relative w-full sm:w-64">
@@ -179,108 +179,98 @@ export default function FinanceDashboard() {
             </div>
 
             {loading ? (
-                <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                <div className="flex flex-col items-center justify-center p-20 gap-4">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary opacity-50" />
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest animate-pulse">Sincronizando Dados...</p>
+                </div>
             ) : items.length === 0 ? (
-                <Card className="bg-slate-50 border-dashed py-10">
-                    <div className="text-center text-muted-foreground">Nenhum pagamento pendente.</div>
+                <Card className="glass-card border-dashed py-20 flex flex-col items-center justify-center">
+                    <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                        <FileText className="h-8 w-8 text-slate-300" />
+                    </div>
+                    <div className="text-center text-slate-400 font-medium">Nenhum pagamento pendente no momento.</div>
                 </Card>
             ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-6">
                     {items.map(item => (
-                        <Card key={item.id} className="overflow-hidden border-l-4 border-l-green-500">
-                            <CardContent className="p-4 sm:p-6">
-                                <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <Card key={item.id} className="glass-card overflow-hidden group hover:scale-[1.01] transition-all duration-300 premium-shadow">
+                            <CardContent className="p-0">
+                                <div className="flex flex-col md:flex-row min-h-[180px]">
+                                    {/* Left Accent Color */}
+                                    <div className="w-1.5 bg-primary/80 group-hover:bg-primary transition-colors h-full absolute left-0" />
+
                                     {/* Info Block */}
-                                    <div className="space-y-2 flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Aprovado</Badge>
-                                            <span className="text-xs text-muted-foreground">{new Date(item.data).toLocaleDateString()}</span>
-                                            {(item.horaInicio || item.horaFim) && (
-                                                <span className="text-xs font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                                    <Loader2 className="h-3 w-3" /> {/* Using Clock icon if I had it, but Loader2 is already imported. Let me check imports */}
-                                                    {item.horaInicio || "??"} - {item.horaFim || "??"}
+                                    <div className="p-6 flex-1 space-y-4">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-bold uppercase text-[10px] tracking-widest px-2 py-0.5">Pendente</Badge>
+                                                <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-tighter">
+                                                    <Calendar className="h-3 w-3" />
+                                                    {new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
                                                 </span>
+                                            </div>
+                                            {(item.horaInicio || item.horaFim) && (
+                                                <div className="text-[11px] font-black text-slate-900 bg-white shadow-sm border px-2 py-0.5 rounded-full flex items-center gap-1.5 ">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                                    {item.horaInicio || "??"} — {item.horaFim || "??"}
+                                                </div>
                                             )}
                                         </div>
 
-                                        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1 text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <MapPin className="h-4 w-4 text-muted-foreground" />
-                                                <span className="font-medium">{item.posto.nome}</span>
+                                        <div className="grid sm:grid-cols-2 gap-x-12 gap-y-3">
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest leading-none">Posto</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                                                        <MapPin className="h-4 w-4 text-slate-600" />
+                                                    </div>
+                                                    <span className="font-bold text-slate-800 tracking-tight leading-tight">{item.posto.nome}</span>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest leading-none">Diarista</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-8 w-8 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                                                        <User className="h-4 w-4 text-orange-600" />
+                                                    </div>
+                                                    <span className="font-bold text-slate-800 tracking-tight leading-tight">{item.diarista.nome}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-4 pt-1">
+                                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 group-hover:bg-white group-hover:border-primary/20 transition-all duration-300">
+                                                <div className="h-5 w-5 bg-white rounded border flex items-center justify-center text-[10px] font-black text-slate-900 shadow-sm">PIX</div>
+                                                <span className="text-xs font-mono font-medium text-slate-600">{item.diarista.chavePix || "Sem chave definida"}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <User className="h-4 w-4 text-muted-foreground" />
-                                                <span>{item.diarista.nome}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-4 w-4 flex items-center justify-center text-xs font-bold text-muted-foreground border rounded bg-slate-100">Pix</div>
-                                                <span className="text-xs text-slate-600 font-mono bg-slate-50 px-1 rounded border">
-                                                    {item.diarista.chavePix || "Sem Chave Pix"}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                                <span>Solicitado: {item.meioPagamentoSolicitado.descricao}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 font-bold text-lg text-green-700">
-                                                <DollarSign className="h-4 w-4" />
-                                                <span>{formatCurrency(item.valor)}</span>
+                                                <CreditCard className="h-4 w-4 text-slate-400" />
+                                                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{item.meioPagamentoSolicitado.descricao}</span>
                                             </div>
                                         </div>
 
                                         {item.observacao && (
-                                            <div className="mt-2 text-xs bg-slate-50 p-2 rounded text-slate-600 italic">
+                                            <div className="text-[11px] bg-slate-50/50 border border-slate-100 p-3 rounded-xl text-slate-600 italic leading-relaxed relative overflow-hidden">
+                                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200" />
                                                 "{item.observacao}"
                                             </div>
                                         )}
-                                        <div className="flex flex-col gap-2 mt-3 p-3 bg-slate-50 rounded-md border border-slate-100">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-muted-foreground">Solicitado por:</span>
-                                                    <span className="text-sm font-medium text-slate-700">{item.supervisor.nome}</span>
-                                                </div>
-                                                {item.createdAt && (
-                                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                                        {new Date(item.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {item.justificativaAprovacaoN1 && (
-                                                <div className="text-xs bg-blue-50 border border-blue-100 p-2 rounded text-blue-800">
-                                                    <div className="flex items-center justify-between gap-2 mb-1">
-                                                        <span className="font-semibold">{item.aprovadorN1?.nome || 'Aprovador N1'} (N1)</span>
-                                                        {item.dataAprovacaoN1 && (
-                                                            <span className="text-[10px] text-blue-600/70 whitespace-nowrap">
-                                                                {new Date(item.dataAprovacaoN1).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    "{item.justificativaAprovacaoN1}"
-                                                </div>
-                                            )}
-                                            {item.justificativaAprovacaoN2 && (
-                                                <div className="text-xs bg-emerald-50 border border-emerald-100 p-2 rounded text-emerald-800">
-                                                    <div className="flex items-center justify-between gap-2 mb-1">
-                                                        <span className="font-semibold">{item.aprovador?.nome || 'Aprovador N2'} (N2)</span>
-                                                        {item.dataAprovacao && (
-                                                            <span className="text-[10px] text-emerald-600/70 whitespace-nowrap">
-                                                                {new Date(item.dataAprovacao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    "{item.justificativaAprovacaoN2}"
-                                                </div>
-                                            )}
-                                        </div>
                                     </div>
 
-                                    {/* Actions Block */}
-                                    <div className="flex flex-col justify-center border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4 min-w-[120px]">
+                                    {/* Right Status/Price Block */}
+                                    <div className="p-6 md:w-56 bg-white/50 backdrop-blur-sm border-t md:border-t-0 md:border-l flex flex-col justify-center items-center gap-4 group-hover:bg-primary/[0.02] transition-colors">
+                                        <div className="text-center">
+                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Valor à pagar</span>
+                                            <div className="text-3xl font-black text-slate-900 tracking-tighter mt-1 flex items-baseline gap-0.5">
+                                                <span className="text-sm font-medium text-slate-400 mr-1">R$</span>
+                                                {formatCurrency(item.valor).replace("R$", "").trim()}
+                                            </div>
+                                        </div>
                                         <Button
-                                            className="bg-green-600 hover:bg-green-700 text-white w-full"
+                                            className="w-full bg-slate-900 hover:bg-primary shadow-lg hover:shadow-primary/20 transition-all duration-300 rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest group-hover:scale-[1.03]"
                                             onClick={() => openPayDialog(item)}
                                         >
-                                            <DollarSign className="mr-1 h-4 w-4" /> Pagar
+                                            <DollarSign className="mr-1 h-4 w-4" /> Baixar Pagamento
                                         </Button>
                                     </div>
                                 </div>
@@ -288,7 +278,7 @@ export default function FinanceDashboard() {
                         </Card>
                     ))}
                 </div>
-            )}
+            ) : (}
 
             {/* Payment Dialog */}
             <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>

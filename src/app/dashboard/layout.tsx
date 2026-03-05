@@ -33,14 +33,19 @@ export default async function DashboardLayout({
     const role = (session.user as any).role
 
     return (
-        <div className="flex h-screen flex-col md:flex-row bg-slate-100 overflow-hidden">
+    return (
+        <div className="flex h-screen flex-col md:flex-row bg-[#F8FAFC] overflow-hidden">
             {/* Sidebar for Desktop (Client Component) */}
             <SidebarNav user={{ name: session.user?.name, role: role }} />
 
             {/* Main Content */}
-            <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden">
-                <header className="flex h-16 items-center justify-between border-b bg-white px-4 md:hidden flex-none">
-                    <span className="font-bold">Diárias App</span>
+            <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden relative">
+                <header className="flex h-20 items-center justify-between border-b bg-white/80 backdrop-blur-md px-6 md:hidden flex-none z-30">
+                    <img
+                        src="https://grupojvsserv.com.br/wp-content/uploads/2023/11/logo-horizontal-300px.png"
+                        alt="Grupo JVS"
+                        className="h-8 w-auto object-contain"
+                    />
 
                     {/* Mobile Navigation (Client Component) */}
                     <MobileNav user={{ name: session.user?.name, role: role }} />
