@@ -22,6 +22,8 @@ export async function POST(req: Request) {
             cargaHorariaId,
             valor,
             meioPagamentoSolicitadoId,
+            horaInicio,
+            horaFim,
             observacao
         } = body
 
@@ -37,54 +39,6 @@ export async function POST(req: Request) {
         const startOfDay = new Date(launchDate.getFullYear(), launchDate.getMonth(), launchDate.getDate())
         const endOfDay = new Date(launchDate.getFullYear(), launchDate.getMonth(), launchDate.getDate() + 1)
 
-        // 1. Check for Double Booking of Diarista (DISABLED TO UNBLOCK)
-        /*
-        const existingDiarista = await prisma.cobertura.findFirst({
-            where: {
-                diaristaId,
-                status: { not: 'REPROVADO' }, // Ignore rejected ones
-                data: { gte: startOfDay, lt: endOfDay }
-            }
-        })
-
-        if (existingDiarista) {
-            return new NextResponse(
-                JSON.stringify({ error: "Esta Diarista já possui um agendamento para esta data." }),
-                { status: 409 }
-            )
-        }
-        */
-
-        // 2. Check for Double Coverage of Colaborador (Cannot be covered twice same day)
-        // EXCEPTION: "Banco de Reservas" allows multiple
-        /*
-        if (reservaId) {
-            const reserva = await prisma.reserva.findUnique({
-                where: { id: reservaId },
-                select: { nome: true }
-            })
-
-            const isBanco = reserva?.nome.toLowerCase().includes("banco")
-
-            if (!isBanco) {
-                const existingReserva = await prisma.cobertura.findFirst({
-                    where: {
-                        reservaId,
-                        status: { not: 'REPROVADO' },
-                        data: { gte: startOfDay, lt: endOfDay }
-                    }
-                })
-
-                if (existingReserva) {
-                    return new NextResponse(
-                        JSON.stringify({ error: "Este Colaborador já possui uma cobertura para esta data." }),
-                        { status: 409, headers: { "Content-Type": "application/json" } }
-                    )
-                }
-            }
-        }
-        */
-
         const cobertura = await prisma.cobertura.create({
             data: {
                 data: launchDate,
@@ -96,6 +50,8 @@ export async function POST(req: Request) {
                 meioPagamentoSolicitadoId, // Como a diarista quer receber
                 empresaId: body.empresaId,
                 valor: parseFloat(valor), // Ensure float
+                horaInicio,
+                horaFim,
                 observacao,
                 supervisorId: user.id,
                 status: 'PENDENTE'

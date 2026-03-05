@@ -56,6 +56,8 @@ const formSchema = z.object({
     cargaHorariaId: z.string().min(1, "Carga horária é obrigatória."),
     valor: z.string().min(1, "Valor é obrigatório."),
     meioPagamentoSolicitadoId: z.string().min(1, "Meio de pagamento é obrigatório."),
+    horaInicio: z.string().optional(),
+    horaFim: z.string().optional(),
     observacao: z.string().optional(),
     empresaId: z.string().optional(), // Optional for now, or mandatory? User implies manual entry. Let's make it optional but available.
 })
@@ -383,6 +385,38 @@ export default function NovaDiariaPage() {
                             </FormItem>
                         )}
                     />
+
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* HORA INICIO */}
+                        <FormField
+                            control={form.control}
+                            name="horaInicio"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Hora Início</FormLabel>
+                                    <FormControl>
+                                        <Input type="time" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* HORA FIM */}
+                        <FormField
+                            control={form.control}
+                            name="horaFim"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Hora Fim</FormLabel>
+                                    <FormControl>
+                                        <Input type="time" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         {/* MOTIVO */}

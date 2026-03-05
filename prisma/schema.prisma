@@ -171,6 +171,8 @@ model Cobertura {
   justificativaAprovacaoN2 String? // Parecer do Aprovador N2
 
   createdAt     DateTime @default(now())
+  horaInicio    String?
+  horaFim       String?
   updatedAt     DateTime @updatedAt
 
   anexos        Anexo[]

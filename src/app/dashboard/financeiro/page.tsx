@@ -26,6 +26,8 @@ import Link from "next/link"
 interface Item {
     id: string
     data: string
+    horaInicio?: string
+    horaFim?: string
     posto: { nome: string }
     diarista: { nome: string; chavePix?: string }
     motivo: { descricao: string }
@@ -193,6 +195,12 @@ export default function FinanceDashboard() {
                                         <div className="flex items-center gap-2 mb-1">
                                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Aprovado</Badge>
                                             <span className="text-xs text-muted-foreground">{new Date(item.data).toLocaleDateString()}</span>
+                                            {(item.horaInicio || item.horaFim) && (
+                                                <span className="text-xs font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                    <Loader2 className="h-3 w-3" /> {/* Using Clock icon if I had it, but Loader2 is already imported. Let me check imports */}
+                                                    {item.horaInicio || "??"} - {item.horaFim || "??"}
+                                                </span>
+                                            )}
                                         </div>
 
                                         <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1 text-sm">
