@@ -6,7 +6,7 @@ import { writeFile } from "fs/promises"
 import { join } from "path"
 
 // GET: List items waiting for payment (Status = APROVADO) + Payment Methods
-export async function GET() {
+export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
     const user = session.user as any
@@ -15,9 +15,23 @@ export async function GET() {
         return new NextResponse("Forbidden", { status: 403 })
     }
 
+    const { searchParams } = new URL(req.url)
+    const search = searchParams.get("search") || ""
+
     try {
+        const where: any = { status: 'APROVADO' }
+
+        if (search) {
+            where.OR = [
+                { diarista: { nome: { contains: search, mode: 'insensitive' } } },
+                { posto: { nome: { contains: search, mode: 'insensitive' } } },
+                { observacao: { contains: search, mode: 'insensitive' } },
+                { supervisor: { nome: { contains: search, mode: 'insensitive' } } }
+            ]
+        }
+
         const pendencias = await prisma.cobertura.findMany({
-            where: { status: 'APROVADO' },
+            where,
             include: {
                 posto: true,
                 diarista: true,

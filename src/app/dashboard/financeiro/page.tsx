@@ -51,6 +51,7 @@ export default function FinanceDashboard() {
     const [items, setItems] = useState<Item[]>([])
     const [meios, setMeios] = useState<Meio[]>([])
     const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState("")
 
     // Payment Dialog State
     const [selectedItem, setSelectedItem] = useState<Item | null>(null)
@@ -70,12 +71,15 @@ export default function FinanceDashboard() {
     })
 
     useEffect(() => {
-        fetchItems()
-    }, [])
+        const timer = setTimeout(() => {
+            fetchItems()
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [search])
 
     const fetchItems = async () => {
         try {
-            const res = await fetch("/api/finance/payable")
+            const res = await fetch(`/api/finance/payable?search=${encodeURIComponent(search)}`)
             if (!res.ok) throw new Error()
             const data = await res.json()
             setItems(data.items)
@@ -148,15 +152,26 @@ export default function FinanceDashboard() {
                         </h1>
                         <p className="text-muted-foreground">Itens aprovados aguardando baixa financeira.</p>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => setExportOpen(true)}>
-                            <Download className="mr-2 h-4 w-4" /> Exportar
-                        </Button>
-                        <Link href="/dashboard/financeiro/historico">
-                            <Button variant="outline">
-                                <Calendar className="mr-2 h-4 w-4" /> Histórico
+                    <div className="flex flex-col sm:flex-row w-full md:w-auto gap-2">
+                        <div className="relative w-full sm:w-64">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Pesquisar..."
+                                className="pl-9"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setExportOpen(true)}>
+                                <Download className="mr-2 h-4 w-4" /> Exportar
                             </Button>
-                        </Link>
+                            <Link href="/dashboard/financeiro/historico" className="flex-1 sm:flex-none">
+                                <Button variant="outline" className="w-full">
+                                    <Calendar className="mr-2 h-4 w-4" /> Histórico
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>
