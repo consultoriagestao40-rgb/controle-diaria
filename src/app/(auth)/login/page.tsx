@@ -72,7 +72,7 @@ export default function LoginPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password" name="password" className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Senha de Acesso</Label>
+                            <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Senha de Acesso</Label>
                             <Input
                                 id="password"
                                 type="password"
