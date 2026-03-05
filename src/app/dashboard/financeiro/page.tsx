@@ -249,6 +249,48 @@ export default function FinanceDashboard() {
                                             </div>
                                         </div>
 
+                                        {/* Approval Trail (N1 & N2) */}
+                                        <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100/50 mt-2">
+                                            {item.aprovadorN1 && (
+                                                <div className="space-y-1 p-2 rounded-xl bg-slate-50/50 border border-slate-100/50">
+                                                    <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                                                        <CheckCircle className="h-3 w-3 text-green-500" />
+                                                        Aprovado N1
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-slate-700">{item.aprovadorN1.nome}</span>
+                                                        {item.dataAprovacaoN1 && (
+                                                            <span className="text-[9px] text-slate-400 font-medium">
+                                                                {format(new Date(item.dataAprovacaoN1), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                                            </span>
+                                                        )}
+                                                        {item.justificativaAprovacaoN1 && (
+                                                            <p className="text-[10px] text-slate-500 italic mt-1 leading-tight">"{item.justificativaAprovacaoN1}"</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {item.aprovador && (
+                                                <div className="space-y-1 p-2 rounded-xl bg-primary/[0.02] border border-primary/10">
+                                                    <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-primary">
+                                                        <CheckCircle className="h-3 w-3" />
+                                                        Aprovado N2
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-slate-700">{item.aprovador.nome}</span>
+                                                        {item.dataAprovacao && (
+                                                            <span className="text-[9px] text-slate-400 font-medium">
+                                                                {format(new Date(item.dataAprovacao), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                                            </span>
+                                                        )}
+                                                        {item.justificativaAprovacaoN2 && (
+                                                            <p className="text-[10px] text-slate-500 italic mt-1 leading-tight">"{item.justificativaAprovacaoN2}"</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {item.observacao && (
                                             <div className="text-[11px] bg-slate-50/50 border border-slate-100 p-3 rounded-xl text-slate-600 italic leading-relaxed relative overflow-hidden">
                                                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200" />
