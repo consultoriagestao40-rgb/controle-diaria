@@ -121,31 +121,42 @@ export default function ApproverDashboard() {
     }
 
     return (
-        <div className="space-y-6 pb-20">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Painel de Aprovação</h1>
-                    <p className="text-muted-foreground">Analise as coberturas pendentes.</p>
+        <div className="space-y-8 pb-32">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
+                <div className="space-y-1">
+                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-3">
+                        Controle de <span className="text-primary italic">Aprovação</span>
+                    </h1>
+                    <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">Análise e validação de plantões</p>
                 </div>
                 {!loading && (
-                    <div className="flex flex-col items-end">
-                        <span className="text-sm text-muted-foreground">Total a Aprovar</span>
-                        <div className="text-2xl font-bold text-slate-800">
-                            {formatCurrency(filteredItems.reduce((acc: number, item: Item) => acc + Number(item.valor), 0))}
+                    <div className="flex items-center gap-6 bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-sm">
+                        <div className="text-right">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total sob análise</span>
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter mt-1">
+                                {formatCurrency(filteredItems.reduce((acc: number, item: Item) => acc + Number(item.valor), 0))}
+                            </div>
+                        </div>
+                        <div className="h-10 w-1 px-1 bg-primary/10 rounded-full" />
+                        <div className="bg-primary/5 p-3 rounded-xl">
+                            <CheckCircle className="h-6 w-6 text-primary" />
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Search Bar */}
-            <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                    placeholder="Filtrar por posto, diarista, colaborador..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 bg-white"
-                />
+            {/* Search Bar - Futuristic Style */}
+            <div className="relative group max-w-2xl">
+                <div className="absolute inset-0 bg-primary/5 rounded-2xl blur-xl group-focus-within:bg-primary/10 transition-all opacity-0 group-focus-within:opacity-100" />
+                <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                    <Input
+                        placeholder="Filtrar por posto, diarista, colaborador..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="h-14 pl-12 bg-white/80 backdrop-blur-md border-white shadow-sm rounded-2xl focus:ring-primary/20 transition-all font-medium text-lg placeholder:text-slate-300"
+                    />
+                </div>
             </div>
 
             {loading ? (
