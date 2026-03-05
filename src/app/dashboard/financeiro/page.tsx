@@ -278,7 +278,7 @@ export default function FinanceDashboard() {
                         </Card>
                     ))}
                 </div>
-            ) : (}
+            )}
 
             {/* Payment Dialog */}
             <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>

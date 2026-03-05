@@ -33,7 +33,6 @@ export default async function DashboardLayout({
     const role = (session.user as any).role
 
     return (
-    return (
         <div className="flex h-screen flex-col md:flex-row bg-[#F8FAFC] overflow-hidden">
             {/* Sidebar for Desktop (Client Component) */}
             <SidebarNav user={{ name: session.user?.name, role: role }} />
