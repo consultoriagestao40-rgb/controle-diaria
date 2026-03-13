@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckCircle, DollarSign, Loader2, Calendar, MapPin, User, FileText, CreditCard, Upload, Download, Search } from "lucide-react"
+import { CheckCircle, DollarSign, Loader2, Calendar, MapPin, User, FileText, CreditCard, Upload, Download, Search, AlertTriangle, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -346,29 +346,27 @@ export default function FinanceDashboard() {
                                                 {formatCurrency(item.valor).replace("R$", "").trim()}
                                             </div>
                                         </div>
-                                        <div className="flex flex-col gap-2 w-full">
+                                        <div className="flex flex-col gap-3 w-full">
                                             <Button
-                                                className="w-full bg-slate-900 hover:bg-primary shadow-lg hover:shadow-primary/20 transition-all duration-300 rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest hover:scale-[1.03]"
+                                                className="w-full bg-slate-900 hover:bg-primary shadow-lg hover:shadow-primary/20 transition-all duration-300 rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest hover:scale-[1.02]"
                                                 onClick={() => openPayDialog(item)}
                                             >
-                                                <DollarSign className="mr-1 h-4 w-4" /> Baixar Pagamento
+                                                <DollarSign className="mr-1.5 h-4 w-4" /> Baixar Pagamento
                                             </Button>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    className="text-[10px] font-bold uppercase tracking-tighter h-9 border-orange-200 text-orange-600 hover:bg-orange-50 rounded-lg"
-                                                    onClick={() => openActionDialog(item, 'AJUSTE')}
-                                                >
-                                                    Pedir Revisão
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    className="text-[10px] font-bold uppercase tracking-tighter h-9 border-red-200 text-red-600 hover:bg-red-50 rounded-lg"
-                                                    onClick={() => openActionDialog(item, 'REPROVAR')}
-                                                >
-                                                    Reprovar
-                                                </Button>
-                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 rounded-xl h-11 font-bold uppercase text-[10px] tracking-widest hover:scale-[1.02]"
+                                                onClick={() => openActionDialog(item, 'AJUSTE')}
+                                            >
+                                                <AlertTriangle className="mr-1.5 h-3.5 w-3.5" /> Pedir Revisão
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all duration-300 rounded-xl h-11 font-bold uppercase text-[10px] tracking-widest hover:scale-[1.02]"
+                                                onClick={() => openActionDialog(item, 'REPROVAR')}
+                                            >
+                                                <XCircle className="mr-1.5 h-3.5 w-3.5" /> Reprovar
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>
