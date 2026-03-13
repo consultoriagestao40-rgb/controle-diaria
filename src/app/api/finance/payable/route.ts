@@ -68,27 +68,28 @@ export async function POST(req: Request) {
     try {
         const formData = await req.formData()
         const id = formData.get("id") as string
+        const acao = formData.get("acao") as string || 'PAGO' // Default to PAGO for backward compatibility
         const dataPagamento = formData.get("dataPagamento") as string
         const meioPagamentoId = formData.get("meioPagamentoId") as string
         const justificativa = formData.get("justificativa") as string
         const file = formData.get("comprovante") as File | null
 
-        if (!id || !dataPagamento || !meioPagamentoId) {
-            return new NextResponse("Missing fields", { status: 400 })
+        if (!id) {
+            return new NextResponse("Missing id", { status: 400 })
+        }
+
+        if (acao === 'PAGO' && (!dataPagamento || !meioPagamentoId)) {
+            return new NextResponse("Missing fields for payment", { status: 400 })
         }
 
         // Handle File Upload if present
         let anexoData = undefined
-        if (file) {
+        if (file && acao === 'PAGO') {
             const bytes = await file.arrayBuffer()
             const buffer = Buffer.from(bytes)
 
             // Ensure directory exists (basic check, assume public/uploads exists or create)
-            // Check "public/uploads"
             const uploadDir = join(process.cwd(), "public", "uploads")
-            // Note: In production Vercel, local filesystem is not persistent. 
-            // But for this "local dev" focused task, saving to public/uploads works.
-            // We'll use a simple timestamp name
             const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`
             const filepath = join(uploadDir, filename)
 
@@ -105,28 +106,53 @@ export async function POST(req: Request) {
             }
         }
 
+        let updateData: any = {}
+        let historyParaStatus: any = 'PAGO'
+
+        if (acao === 'PAGO') {
+            updateData = {
+                status: 'PAGO',
+                dataPagamento: new Date(dataPagamento),
+                meioPagamentoEfetivadoId: meioPagamentoId,
+                justificativaPagamento: justificativa,
+                financeiroId: user.id,
+                anexos: anexoData
+            }
+            historyParaStatus = 'PAGO'
+        } else if (acao === 'REPROVAR') {
+            updateData = {
+                status: 'REPROVADO',
+                justificativaReprovacao: `[FINANCEIRO] ${justificativa}`,
+            }
+            historyParaStatus = 'REPROVADO'
+        } else if (acao === 'AJUSTE') {
+            updateData = {
+                status: 'AJUSTE',
+                ajusteSolicitado: `[FINANCEIRO] ${justificativa}`,
+            }
+            historyParaStatus = 'AJUSTE'
+        }
+
         await prisma.$transaction([
             prisma.cobertura.update({
                 where: { id },
-                data: {
-                    status: 'PAGO',
-                    dataPagamento: new Date(dataPagamento),
-                    meioPagamentoEfetivadoId: meioPagamentoId,
-                    justificativaPagamento: justificativa,
-                    financeiroId: user.id,
-                    anexos: anexoData // Link the new attachment
-                }
+                data: updateData
             }),
             prisma.historicoWorkflow.create({
                 data: {
                     coberturaId: id,
                     deStatus: 'APROVADO',
-                    paraStatus: 'PAGO',
+                    paraStatus: historyParaStatus,
                     usuarioId: user.id,
-                    observacao: `Pagamento realizado via ${meioPagamentoId}. ${file ? 'Comprovante anexado.' : ''}`
+                    observacao: `Ação: ${acao} (Financeiro). ${justificativa || ''}`
                 }
             })
         ])
+
+        // Only notify if it's not a standard payment (or if requested)
+        // For REPROVADO and AJUSTE, it's essential to notify the supervisor
+        const { notifyStatusChange } = require("@/lib/email")
+        await notifyStatusChange(id, historyParaStatus, justificativa)
 
         return NextResponse.json({ success: true })
     } catch (error) {

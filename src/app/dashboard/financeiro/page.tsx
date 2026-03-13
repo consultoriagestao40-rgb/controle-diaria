@@ -64,6 +64,9 @@ export default function FinanceDashboard() {
     })
     const [file, setFile] = useState<File | null>(null)
     const [processing, setProcessing] = useState(false)
+    const [actionDialogOpen, setActionDialogOpen] = useState(false)
+    const [actionType, setActionType] = useState<'REPROVAR' | 'AJUSTE' | null>(null)
+    const [actionJustification, setActionJustification] = useState("")
 
     // Export Dialog State
     const [exportOpen, setExportOpen] = useState(false)
@@ -110,6 +113,7 @@ export default function FinanceDashboard() {
         try {
             const formData = new FormData()
             formData.append("id", selectedItem.id)
+            formData.append("acao", "PAGO")
             formData.append("dataPagamento", payData.date)
             formData.append("meioPagamentoId", payData.methodId)
             formData.append("justificativa", payData.obs)
@@ -128,6 +132,40 @@ export default function FinanceDashboard() {
             fetchItems()
         } catch {
             toast.error("Erro ao processar pagamento")
+        } finally {
+            setProcessing(false)
+        }
+    }
+
+    const openActionDialog = (item: Item, type: 'REPROVAR' | 'AJUSTE') => {
+        setSelectedItem(item)
+        setActionType(type)
+        setActionJustification("")
+        setActionDialogOpen(true)
+    }
+
+    const submitAction = async () => {
+        if (!selectedItem || !actionType) return
+        setProcessing(true)
+
+        try {
+            const formData = new FormData()
+            formData.append("id", selectedItem.id)
+            formData.append("acao", actionType)
+            formData.append("justificativa", actionJustification)
+
+            const res = await fetch("/api/finance/payable", {
+                method: "POST",
+                body: formData
+            })
+            if (!res.ok) throw new Error()
+
+            toast.success(`${actionType === 'REPROVAR' ? 'Reprovação' : 'Ajuste'} solicitado com sucesso!`)
+            setActionDialogOpen(false)
+            setSelectedItem(null)
+            fetchItems()
+        } catch {
+            toast.error("Erro ao processar ação")
         } finally {
             setProcessing(false)
         }
@@ -308,12 +346,30 @@ export default function FinanceDashboard() {
                                                 {formatCurrency(item.valor).replace("R$", "").trim()}
                                             </div>
                                         </div>
-                                        <Button
-                                            className="w-full bg-slate-900 hover:bg-primary shadow-lg hover:shadow-primary/20 transition-all duration-300 rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest group-hover:scale-[1.03]"
-                                            onClick={() => openPayDialog(item)}
-                                        >
-                                            <DollarSign className="mr-1 h-4 w-4" /> Baixar Pagamento
-                                        </Button>
+                                        <div className="flex flex-col gap-2 w-full">
+                                            <Button
+                                                className="w-full bg-slate-900 hover:bg-primary shadow-lg hover:shadow-primary/20 transition-all duration-300 rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest hover:scale-[1.03]"
+                                                onClick={() => openPayDialog(item)}
+                                            >
+                                                <DollarSign className="mr-1 h-4 w-4" /> Baixar Pagamento
+                                            </Button>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    className="text-[10px] font-bold uppercase tracking-tighter h-9 border-orange-200 text-orange-600 hover:bg-orange-50 rounded-lg"
+                                                    onClick={() => openActionDialog(item, 'AJUSTE')}
+                                                >
+                                                    Pedir Revisão
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className="text-[10px] font-bold uppercase tracking-tighter h-9 border-red-200 text-red-600 hover:bg-red-50 rounded-lg"
+                                                    onClick={() => openActionDialog(item, 'REPROVAR')}
+                                                >
+                                                    Reprovar
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -323,7 +379,7 @@ export default function FinanceDashboard() {
             )}
 
             {/* Payment Dialog */}
-            <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+            <Dialog open={!!selectedItem && !actionDialogOpen} onOpenChange={(open) => !open && setSelectedItem(null)}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Registrar Pagamento</DialogTitle>
@@ -382,6 +438,45 @@ export default function FinanceDashboard() {
                             onClick={submitPayment}
                             disabled={processing}
                             className="bg-green-600 hover:bg-green-700"
+                        >
+                            {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Confirmar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Reject/Revision Dialog */}
+            <Dialog open={actionDialogOpen} onOpenChange={(open) => !open && setActionDialogOpen(false)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {actionType === 'REPROVAR' ? 'Reprovar Cobertura' : 'Solicitar Ajuste/Revisão'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {actionType === 'REPROVAR'
+                                ? 'Justifique a reprovação. O item será cancelado definitivamente.'
+                                : 'Descreva o que precisa ser revisado pelo supervisor.'
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4">
+                        <Label>Justificativa / Observação</Label>
+                        <Textarea
+                            value={actionJustification}
+                            onChange={e => setActionJustification(e.target.value)}
+                            placeholder="Digite aqui..."
+                            className="mt-2"
+                        />
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setActionDialogOpen(false)}>Cancelar</Button>
+                        <Button
+                            variant={actionType === 'REPROVAR' ? 'destructive' : 'default'}
+                            onClick={submitAction}
+                            disabled={processing || !actionJustification.trim()}
                         >
                             {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Confirmar
