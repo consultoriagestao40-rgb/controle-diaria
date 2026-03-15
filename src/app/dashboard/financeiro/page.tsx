@@ -354,18 +354,16 @@ export default function FinanceDashboard() {
                                                 <DollarSign className="mr-1.5 h-4 w-4" /> Baixar Pagamento
                                             </Button>
                                             <Button
-                                                variant="outline"
-                                                className="w-full border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 rounded-xl h-11 font-bold uppercase text-[10px] tracking-widest hover:scale-[1.02]"
+                                                className="w-full bg-orange-500 hover:bg-orange-600 shadow-lg hover:shadow-orange-500/20 text-white transition-all duration-300 rounded-xl h-11 font-bold uppercase text-[10px] tracking-widest hover:scale-[1.02] border-none"
                                                 onClick={() => openActionDialog(item, 'AJUSTE')}
                                             >
-                                                <AlertTriangle className="mr-1.5 h-3.5 w-3.5" /> Pedir Revisão
+                                                <AlertTriangle className="mr-1.5 h-3.5 w-3.5 text-white" /> Pedir Revisão
                                             </Button>
                                             <Button
-                                                variant="outline"
-                                                className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all duration-300 rounded-xl h-11 font-bold uppercase text-[10px] tracking-widest hover:scale-[1.02]"
+                                                className="w-full bg-red-500 hover:bg-red-600 shadow-lg hover:shadow-red-500/20 text-white transition-all duration-300 rounded-xl h-11 font-bold uppercase text-[10px] tracking-widest hover:scale-[1.02] border-none"
                                                 onClick={() => openActionDialog(item, 'REPROVAR')}
                                             >
-                                                <XCircle className="mr-1.5 h-3.5 w-3.5" /> Reprovar
+                                                <XCircle className="mr-1.5 h-3.5 w-3.5 text-white" /> Reprovar
                                             </Button>
                                         </div>
                                     </div>
