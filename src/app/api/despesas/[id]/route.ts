@@ -1,0 +1,202 @@
+import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+
+// GET: Detalhes de uma despesa específica
+export async function GET(
+    req: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const session = await getServerSession(authOptions)
+    if (!session) return new NextResponse("Unauthorized", { status: 401 })
+    
+    const user = session.user as any
+    const { id } = await params
+
+    try {
+        const despesa = await prisma.despesa.findUnique({
+            where: { id },
+            include: {
+                solicitante: {
+                    select: { id: true, nome: true, email: true, role: true }
+                },
+                aprovador: {
+                    select: { id: true, nome: true, email: true }
+                },
+                financeiro: {
+                    select: { id: true, nome: true, email: true }
+                },
+                anexos: true,
+                historico: {
+                    include: {
+                        usuario: { select: { nome: true, role: true } }
+                    },
+                    orderBy: { data: 'asc' }
+                }
+            }
+        })
+
+        if (!despesa) {
+            return new NextResponse(
+                JSON.stringify({ error: "Despesa não encontrada." }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
+        // Regra de segurança: Usuário comum só vê suas próprias despesas
+        const isAdminOrFinance = ['ADMIN', 'FINANCEIRO', 'APROVADOR', 'APROVADOR_N1', 'APROVADOR_N2'].includes(user.role)
+        if (despesa.solicitanteId !== user.id && !isAdminOrFinance) {
+            return new NextResponse("Forbidden", { status: 403 })
+        }
+
+        return NextResponse.json(despesa)
+    } catch (error) {
+        console.error("Erro ao buscar detalhes da despesa:", error)
+        return new NextResponse("Internal Error", { status: 500 })
+    }
+}
+
+// PATCH: Editar despesa (só permitido se estiver em RASCUNHO ou enviado para aprovação pelo próprio dono)
+export async function PATCH(
+    req: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const session = await getServerSession(authOptions)
+    if (!session) return new NextResponse("Unauthorized", { status: 401 })
+    
+    const user = session.user as any
+    const { id } = await params
+
+    try {
+        const despesa = await prisma.despesa.findUnique({
+            where: { id }
+        })
+
+        if (!despesa) {
+            return new NextResponse(
+                JSON.stringify({ error: "Despesa não encontrada." }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
+        if (despesa.solicitanteId !== user.id && user.role !== 'ADMIN') {
+            return new NextResponse("Forbidden", { status: 403 })
+        }
+
+        if (despesa.status !== 'RASCUNHO' && despesa.status !== 'AGUARDANDO_APROVACAO') {
+            return new NextResponse(
+                JSON.stringify({ error: "Só é possível editar despesas em estado RASCUNHO ou AGUARDANDO_APROVACAO." }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
+        const body = await req.json()
+        const { descricao, valorSolicitado, enviarParaAprovacao } = body
+
+        const updateData: any = {}
+        if (descricao) updateData.descricao = descricao
+        
+        if (valorSolicitado) {
+            const valor = parseFloat(valorSolicitado)
+            if (isNaN(valor) || valor <= 0) {
+                return new NextResponse(
+                    JSON.stringify({ error: "Valor solicitado inválido." }),
+                    { status: 400, headers: { "Content-Type": "application/json" } }
+                )
+            }
+            updateData.valorSolicitado = valor
+        }
+
+        let novoStatus = despesa.status
+        if (enviarParaAprovacao && despesa.status === 'RASCUNHO') {
+            novoStatus = 'AGUARDANDO_APROVACAO'
+            updateData.status = novoStatus
+        }
+
+        const despesaAtualizada = await prisma.$transaction(async (tx) => {
+            const atualizada = await tx.despesa.update({
+                where: { id },
+                data: updateData
+            })
+
+            // Registrar histórico se houve mudança de status
+            if (novoStatus !== despesa.status) {
+                await tx.historicoDespesa.create({
+                    data: {
+                        despesaId: id,
+                        deStatus: despesa.status,
+                        paraStatus: novoStatus,
+                        usuarioId: user.id,
+                        observacao: "Despesa enviada para aprovação."
+                    }
+                })
+            }
+
+            return atualizada
+        })
+
+        return NextResponse.json(despesaAtualizada)
+    } catch (error) {
+        console.error("Erro ao editar despesa:", error)
+        return new NextResponse("Internal Error", { status: 500 })
+    }
+}
+
+// DELETE: Remover despesa (só em RASCUNHO)
+export async function DELETE(
+    req: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const session = await getServerSession(authOptions)
+    if (!session) return new NextResponse("Unauthorized", { status: 401 })
+    
+    const user = session.user as any
+    const { id } = await params
+
+    try {
+        const despesa = await prisma.despesa.findUnique({
+            where: { id }
+        })
+
+        if (!despesa) {
+            return new NextResponse(
+                JSON.stringify({ error: "Despesa não encontrada." }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
+        if (despesa.solicitanteId !== user.id && user.role !== 'ADMIN') {
+            return new NextResponse("Forbidden", { status: 403 })
+        }
+
+        if (despesa.status !== 'RASCUNHO') {
+            return new NextResponse(
+                JSON.stringify({ error: "Só é possível excluir despesas em estado de RASCUNHO." }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
+        await prisma.$transaction(async (tx) => {
+            // Remove histórico associado
+            await tx.historicoDespesa.deleteMany({
+                where: { despesaId: id }
+            })
+            
+            // Remove anexos associados
+            await tx.anexo.deleteMany({
+                where: { despesaId: id }
+            })
+
+            // Remove despesa
+            await tx.despesa.delete({
+                where: { id }
+            })
+        })
+
+        return new NextResponse(null, { status: 204 })
+    } catch (error) {
+        console.error("Erro ao deletar despesa:", error)
+        return new NextResponse("Internal Error", { status: 500 })
+    }
+}

@@ -49,6 +49,12 @@ model User {
   historico           HistoricoWorkflow[]
   
   postosAutorizados   Posto[]
+
+  // Novas Relacoes para Despesas
+  despesasSolicitadas   Despesa[] @relation("SolicitanteDespesa")
+  despesasAprovadas     Despesa[] @relation("AprovadorDespesa")
+  despesasPagas         Despesa[] @relation("FinanceiroDespesa")
+  historicosDespesa     HistoricoDespesa[]
 }
 
 // Catalogs
@@ -193,6 +199,9 @@ model Anexo {
   coberturaId String?   // Pode ser anexo de baixa (financeiro) ou lançamento (supervisor)
   cobertura   Cobertura? @relation(fields: [coberturaId], references: [id])
   
+  despesaId   String?
+  despesa     Despesa?   @relation("AnexosDespesa", fields: [despesaId], references: [id])
+  
   auditUpload DateTime @default(now())
   // Se precisar de soft delete ou audit de remocao, adicionar flag ativo
   ativo       Boolean  @default(true)
@@ -212,4 +221,69 @@ model HistoricoWorkflow {
   
   data         DateTime        @default(now())
   observacao   String?         // Texto livre de log ou snapshot de alteracao
+}
+
+// Novos Enums e Modelos para Reembolso e Adiantamento (ReembolsaFácil)
+
+enum TipoDespesa {
+  REEMBOLSO
+  ADIANTAMENTO
+}
+
+enum StatusDespesa {
+  RASCUNHO
+  AGUARDANDO_APROVACAO
+  APROVADO
+  REPROVADO
+  PAGO
+  AGUARDANDO_PRESTACAO
+  CONCLUIDO
+}
+
+model Despesa {
+  id                    String            @id @default(uuid())
+  tipo                  TipoDespesa
+  status                StatusDespesa     @default(RASCUNHO)
+  descricao             String
+  valorSolicitado       Decimal           // Valor estimado (Adiantamento) ou Gasto (Reembolso)
+  valorComprovado       Decimal?          // Preenchido na Prestação de Contas
+  saldoFinal            Decimal?          // Calculado automaticamente (Solicitado vs Comprovado)
+  
+  // Atores do Fluxo
+  solicitanteId         String
+  solicitante           User              @relation("SolicitanteDespesa", fields: [solicitanteId], references: [id])
+  
+  aprovadorId           String?
+  aprovador             User?             @relation("AprovadorDespesa", fields: [aprovadorId], references: [id])
+  dataAprovacao         DateTime?
+  justificativaAprovacao String?
+  
+  financeiroId          String?
+  financeiro            User?             @relation("FinanceiroDespesa", fields: [financeiroId], references: [id])
+  dataPagamento         DateTime?
+  
+  justificativaReprovacao String?
+  observacao            String?
+
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  // Relacionamentos modulares
+  anexos                Anexo[]           @relation("AnexosDespesa")
+  historico             HistoricoDespesa[]
+}
+
+model HistoricoDespesa {
+  id           String          @id @default(uuid())
+  despesaId    String
+  despesa      Despesa         @relation(fields: [despesaId], references: [id])
+  
+  deStatus     StatusDespesa?
+  paraStatus   StatusDespesa
+  
+  usuarioId    String
+  usuario      User            @relation(fields: [usuarioId], references: [id])
+  
+  data         DateTime        @default(now())
+  observacao   String?
 }
