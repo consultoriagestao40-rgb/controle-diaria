@@ -11,7 +11,9 @@ import {
     FileText,
     CheckSquare,
     DollarSign,
-    BarChart
+    BarChart,
+    Receipt,
+    Wallet
 } from "lucide-react"
 
 interface MobileNavProps {
@@ -33,6 +35,12 @@ export function MobileNav({ user }: MobileNavProps) {
                     { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
                     { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
                     { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
+                    
+                    // REEMBOLSA FÁCIL
+                    { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
+                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
+                    { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
+                    { label: "Pagar Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
                 ]
             case "SUPERVISOR":
                 return [
@@ -40,25 +48,40 @@ export function MobileNav({ user }: MobileNavProps) {
                     { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
+                    
+                    // REEMBOLSA FÁCIL
+                    { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
+                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                 ]
             case "APROVADOR":
                 return [
                     { label: "Aprovações", href: "/dashboard/aprovador", icon: CheckSquare },
+                    
+                    // REEMBOLSA FÁCIL
+                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
+                    { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
                 ]
             case "FINANCEIRO":
                 return [
                     { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
+                    
+                    // REEMBOLSA FÁCIL
+                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
+                    { label: "Pagar Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
                 ]
             case "ENCARREGADO":
                 return [
                     { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
+                    { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
+                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                 ]
             case "RH":
                 return [
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                 ]
             default:
                 return []
