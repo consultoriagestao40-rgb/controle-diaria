@@ -60,7 +60,8 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
             const despesasItems: NavItem[] = []
             
             if (["ADMIN", "SUPERVISOR", "ENCARREGADO"].includes(role)) {
-                despesasItems.push({ label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt })
+                despesasItems.push({ label: "Novo Reembolso", href: "/dashboard?action=reembolso", icon: Receipt })
+                despesasItems.push({ label: "Novo Adiantamento", href: "/dashboard?action=adiantamento", icon: DollarSign })
             }
             
             despesasItems.push({ label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet })
