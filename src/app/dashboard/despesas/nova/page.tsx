@@ -98,39 +98,60 @@ export default function NovaDespesaPage() {
             </div>
 
             {/* Toggle Tipo */}
-            <div className="grid grid-cols-2 gap-4 bg-white p-2 rounded-2xl border shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
+                    type="button"
                     onClick={() => {
                         setTipo("REEMBOLSO")
                         setAnexos([])
                     }}
-                    className={`flex items-center justify-center gap-3 py-4 rounded-xl font-bold transition-all duration-300 ${
+                    className={`flex items-start gap-4 p-5 rounded-2xl border text-left transition-all duration-300 cursor-pointer ${
                         tipo === "REEMBOLSO"
-                            ? "bg-slate-900 text-white shadow-lg scale-[1.02]"
-                            : "text-slate-500 hover:bg-slate-50"
+                            ? "bg-slate-900 text-white border-slate-900 shadow-xl scale-[1.01]"
+                            : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                 >
-                    <Receipt className="h-5 w-5" />
-                    <span>Reembolso (Gasto Efetuado)</span>
+                    <div className={`p-3 rounded-xl transition-colors ${
+                        tipo === "REEMBOLSO" ? "bg-white/10 text-primary" : "bg-slate-100 text-slate-600"
+                    }`}>
+                        <Receipt className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-1">
+                        <p className="font-bold text-sm sm:text-base uppercase tracking-wide">Reembolso</p>
+                        <p className={`text-xs leading-relaxed ${tipo === "REEMBOLSO" ? "text-slate-400" : "text-slate-500"}`}>
+                            Para despesas já pagas com seu próprio dinheiro. Requer anexo de cupom ou nota fiscal.
+                        </p>
+                    </div>
                 </button>
+
                 <button
+                    type="button"
                     onClick={() => {
                         setTipo("ADIANTAMENTO")
                         setAnexos([])
                     }}
-                    className={`flex items-center justify-center gap-3 py-4 rounded-xl font-bold transition-all duration-300 ${
+                    className={`flex items-start gap-4 p-5 rounded-2xl border text-left transition-all duration-300 cursor-pointer ${
                         tipo === "ADIANTAMENTO"
-                            ? "bg-slate-900 text-white shadow-lg scale-[1.02]"
-                            : "text-slate-500 hover:bg-slate-50"
+                            ? "bg-slate-900 text-white border-slate-900 shadow-xl scale-[1.01]"
+                            : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                 >
-                    <DollarSign className="h-5 w-5" />
-                    <span>Adiantamento (Valor Previsto)</span>
+                    <div className={`p-3 rounded-xl transition-colors ${
+                        tipo === "ADIANTAMENTO" ? "bg-white/10 text-primary" : "bg-slate-100 text-slate-600"
+                    }`}>
+                        <DollarSign className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-1">
+                        <p className="font-bold text-sm sm:text-base uppercase tracking-wide">Adiantamento</p>
+                        <p className={`text-xs leading-relaxed ${tipo === "ADIANTAMENTO" ? "text-slate-400" : "text-slate-500"}`}>
+                            Solicitação de fundos antes de realizar a despesa. Exige prestação de contas depois.
+                        </p>
+                    </div>
                 </button>
             </div>
 
             <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white">
-                <CardHeader className="bg-slate-50 border-b border-slate-100 p-8">
+                <CardHeader className="bg-slate-50 border-b border-slate-100 p-6 sm:p-8">
                     <CardTitle className="text-xl font-black text-slate-900">
                         {tipo === "REEMBOLSO" ? "Dados do Reembolso" : "Dados do Adiantamento"}
                     </CardTitle>
@@ -140,7 +161,7 @@ export default function NovaDespesaPage() {
                             : "Use essa modalidade para prever um gasto corporativo e receber o valor adiantado (sujeito a prestação de contas posterior)."}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="p-8 space-y-6">
+                <CardContent className="p-6 sm:p-8 space-y-6">
                     {/* Descrição */}
                     <div className="space-y-2">
                         <Label htmlFor="descricao" className="font-bold text-slate-700">Descrição Detalhada *</Label>
@@ -173,7 +194,7 @@ export default function NovaDespesaPage() {
 
                     {/* Comprovantes */}
                     <div className="space-y-4 pt-4 border-t border-slate-100">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div className="space-y-1">
                                 <Label className="font-bold text-slate-700">
                                     Comprovantes & Notas Fiscais {tipo === "REEMBOLSO" ? "*" : "(Opcional na solicitação)"}
@@ -185,7 +206,7 @@ export default function NovaDespesaPage() {
                                 variant="outline"
                                 disabled={uploading}
                                 onClick={handleFileSimulate}
-                                className="h-12 px-6 rounded-xl font-bold uppercase tracking-widest text-[10px] gap-2 hover:bg-slate-50 transition-all active:scale-95"
+                                className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold uppercase tracking-widest text-[10px] gap-2 hover:bg-slate-50 transition-all active:scale-95"
                             >
                                 {uploading ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
