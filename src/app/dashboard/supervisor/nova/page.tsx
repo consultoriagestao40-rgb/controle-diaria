@@ -141,11 +141,11 @@ export default function NovaDiariaPage() {
     }
 
     return (
-        <div className="space-y-8 max-w-2xl mx-auto pb-32 px-6 sm:px-0 relative">
+        <div className="space-y-8 max-w-2xl mx-auto pb-32 px-0 sm:px-0 relative">
             {/* Background Glow */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="flex items-center gap-4 relative z-10">
+            <div className="flex items-center gap-4 relative z-10 px-4 sm:px-0">
                 <Link href="/dashboard/supervisor">
                     <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl bg-white/50 border-white hover:bg-white transition-all shrink-0 cursor-pointer">
                         <ArrowLeft className="h-6 w-6 text-slate-600" />
@@ -159,8 +159,8 @@ export default function NovaDiariaPage() {
                 </div>
             </div>
 
-            <Card className="glass-card border-none premium-shadow relative z-10">
-                <CardContent className="p-6 sm:p-8">
+            <Card className="border-none bg-transparent shadow-none sm:glass-card sm:premium-shadow relative z-10">
+                <CardContent className="p-0 sm:p-8">
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
                             console.log("Validation Errors:", errors)

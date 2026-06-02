@@ -134,8 +134,8 @@ function EditarDiariaForm({ id }: { id: string }) {
     }
 
     return (
-        <div className="space-y-6 max-w-lg mx-auto pb-10 px-6 sm:px-0">
-            <div className="flex items-center gap-2">
+        <div className="space-y-6 max-w-lg mx-auto pb-10 px-0 sm:px-0">
+            <div className="flex items-center gap-2 px-4 sm:px-0">
                 <Link href="/dashboard/supervisor">
                     <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
                 </Link>
