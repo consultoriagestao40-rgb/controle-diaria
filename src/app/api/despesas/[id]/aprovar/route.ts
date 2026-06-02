@@ -54,7 +54,12 @@ export async function PATCH(
             )
         }
 
-        const novoStatus = action === 'APROVAR' ? 'APROVADO' : 'REPROVADO'
+        let novoStatus = action === 'APROVAR' ? 'APROVADO' : 'REPROVADO'
+        let isPrestacao = despesa.tipo === 'ADIANTAMENTO' && despesa.valorComprovado !== null
+
+        if (isPrestacao) {
+            novoStatus = action === 'APROVAR' ? 'AGUARDANDO_CONCILIACAO' : 'AGUARDANDO_PRESTACAO'
+        }
 
         const despesaAtualizada = await prisma.$transaction(async (tx) => {
             const atualizada = await tx.despesa.update({
@@ -62,11 +67,22 @@ export async function PATCH(
                 data: {
                     status: novoStatus,
                     aprovadorId: user.id,
-                    dataAprovacao: new Date(),
-                    justificativaAprovacao: action === 'APROVAR' ? justificativa : null,
-                    justificativaReprovacao: action === 'REPROVAR' ? justificativa : null
+                    dataAprovacao: action === 'APROVAR' ? new Date() : despesa.dataAprovacao,
+                    justificativaAprovacao: action === 'APROVAR' ? (justificativa || null) : despesa.justificativaAprovacao,
+                    justificativaReprovacao: action === 'REPROVAR' ? justificativa : despesa.justificativaReprovacao
                 }
             })
+
+            let obs = ""
+            if (isPrestacao) {
+                obs = action === 'APROVAR'
+                    ? `Prestação de contas aprovada por gestor ${user.nome}. Encaminhado para conciliação final. ${justificativa || ""}`
+                    : `Prestação de contas devolvida para correção por gestor ${user.nome}. Motivo: ${justificativa}`
+            } else {
+                obs = action === 'APROVAR'
+                    ? `Solicitação aprovada por ${user.nome}. ${justificativa || ""}`
+                    : `Solicitação reprovada por ${user.nome}. Motivo: ${justificativa}`
+            }
 
             // Registrar histórico
             await tx.historicoDespesa.create({
@@ -75,9 +91,7 @@ export async function PATCH(
                     deStatus: 'AGUARDANDO_APROVACAO',
                     paraStatus: novoStatus,
                     usuarioId: user.id,
-                    observacao: action === 'APROVAR' 
-                        ? `Solicitação aprovada por ${user.nome}. ${justificativa || ""}`
-                        : `Solicitação reprovada por ${user.nome}. Motivo: ${justificativa}`
+                    observacao: obs
                 }
             })
 

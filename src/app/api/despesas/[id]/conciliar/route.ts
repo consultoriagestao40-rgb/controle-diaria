@@ -38,41 +38,65 @@ export async function PATCH(
         }
 
         const saldo = despesa.saldoFinal ? Number(despesa.saldoFinal) : 0
-
+ 
         const body = await req.json()
-        const { observacao } = body
+        const { action, observacao, justificativa } = body
 
+        const acaoEfetiva = action || 'CONCILIAR'
+        const rejeicaoMotivo = justificativa || observacao || "Sem justificativa fornecida."
+
+        if (acaoEfetiva !== 'CONCILIAR' && acaoEfetiva !== 'REJEITAR') {
+            return new NextResponse(
+                JSON.stringify({ error: "Ação inválida. Deve ser 'CONCILIAR' ou 'REJEITAR'." }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
+        const novoStatus = acaoEfetiva === 'CONCILIAR' ? 'CONCLUIDO' : 'AGUARDANDO_PRESTACAO'
+ 
         const despesaAtualizada = await prisma.$transaction(async (tx) => {
+            const dataToUpdate: any = {
+                status: novoStatus,
+                financeiroId: user.id,
+            }
+
+            if (acaoEfetiva === 'CONCILIAR') {
+                dataToUpdate.observacao = observacao || null
+            } else {
+                dataToUpdate.justificativaReprovacao = rejeicaoMotivo
+            }
+
             const atualizada = await tx.despesa.update({
                 where: { id },
-                data: {
-                    status: 'CONCLUIDO',
-                    financeiroId: user.id,
-                    observacao: observacao || null
-                }
+                data: dataToUpdate
             })
-
-            let historicoObs = `Prestação de contas aprovada e conciliação financeira por ${user.nome}. `
-            if (saldo === 0) {
-                historicoObs += "Confirmado fechamento de saldo zerado."
-            } else if (saldo > 0) {
-                historicoObs += `Confirmado o recebimento da devolução de R$ ${saldo.toFixed(2)} pelo colaborador.`
+ 
+            let historicoObs = ""
+            if (acaoEfetiva === 'CONCILIAR') {
+                historicoObs = `Prestação de contas aprovada e conciliação financeira por ${user.nome}. `
+                if (saldo === 0) {
+                    historicoObs += "Confirmado fechamento de saldo zerado."
+                } else if (saldo > 0) {
+                    historicoObs += `Confirmado o recebimento da devolução de R$ ${saldo.toFixed(2)} pelo colaborador.`
+                } else {
+                    historicoObs += `Confirmado o pagamento do reembolso complementar de R$ ${Math.abs(saldo).toFixed(2)} ao colaborador.`
+                }
+                if (observacao) historicoObs += ` Observação: ${observacao}`
             } else {
-                historicoObs += `Confirmado o pagamento do reembolso complementar de R$ ${Math.abs(saldo).toFixed(2)} ao colaborador.`
+                historicoObs = `Prestação de contas devolvida pelo financeiro ${user.nome}. Motivo: ${rejeicaoMotivo}`
             }
-            if (observacao) historicoObs += ` Observação: ${observacao}`
-
+ 
             // Registrar histórico
             await tx.historicoDespesa.create({
                 data: {
                     despesaId: id,
                     deStatus: despesa.status,
-                    paraStatus: 'CONCLUIDO',
+                    paraStatus: novoStatus,
                     usuarioId: user.id,
                     observacao: historicoObs
                 }
             })
-
+ 
             return atualizada
         })
 

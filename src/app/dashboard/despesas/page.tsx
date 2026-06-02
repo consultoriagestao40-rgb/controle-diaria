@@ -19,6 +19,8 @@ interface Despesa {
     valorSolicitado: number
     valorComprovado: number | null
     saldoFinal: number | null
+    justificativaReprovacao?: string | null
+    observacao?: string | null
     createdAt: string
     anexos: any[]
 }
@@ -387,6 +389,16 @@ export default function MinhasDespesasPage() {
                                                         </>
                                                     )}
                                                 </div>
+
+                                                {item.justificativaReprovacao && (item.status === 'AGUARDANDO_PRESTACAO' || item.status === 'REPROVADO') && (
+                                                    <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-xs font-bold mt-4 flex items-start gap-2 max-w-xl">
+                                                        <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
+                                                        <div>
+                                                            <p className="uppercase tracking-wider text-[9px] font-black text-red-500">Motivo da Devolução/Rejeição:</p>
+                                                            <p className="font-semibold pt-0.5">{item.justificativaReprovacao}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         

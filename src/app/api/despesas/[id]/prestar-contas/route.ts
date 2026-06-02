@@ -106,9 +106,6 @@ export async function POST(
         const valorSolicitado = Number(despesa.valorSolicitado)
         const saldo = valorSolicitado - valorComp
  
-        // Nova Regra: Toda prestação de contas vai para AGUARDANDO_CONCILIACAO para o financeiro aprovar!
-        const novoStatus = 'AGUARDANDO_CONCILIACAO'
- 
         // Executar auditoria de termos e políticas (com itens)
         const auditResult = await runExpenseAudit(
             despesa.descricao + " | Prestação: " + (observacao || ""),
@@ -116,6 +113,9 @@ export async function POST(
             anexos,
             itemsToCreate
         )
+
+        // Roteamento inteligente baseado na auditoria das políticas
+        const novoStatus = auditResult.hasProhibitedItems ? 'AGUARDANDO_APROVACAO' : 'AGUARDANDO_CONCILIACAO'
  
         const despesaAtualizada = await prisma.$transaction(async (tx) => {
             // Limpar itens anteriores de adiantamento (estimativas)
@@ -166,12 +166,16 @@ export async function POST(
  
             // Histórico de auditoria
             let historicoObs = `Prestação de contas enviada por ${user.nome}. Gasto real: R$ ${valorComp.toFixed(2)}. `
-            if (saldo === 0) {
-                historicoObs += "Saldo zerado. Enviado para conciliação final do financeiro."
-            } else if (saldo > 0) {
-                historicoObs += `Sobrou dinheiro. Colaborador deve devolver R$ ${saldo.toFixed(2)}. Aguardando conciliação do financeiro.`
+            if (novoStatus === 'AGUARDANDO_APROVACAO') {
+                historicoObs += "Identificadas violações de política de despesa. Direcionado para aprovação do gestor."
             } else {
-                historicoObs += `Faltou dinheiro. Empresa deve reembolsar complementar de R$ ${Math.abs(saldo).toFixed(2)}. Aguardando conciliação do financeiro.`
+                if (saldo === 0) {
+                    historicoObs += "Saldo zerado. Enviado para conciliação final do financeiro."
+                } else if (saldo > 0) {
+                    historicoObs += `Sobrou dinheiro. Colaborador deve devolver R$ ${saldo.toFixed(2)}. Enviado para conciliação do financeiro.`
+                } else {
+                    historicoObs += `Faltou dinheiro. Empresa deve reembolsar complementar de R$ ${Math.abs(saldo).toFixed(2)}. Enviado para conciliação do financeiro.`
+                }
             }
  
             await tx.historicoDespesa.create({

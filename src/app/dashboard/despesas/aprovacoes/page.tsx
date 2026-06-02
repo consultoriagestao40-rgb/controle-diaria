@@ -15,6 +15,8 @@ interface Despesa {
     status: string
     descricao: string
     valorSolicitado: number
+    valorComprovado: number | null
+    saldoFinal: number | null
     createdAt: string
     solicitante: { nome: string, email: string, role: string }
     anexos: any[]
@@ -30,10 +32,28 @@ export default function AprovacoesDespesasPage() {
     const [selectedDespesa, setSelectedDespesa] = useState<Despesa | null>(null)
     const [actionType, setActionType] = useState<"APROVAR" | "REPROVAR">("APROVAR")
     const [justificativa, setJustificativa] = useState("")
+    const [motivosDisponiveis, setMotivosDisponiveis] = useState<string[]>([])
+    const [motivoSelecionado, setMotivoSelecionado] = useState("")
     const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         fetchAprovacoes()
+        fetch("/api/politicas")
+            .then(res => res.json())
+            .then(data => {
+                if (data.auditoria?.motivosRejeicao) {
+                    const list = data.auditoria.motivosRejeicao
+                        .split(",")
+                        .map((m: string) => m.trim())
+                        .filter((m: string) => m.length > 0)
+                    setMotivosDisponiveis(list)
+                } else {
+                    setMotivosDisponiveis(["Fora da política", "Despesas não autorizada", "Comprovante ilegível", "Outros"])
+                }
+            })
+            .catch(() => {
+                setMotivosDisponiveis(["Fora da política", "Despesas não autorizada", "Comprovante ilegível", "Outros"])
+            })
     }, [])
 
     const fetchAprovacoes = async () => {
@@ -53,14 +73,19 @@ export default function AprovacoesDespesasPage() {
         setSelectedDespesa(despesa)
         setActionType(action)
         setJustificativa("")
+        setMotivoSelecionado("")
         setDecisionModalOpen(true)
     }
 
     const handleDecisionSubmit = async () => {
         if (!selectedDespesa) return
 
-        if (actionType === "REPROVAR" && !justificativa) {
-            toast.error("A justificativa é obrigatória para reprovações.")
+        const finalJustificativa = motivoSelecionado === "Outro" || !motivoSelecionado 
+            ? justificativa 
+            : motivoSelecionado + (justificativa ? `: ${justificativa}` : "")
+
+        if (actionType === "REPROVAR" && !finalJustificativa) {
+            toast.error("O motivo ou justificativa é obrigatória para devoluções/reprovações.")
             return
         }
 
@@ -72,7 +97,7 @@ export default function AprovacoesDespesasPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     action: actionType,
-                    justificativa
+                    justificativa: finalJustificativa
                 })
             })
 
@@ -84,7 +109,9 @@ export default function AprovacoesDespesasPage() {
             toast.success(
                 actionType === "APROVAR"
                     ? "Solicitação aprovada com sucesso!"
-                    : "Solicitação reprovada com sucesso."
+                    : selectedDespesa.tipo === "ADIANTAMENTO" && selectedDespesa.valorComprovado !== null
+                        ? "Prestação devolvida para correção!"
+                        : "Solicitação reprovada com sucesso."
             )
             setDecisionModalOpen(false)
             fetchAprovacoes()
@@ -224,7 +251,11 @@ export default function AprovacoesDespesasPage() {
                         <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center">
                             <div>
                                 <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">
-                                    {actionType === "APROVAR" ? "Confirmar Aprovação" : "Confirmar Reprovação"}
+                                    {actionType === "APROVAR" 
+                                        ? "Confirmar Aprovação" 
+                                        : selectedDespesa.tipo === "ADIANTAMENTO" && selectedDespesa.valorComprovado !== null
+                                            ? "Devolver Prestação de Contas" 
+                                            : "Confirmar Reprovação"}
                                 </h3>
                                 <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider pt-0.5">Solicitação de R$ {Number(selectedDespesa.valorSolicitado).toFixed(2)}</p>
                             </div>
@@ -248,22 +279,42 @@ export default function AprovacoesDespesasPage() {
                             </div>
 
                             {/* Campo de Justificativa */}
-                            <div className="space-y-2 pt-2">
+                            <div className="space-y-3 pt-2">
                                 <Label htmlFor="justificativa" className="font-bold text-slate-700">
                                     Parecer / Justificativa {actionType === "REPROVAR" ? "*" : "(Opcional)"}
                                 </Label>
-                                <Textarea
-                                    id="justificativa"
-                                    placeholder={
-                                        actionType === "REPROVAR"
-                                            ? "Escreva o motivo da reprovação obrigatoriamente..."
-                                            : "Escreva observações adicionais sobre a aprovação..."
-                                    }
-                                    rows={4}
-                                    value={justificativa}
-                                    onChange={(e) => setJustificativa(e.target.value)}
-                                    className="rounded-xl border-slate-200"
-                                />
+
+                                {actionType === "REPROVAR" && (
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold text-slate-400">Selecione o Motivo Principal</Label>
+                                        <select
+                                            value={motivoSelecionado}
+                                            onChange={(e) => setMotivoSelecionado(e.target.value)}
+                                            className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-slate-50 font-semibold text-xs focus:ring-primary focus:border-primary"
+                                        >
+                                            <option value="">Selecione o motivo...</option>
+                                            {motivosDisponiveis.map((m) => (
+                                                <option key={m} value={m}>{m}</option>
+                                            ))}
+                                            <option value="Outro">Outro (especificar abaixo)</option>
+                                        </select>
+                                    </div>
+                                )}
+
+                                {(actionType === "APROVAR" || motivoSelecionado === "Outro" || !motivoSelecionado) && (
+                                    <Textarea
+                                        id="justificativa"
+                                        placeholder={
+                                            actionType === "REPROVAR"
+                                                ? "Descreva em detalhes o motivo da devolução..."
+                                                : "Escreva observações adicionais sobre a aprovação..."
+                                        }
+                                        rows={4}
+                                        value={justificativa}
+                                        onChange={(e) => setJustificativa(e.target.value)}
+                                        className="rounded-xl border-slate-200"
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -295,7 +346,13 @@ export default function AprovacoesDespesasPage() {
                                         ) : (
                                             <XCircle className="h-4 w-4" />
                                         )}
-                                        <span>{actionType === "APROVAR" ? "Aprovar Solicitação" : "Reprovar Solicitação"}</span>
+                                        <span>
+                                            {actionType === "APROVAR" 
+                                                ? "Aprovar Solicitação" 
+                                                : selectedDespesa.tipo === "ADIANTAMENTO" && selectedDespesa.valorComprovado !== null
+                                                    ? "Devolver para Correção" 
+                                                    : "Reprovar Solicitação"}
+                                        </span>
                                     </>
                                 )}
                             </Button>

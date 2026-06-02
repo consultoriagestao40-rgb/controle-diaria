@@ -18,11 +18,13 @@ interface Politica {
 interface AuditoriaConfig {
     id?: string
     palavrasProibidas: string
+    motivosRejeicao?: string
 }
 
 export default function PoliticasConfigPage() {
     const [politicas, setPoliticas] = useState<Politica[]>([])
     const [palavrasProibidas, setPalavrasProibidas] = useState("")
+    const [motivosRejeicao, setMotivosRejeicao] = useState("")
     const [loading, setLoading] = useState(true)
     const [savingAuditoria, setSavingAuditoria] = useState(false)
     const [savingLimite, setSavingLimite] = useState<string | null>(null)
@@ -52,6 +54,7 @@ export default function PoliticasConfigPage() {
             const data = await res.json()
             setPoliticas(data.politicas || [])
             setPalavrasProibidas(data.auditoria?.palavrasProibidas || "")
+            setMotivosRejeicao(data.auditoria?.motivosRejeicao || "")
         } catch {
             toast.error("Erro ao carregar configurações de políticas")
         } finally {
@@ -67,14 +70,15 @@ export default function PoliticasConfigPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     tipoConfig: "AUDITORIA",
-                    palavrasProibidas
+                    palavrasProibidas,
+                    motivosRejeicao
                 })
             })
 
             if (!res.ok) throw new Error()
-            toast.success("Políticas de termos proibidos salvas com sucesso!")
+            toast.success("Regras de auditoria e motivos de devolução salvos com sucesso!")
         } catch {
-            toast.error("Erro ao salvar termos proibidos")
+            toast.error("Erro ao salvar regras de auditoria")
         } finally {
             setSavingAuditoria(false)
         }
@@ -306,13 +310,25 @@ export default function PoliticasConfigPage() {
                         {isAdmin ? (
                             <>
                                 <div className="space-y-2">
-                                    <Label htmlFor="palavras" className="font-bold text-slate-700">Palavras/Termos Banidos</Label>
+                                    <Label htmlFor="palavras" className="font-bold text-slate-700">Palavras/Termos Banidos (IA Audit)</Label>
                                     <textarea
                                         id="palavras"
-                                        rows={6}
+                                        rows={3}
                                         value={palavrasProibidas}
                                         onChange={(e) => setPalavrasProibidas(e.target.value)}
                                         placeholder="ex: cerveja, chopp, energetico, preservativo, motel, cigarro, doce, sobremesa"
+                                        className="w-full rounded-2xl border-slate-200 focus:border-red-500 focus:ring-red-100 font-medium text-slate-700 p-4 transition-colors"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="motivos" className="font-bold text-slate-700">Motivos de Rejeição/Devolução (Opções para Atores)</Label>
+                                    <textarea
+                                        id="motivos"
+                                        rows={3}
+                                        value={motivosRejeicao}
+                                        onChange={(e) => setMotivosRejeicao(e.target.value)}
+                                        placeholder="ex: Fora da política, Despesas não autorizada, Comprovante ilegível, Outros"
                                         className="w-full rounded-2xl border-slate-200 focus:border-red-500 focus:ring-red-100 font-medium text-slate-700 p-4 transition-colors"
                                     />
                                 </div>
@@ -328,7 +344,7 @@ export default function PoliticasConfigPage() {
                                         ) : (
                                             <Save className="h-4 w-4" />
                                         )}
-                                        Salvar Regras de Auditoria
+                                        Salvar Configurações
                                     </Button>
                                 </div>
                             </>

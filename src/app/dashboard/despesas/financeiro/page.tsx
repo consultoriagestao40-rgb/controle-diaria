@@ -33,10 +33,29 @@ export default function FinanceiroDespesasPage() {
     const [actionModalOpen, setActionModalOpen] = useState(false)
     const [selectedDespesa, setSelectedDespesa] = useState<Despesa | null>(null)
     const [observacao, setObservacao] = useState("")
+    const [isRejection, setIsRejection] = useState(false)
+    const [motivosDisponiveis, setMotivosDisponiveis] = useState<string[]>([])
+    const [motivoSelecionado, setMotivoSelecionado] = useState("")
     const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
         fetchFinanceData()
+        fetch("/api/politicas")
+            .then(res => res.json())
+            .then(data => {
+                if (data.auditoria?.motivosRejeicao) {
+                    const list = data.auditoria.motivosRejeicao
+                        .split(",")
+                        .map((m: string) => m.trim())
+                        .filter((m: string) => m.length > 0)
+                    setMotivosDisponiveis(list)
+                } else {
+                    setMotivosDisponiveis(["Fora da política", "Despesas não autorizada", "Comprovante ilegível", "Outros"])
+                }
+            })
+            .catch(() => {
+                setMotivosDisponiveis(["Fora da política", "Despesas não autorizada", "Comprovante ilegível", "Outros"])
+            })
     }, [])
 
     const fetchFinanceData = async () => {
@@ -66,6 +85,8 @@ export default function FinanceiroDespesasPage() {
     const openActionModal = (despesa: Despesa) => {
         setSelectedDespesa(despesa)
         setObservacao("")
+        setIsRejection(false)
+        setMotivoSelecionado("")
         setActionModalOpen(true)
     }
 
@@ -78,11 +99,23 @@ export default function FinanceiroDespesasPage() {
             ? `/api/despesas/${selectedDespesa.id}/conciliar`
             : `/api/despesas/${selectedDespesa.id}/pagar`
 
+        const finalJustificativa = motivoSelecionado === "Outro" || !motivoSelecionado 
+            ? observacao 
+            : motivoSelecionado + (observacao ? `: ${observacao}` : "")
+
+        const bodyPayload = isReconciliation
+            ? { 
+                action: isRejection ? 'REJEITAR' : 'CONCILIAR', 
+                observacao: isRejection ? null : observacao,
+                justificativa: isRejection ? finalJustificativa : null
+              }
+            : { observacao }
+
         try {
             const res = await fetch(endpoint, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ observacao })
+                body: JSON.stringify(bodyPayload)
             })
 
             if (!res.ok) {
@@ -92,7 +125,9 @@ export default function FinanceiroDespesasPage() {
 
             toast.success(
                 isReconciliation
-                    ? "Prestação de contas aprovada e fluxo concluído!"
+                    ? isRejection
+                        ? "Prestação de contas rejeitada e devolvida ao colaborador."
+                        : "Prestação de contas aprovada e fluxo concluído!"
                     : "Pagamento registrado com sucesso!"
             )
             setActionModalOpen(false)
@@ -296,7 +331,11 @@ export default function FinanceiroDespesasPage() {
                         <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center">
                             <div>
                                 <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">
-                                    {selectedDespesa.status === 'AGUARDANDO_PRESTACAO' ? "Conciliar Saldo Devedor/Credor" : "Registrar Pagamento de Despesa"}
+                                    {selectedDespesa.status === 'APROVADO' 
+                                        ? "Registrar Pagamento de Despesa" 
+                                        : isRejection 
+                                            ? "Devolver Prestação de Contas" 
+                                            : "Conciliar Saldo Devedor/Credor"}
                                 </h3>
                                 <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider pt-0.5">Operação Financeira de Despesa</p>
                             </div>
@@ -309,6 +348,34 @@ export default function FinanceiroDespesasPage() {
                         </div>
 
                         <div className="p-6 space-y-4 overflow-y-auto flex-1 text-sm font-semibold text-slate-700">
+                            {/* Seletor de Ação para Conciliação */}
+                            {selectedDespesa.valorComprovado !== null && (
+                                <div className="flex gap-2 p-1 bg-slate-100 rounded-xl mb-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsRejection(false)}
+                                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-lg transition-all duration-300 ${
+                                            !isRejection 
+                                                ? "bg-white text-slate-900 shadow-sm" 
+                                                : "text-slate-500 hover:text-slate-900 hover:bg-white/30"
+                                        }`}
+                                    >
+                                        Baixar Conciliação
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsRejection(true)}
+                                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-lg transition-all duration-300 ${
+                                            isRejection 
+                                                ? "bg-red-600 text-white shadow-sm" 
+                                                : "text-slate-500 hover:text-slate-900 hover:bg-white/30"
+                                        }`}
+                                    >
+                                        Devolver p/ Correção
+                                    </button>
+                                </div>
+                            )}
+
                             <div className="bg-slate-50 p-5 rounded-2xl border space-y-2 text-xs">
                                 <p>👤 **Beneficiário:** {selectedDespesa.solicitante.nome}</p>
                                 <p>🗒️ **Finalidade:** {selectedDespesa.descricao}</p>
@@ -323,18 +390,50 @@ export default function FinanceiroDespesasPage() {
                                 )}
                             </div>
 
-                            {/* Campo de observações */}
-                            <div className="space-y-2 pt-2">
-                                <Label htmlFor="observacao" className="font-bold text-slate-700">Observações Internas (Opcional)</Label>
-                                <Textarea
-                                    id="observacao"
-                                    placeholder="Ex: Pago via PIX corporativo, Transação ID: 827419... ou Devolução recebida em conta corrente..."
-                                    rows={3}
-                                    value={observacao}
-                                    onChange={(e) => setObservacao(e.target.value)}
-                                    className="rounded-xl border-slate-200"
-                                />
-                            </div>
+                            {/* Campo de observações ou motivo de rejeição */}
+                            {isRejection ? (
+                                <div className="space-y-3 pt-2">
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold text-slate-400">Selecione o Motivo da Devolução *</Label>
+                                        <select
+                                            value={motivoSelecionado}
+                                            onChange={(e) => setMotivoSelecionado(e.target.value)}
+                                            className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-slate-50 font-semibold text-xs focus:ring-primary focus:border-primary"
+                                        >
+                                            <option value="">Selecione o motivo...</option>
+                                            {motivosDisponiveis.map((m) => (
+                                                <option key={m} value={m}>{m}</option>
+                                            ))}
+                                            <option value="Outro">Outro (especificar abaixo)</option>
+                                        </select>
+                                    </div>
+                                    {(motivoSelecionado === "Outro" || !motivoSelecionado) && (
+                                        <div className="space-y-1">
+                                            <Label htmlFor="justificativa" className="font-bold text-slate-700">Detalhes do Parecer *</Label>
+                                            <Textarea
+                                                id="justificativa"
+                                                placeholder="Descreva em detalhes o que o colaborador precisa ajustar na prestação..."
+                                                rows={3}
+                                                value={observacao}
+                                                onChange={(e) => setObservacao(e.target.value)}
+                                                className="rounded-xl border-slate-200"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-2 pt-2">
+                                    <Label htmlFor="observacao" className="font-bold text-slate-700">Observações Internas (Opcional)</Label>
+                                    <Textarea
+                                        id="observacao"
+                                        placeholder="Ex: Pago via PIX corporativo, Transação ID: 827419... ou Devolução recebida em conta corrente..."
+                                        rows={3}
+                                        value={observacao}
+                                        onChange={(e) => setObservacao(e.target.value)}
+                                        className="rounded-xl border-slate-200"
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="bg-slate-50 p-6 border-t border-slate-100 flex justify-end gap-3">
@@ -348,16 +447,18 @@ export default function FinanceiroDespesasPage() {
                             </Button>
                             <Button
                                 type="button"
-                                disabled={submitting}
+                                disabled={submitting || (isRejection && motivoSelecionado === "Outro" && !observacao)}
                                 onClick={handleActionSubmit}
-                                className="h-12 px-8 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-1.5 shadow-md"
+                                className={`h-12 px-8 rounded-xl text-white font-bold uppercase tracking-wider text-[10px] gap-1.5 shadow-md ${
+                                    isRejection ? "bg-red-600 hover:bg-red-700" : "bg-slate-900 hover:bg-primary"
+                                }`}
                             >
                                 {submitting ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                     <>
                                         <CheckCircle className="h-4 w-4" />
-                                        <span>Confirmar Lançamento</span>
+                                        <span>{isRejection ? "Confirmar Devolução" : "Confirmar Lançamento"}</span>
                                     </>
                                 )}
                             </Button>
