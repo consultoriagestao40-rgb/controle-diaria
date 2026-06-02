@@ -30,6 +30,10 @@ export default function NovaDespesaPage() {
     const [itemQuantidade, setItemQuantidade] = useState("1")
     const [itemValorUnitario, setItemValorUnitario] = useState("")
 
+    // Temporary inputs for Adiantamento
+    const [valorAdiantamento, setValorAdiantamento] = useState("")
+    const [dataAdiantamento, setDataAdiantamento] = useState("")
+
     useEffect(() => {
         fetch("/api/politicas")
             .then(res => res.json())
@@ -109,7 +113,7 @@ export default function NovaDespesaPage() {
             return
         }
 
-        if (itens.length === 0) {
+        if (tipo === "REEMBOLSO" && itens.length === 0) {
             toast.error("É necessário adicionar pelo menos um item à despesa.")
             return
         }
@@ -119,17 +123,38 @@ export default function NovaDespesaPage() {
             return
         }
 
+        if (tipo === "ADIANTAMENTO") {
+            if (!dataAdiantamento) {
+                toast.error("Por favor, selecione a data prevista da viagem/operação.")
+                return
+            }
+            const val = parseFloat(valorAdiantamento)
+            if (isNaN(val) || val <= 0) {
+                toast.error("Por favor, insira um valor total previsto maior que zero.")
+                return
+            }
+        }
+
         setLoading(true)
 
         try {
+            const finalItens = tipo === "ADIANTAMENTO" ? [{
+                categoria: "VIAGEM",
+                descricao: descricao,
+                data: dataAdiantamento,
+                quantidade: 1,
+                valorUnitario: parseFloat(valorAdiantamento),
+                valorTotal: parseFloat(valorAdiantamento)
+            }] : itens
+
             const res = await fetch("/api/despesas", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     tipo,
                     descricao,
-                    valorSolicitado: totalDespesa,
-                    itens,
+                    valorSolicitado: tipo === "ADIANTAMENTO" ? parseFloat(valorAdiantamento) : totalDespesa,
+                    itens: finalItens,
                     anexos,
                     enviarParaAprovacao
                 })
@@ -252,150 +277,186 @@ export default function NovaDespesaPage() {
                         />
                     </div>
 
-                    {/* Detalhamento dos Itens */}
-                    <div className="pt-6 border-t border-slate-100 space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-6 w-1 bg-primary rounded-full" />
-                            <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">Itens / Lançamentos da Despesa</h3>
-                        </div>
+                    {/* Detalhamento dos Itens (Apenas para Reembolso) */}
+                    {tipo === "REEMBOLSO" && (
+                        <div className="pt-6 border-t border-slate-100 space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-6 w-1 bg-primary rounded-full" />
+                                <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">Itens / Lançamentos da Despesa</h3>
+                            </div>
 
-                        {/* Form para adicionar item */}
-                        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Adicionar Novo Lançamento</p>
-                            
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                {/* Categoria */}
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-bold text-slate-600">Categoria *</Label>
-                                    <select
-                                        value={itemCategoria}
-                                        onChange={(e) => setItemCategoria(e.target.value)}
-                                        className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-primary focus:border-primary"
-                                    >
-                                        <option value="">Selecione...</option>
-                                        {categorias.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                            {/* Form para adicionar item */}
+                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Adicionar Novo Lançamento</p>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    {/* Categoria */}
+                                    <div className="space-y-1">
+                                        <Label className="text-xs font-bold text-slate-600">Categoria *</Label>
+                                        <select
+                                            value={itemCategoria}
+                                            onChange={(e) => setItemCategoria(e.target.value)}
+                                            className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-primary focus:border-primary"
+                                        >
+                                            <option value="">Selecione...</option>
+                                            {categorias.map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
+                                    </div>
 
-                                {/* Data */}
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-bold text-slate-600">Data do Evento *</Label>
-                                    <Input
-                                        type="date"
-                                        value={itemData}
-                                        onChange={(e) => setItemData(e.target.value)}
-                                        className="h-11 rounded-xl bg-white border-slate-200 text-xs"
-                                    />
-                                </div>
+                                    {/* Data */}
+                                    <div className="space-y-1">
+                                        <Label className="text-xs font-bold text-slate-600">Data do Evento *</Label>
+                                        <Input
+                                            type="date"
+                                            value={itemData}
+                                            onChange={(e) => setItemData(e.target.value)}
+                                            className="h-11 rounded-xl bg-white border-slate-200 text-xs"
+                                        />
+                                    </div>
 
-                                {/* Quantidade */}
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-bold text-slate-600">Quantidade *</Label>
-                                    <Input
-                                        type="number"
-                                        min="1"
-                                        value={itemQuantidade}
-                                        onChange={(e) => setItemQuantidade(e.target.value)}
-                                        className="h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
-                                    />
-                                </div>
-
-                                {/* Valor Unitario */}
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-bold text-slate-600">Valor Unitário (R$) *</Label>
-                                    <div className="relative">
-                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
+                                    {/* Quantidade */}
+                                    <div className="space-y-1">
+                                        <Label className="text-xs font-bold text-slate-600">Quantidade *</Label>
                                         <Input
                                             type="number"
-                                            step="0.01"
-                                            placeholder="0,00"
-                                            value={itemValorUnitario}
-                                            onChange={(e) => setItemValorUnitario(e.target.value)}
-                                            className="pl-9 h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
+                                            min="1"
+                                            value={itemQuantidade}
+                                            onChange={(e) => setItemQuantidade(e.target.value)}
+                                            className="h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
+                                        />
+                                    </div>
+
+                                    {/* Valor Unitario */}
+                                    <div className="space-y-1">
+                                        <Label className="text-xs font-bold text-slate-600">Valor Unitário (R$) *</Label>
+                                        <div className="relative">
+                                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="0,00"
+                                                value={itemValorUnitario}
+                                                onChange={(e) => setItemValorUnitario(e.target.value)}
+                                                className="pl-9 h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Descrição do Item */}
+                                    <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1">
+                                        <Label className="text-xs font-bold text-slate-600">Descrição / Justificativa *</Label>
+                                        <Input
+                                            placeholder="Ex: Hospedagem Hotel Londrina ou Almoço com cliente"
+                                            value={itemDescricao}
+                                            onChange={(e) => setItemDescricao(e.target.value)}
+                                            className="h-11 rounded-xl bg-white border-slate-200 text-xs font-medium"
                                         />
                                     </div>
                                 </div>
 
-                                {/* Descrição do Item */}
-                                <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1">
-                                    <Label className="text-xs font-bold text-slate-600">Descrição / Justificativa *</Label>
+                                <div className="flex justify-end pt-2">
+                                    <Button
+                                        type="button"
+                                        onClick={handleAddItem}
+                                        className="h-11 px-5 bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] rounded-xl flex items-center gap-2 transition-all active:scale-95"
+                                    >
+                                        <Plus className="h-4 w-4" /> Adicionar Item
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Lista de itens inseridos */}
+                            {itens.length > 0 ? (
+                                <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="border-b bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                                                    <th className="py-3 px-4">Categoria</th>
+                                                    <th className="py-3 px-4">Data</th>
+                                                    <th className="py-3 px-4">Descrição</th>
+                                                    <th className="py-3 px-4 text-center">Qtd.</th>
+                                                    <th className="py-3 px-4 text-right">Unitário</th>
+                                                    <th className="py-3 px-4 text-right">Total</th>
+                                                    <th className="py-3 px-4 text-center">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {itens.map((item, idx) => (
+                                                    <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50 text-xs font-semibold text-slate-600">
+                                                        <td className="py-3.5 px-4 font-bold text-slate-900">{item.categoria}</td>
+                                                        <td className="py-3.5 px-4">{new Date(item.data + "T00:00:00").toLocaleDateString('pt-BR')}</td>
+                                                        <td className="py-3.5 px-4 max-w-[200px] truncate">{item.descricao}</td>
+                                                        <td className="py-3.5 px-4 text-center font-bold">{item.quantidade}</td>
+                                                        <td className="py-3.5 px-4 text-right font-medium">R$ {Number(item.valorUnitario).toFixed(2)}</td>
+                                                        <td className="py-3.5 px-4 text-right font-bold text-slate-800">R$ {Number(item.valorTotal).toFixed(2)}</td>
+                                                        <td className="py-3.5 px-4 text-center">
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleRemoveItem(idx)}
+                                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg active:scale-95"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div className="bg-slate-50 p-4 border-t flex justify-between items-center text-sm font-black text-slate-800 uppercase tracking-wider">
+                                        <span>Total da Solicitação:</span>
+                                        <span className="text-lg text-primary font-black">R$ {totalDespesa.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="border-dashed border-2 border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center bg-slate-50/30">
+                                    <Receipt className="h-10 w-10 text-slate-300 mb-3 animate-pulse" />
+                                    <p className="text-sm font-bold text-slate-400">Nenhum item adicionado à despesa ainda.</p>
+                                    <p className="text-xs text-slate-400 mt-1">Preencha os dados e clique em 'Adicionar Item' para compor a solicitação.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Campos Simplificados (Apenas para Adiantamento) */}
+                    {tipo === "ADIANTAMENTO" && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
+                            {/* Data Prevista */}
+                            <div className="space-y-2">
+                                <Label htmlFor="dataAdiantamento" className="font-bold text-slate-700">Data Prevista da Viagem / Operação *</Label>
+                                <Input
+                                    id="dataAdiantamento"
+                                    type="date"
+                                    value={dataAdiantamento}
+                                    onChange={(e) => setDataAdiantamento(e.target.value)}
+                                    className="rounded-2xl border-slate-200 focus:border-primary focus:ring-primary/10 transition-colors h-14 font-semibold text-slate-700 p-4"
+                                />
+                            </div>
+
+                            {/* Valor Solicitado */}
+                            <div className="space-y-2">
+                                <Label htmlFor="valorAdiantamento" className="font-bold text-slate-700">Valor Total Previsto (R$) *</Label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
                                     <Input
-                                        placeholder="Ex: Hospedagem Hotel Londrina ou Almoço com cliente"
-                                        value={itemDescricao}
-                                        onChange={(e) => setItemDescricao(e.target.value)}
-                                        className="h-11 rounded-xl bg-white border-slate-200 text-xs font-medium"
+                                        id="valorAdiantamento"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0,00"
+                                        value={valorAdiantamento}
+                                        onChange={(e) => setValorAdiantamento(e.target.value)}
+                                        className="pl-10 rounded-2xl border-slate-200 focus:border-primary focus:ring-primary/10 transition-colors h-14 font-black text-slate-700"
                                     />
                                 </div>
                             </div>
-
-                            <div className="flex justify-end pt-2">
-                                <Button
-                                    type="button"
-                                    onClick={handleAddItem}
-                                    className="h-11 px-5 bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] rounded-xl flex items-center gap-2 transition-all active:scale-95"
-                                >
-                                    <Plus className="h-4 w-4" /> Adicionar Item
-                                </Button>
-                            </div>
                         </div>
-
-                        {/* Lista de itens inseridos */}
-                        {itens.length > 0 ? (
-                            <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="border-b bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                                                <th className="py-3 px-4">Categoria</th>
-                                                <th className="py-3 px-4">Data</th>
-                                                <th className="py-3 px-4">Descrição</th>
-                                                <th className="py-3 px-4 text-center">Qtd.</th>
-                                                <th className="py-3 px-4 text-right">Unitário</th>
-                                                <th className="py-3 px-4 text-right">Total</th>
-                                                <th className="py-3 px-4 text-center">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {itens.map((item, idx) => (
-                                                <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50 text-xs font-semibold text-slate-600">
-                                                    <td className="py-3.5 px-4 font-bold text-slate-900">{item.categoria}</td>
-                                                    <td className="py-3.5 px-4">{new Date(item.data + "T00:00:00").toLocaleDateString('pt-BR')}</td>
-                                                    <td className="py-3.5 px-4 max-w-[200px] truncate">{item.descricao}</td>
-                                                    <td className="py-3.5 px-4 text-center font-bold">{item.quantidade}</td>
-                                                    <td className="py-3.5 px-4 text-right font-medium">R$ {Number(item.valorUnitario).toFixed(2)}</td>
-                                                    <td className="py-3.5 px-4 text-right font-bold text-slate-800">R$ {Number(item.valorTotal).toFixed(2)}</td>
-                                                    <td className="py-3.5 px-4 text-center">
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleRemoveItem(idx)}
-                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg active:scale-95"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                <div className="bg-slate-50 p-4 border-t flex justify-between items-center text-sm font-black text-slate-800 uppercase tracking-wider">
-                                    <span>Total da Solicitação:</span>
-                                    <span className="text-lg text-primary font-black">R$ {totalDespesa.toFixed(2)}</span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="border-dashed border-2 border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center bg-slate-50/30">
-                                <Receipt className="h-10 w-10 text-slate-300 mb-3 animate-pulse" />
-                                <p className="text-sm font-bold text-slate-400">Nenhum item adicionado à despesa ainda.</p>
-                                <p className="text-xs text-slate-400 mt-1">Preencha os dados e clique em 'Adicionar Item' para compor a solicitação.</p>
-                            </div>
-                        )}
-                    </div>
+                    )}
 
                     {/* Comprovantes (Apenas para Reembolso na criação) */}
                     {tipo === "REEMBOLSO" && (
