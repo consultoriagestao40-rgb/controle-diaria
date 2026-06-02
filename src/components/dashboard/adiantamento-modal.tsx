@@ -93,7 +93,7 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user }: Adiantam
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent showCloseButton={false} className="fixed inset-0! sm:inset-auto! sm:top-1/2! sm:left-1/2! sm:-translate-x-1/2! sm:-translate-y-1/2! w-full! max-w-full! sm:max-w-xl h-full! sm:h-auto sm:max-h-[90vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
+            <DialogContent showCloseButton={false} className="fixed inset-0! sm:inset-auto! top-0! left-0! translate-x-0! translate-y-0! sm:top-1/2! sm:left-1/2! sm:-translate-x-1/2! sm:-translate-y-1/2! w-full! max-w-full! sm:max-w-xl! h-full! sm:h-auto! sm:max-h-[90vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl! p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
                 <div className="p-5 pt-4 sm:p-8 pb-4 border-b border-slate-100 flex-none flex flex-col gap-3">
                     <div className="flex items-center">
                         <Button
