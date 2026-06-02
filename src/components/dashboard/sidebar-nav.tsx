@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
     LogOut,
@@ -14,16 +15,19 @@ import {
     DollarSign,
     BarChart,
     Receipt,
-    Wallet
+    Wallet,
+    Grid
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SidebarNavProps {
     user: { name?: string | null, role?: string }
     logoUrl?: string
+    acessoDespesas?: boolean
+    acessoCoberturas?: boolean
 }
 
-export function SidebarNav({ user, logoUrl }: SidebarNavProps) {
+export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas = true }: SidebarNavProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const role = user.role
 
@@ -118,7 +122,14 @@ export function SidebarNav({ user, logoUrl }: SidebarNavProps) {
         }
     }
 
-    const navItems = getNavItems()
+    if (pathname === "/dashboard") return null
+
+    const isDespesasActive = pathname.startsWith("/dashboard/despesas")
+    const allItems = getNavItems()
+    const navItems = allItems.filter(item => {
+        const isDespesasItem = item.href.startsWith("/dashboard/despesas")
+        return isDespesasActive ? isDespesasItem : !isDespesasItem
+    })
 
     return (
         <aside
@@ -158,7 +169,9 @@ export function SidebarNav({ user, logoUrl }: SidebarNavProps) {
                             alt="ReembolsaFácil"
                             className="h-14 w-auto object-contain rounded-xl"
                         />
-                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.25em] ml-1">Reembolsos & Adiantamentos</span>
+                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.25em] ml-1">
+                            {isDespesasActive ? "Reembolsos & Adiantamentos" : "Diárias & Coberturas"}
+                        </span>
                     </div>
                 )}
             </div>
@@ -166,6 +179,27 @@ export function SidebarNav({ user, logoUrl }: SidebarNavProps) {
             {/* Nav Items */}
             <nav className="flex-1 overflow-y-auto py-8 scrollbar-hide">
                 <ul className="space-y-2 px-4">
+                    {acessoDespesas && acessoCoberturas && (
+                        <li className="mb-4">
+                            <Link
+                                href="/dashboard"
+                                className={cn(
+                                    "group flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all duration-300",
+                                    "text-indigo-400 hover:text-white bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 active:scale-[0.98]",
+                                    isCollapsed && "justify-center px-2"
+                                )}
+                                title="Voltar ao Hub de Módulos"
+                            >
+                                <Grid className={cn(
+                                    "h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110",
+                                    "text-indigo-400"
+                                )} />
+                                {!isCollapsed && (
+                                    <span className="tracking-tight font-black uppercase text-[10px] text-indigo-300">Mudar de Área</span>
+                                )}
+                            </Link>
+                        </li>
+                    )}
                     {navItems.map((item) => (
                         <li key={item.href}>
                             <Link

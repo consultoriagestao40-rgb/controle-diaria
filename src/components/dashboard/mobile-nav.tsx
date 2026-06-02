@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 import {
@@ -13,15 +14,18 @@ import {
     DollarSign,
     BarChart,
     Receipt,
-    Wallet
+    Wallet,
+    Grid
 } from "lucide-react"
 
 interface MobileNavProps {
     user: { name?: string | null, role?: string }
     logoUrl?: string
+    acessoDespesas?: boolean
+    acessoCoberturas?: boolean
 }
 
-export function MobileNav({ user, logoUrl }: MobileNavProps) {
+export function MobileNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas = true }: MobileNavProps) {
     const role = user.role
 
     const getNavItems = () => {
@@ -112,7 +116,13 @@ export function MobileNav({ user, logoUrl }: MobileNavProps) {
         }
     }
 
-    const navItems = getNavItems()
+    const pathname = usePathname()
+    const isDespesasActive = pathname.startsWith("/dashboard/despesas")
+    const allItems = getNavItems()
+    const navItems = allItems.filter(item => {
+        const isDespesasItem = item.href.startsWith("/dashboard/despesas")
+        return isDespesasActive ? isDespesasItem : !isDespesasItem
+    })
 
     return (
         <Sheet>
@@ -130,11 +140,26 @@ export function MobileNav({ user, logoUrl }: MobileNavProps) {
                                 alt="ReembolsaFácil"
                                 className="h-10 w-auto object-contain rounded-lg"
                             />
-                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">ReembolsaFácil</span>
+                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">
+                                {isDespesasActive ? "Reembolsos & Adiantamentos" : "Diárias & Coberturas"}
+                            </span>
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto py-8 px-6">
                         <ul className="space-y-2">
+                            {acessoDespesas && acessoCoberturas && (
+                                <li className="mb-4">
+                                    <SheetClose asChild>
+                                        <Link
+                                            href="/dashboard"
+                                            className="flex items-center gap-4 rounded-xl px-4 py-4 text-sm font-semibold text-indigo-400 hover:text-white bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all duration-300"
+                                        >
+                                            <Grid className="h-5 w-5 text-indigo-400" />
+                                            <span className="font-black uppercase text-[10px] text-indigo-300">Mudar de Área</span>
+                                        </Link>
+                                    </SheetClose>
+                                </li>
+                            )}
                             {navItems.map((item) => (
                                 <li key={item.href}>
                                     <SheetClose asChild>

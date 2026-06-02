@@ -37,8 +37,11 @@ model User {
   password  String   // Simple auth for V1
   role      Role     @default(SUPERVISOR)
   ativo     Boolean  @default(true)
+  acessoDespesas   Boolean  @default(true)
+  acessoCoberturas Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
 
   // Relationships
   coberturasLancadas  Cobertura[] @relation("SupervisorLancamento")

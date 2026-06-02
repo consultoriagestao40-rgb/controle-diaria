@@ -1,23 +1,9 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import {
-    BarChart,
-    FileText,
-    CheckSquare,
-    DollarSign,
-    Settings,
-    LogOut,
-    User as UserIcon,
-    Menu,
-    Users,
-    Calendar,
-    Building2
-} from "lucide-react"
 import { SidebarNav } from "@/components/dashboard/sidebar-nav"
-import { MobileNav } from "@/components/dashboard/mobile-nav"
+import { MobileHeader } from "@/components/dashboard/mobile-header"
+import { LayoutMainContainer } from "@/components/dashboard/layout-main-container"
 import { prisma } from "@/lib/prisma"
  
 export default async function DashboardLayout({
@@ -32,6 +18,8 @@ export default async function DashboardLayout({
     }
  
     const role = (session.user as any).role
+    const acessoDespesas = (session.user as any).acessoDespesas !== false
+    const acessoCoberturas = (session.user as any).acessoCoberturas !== false
 
     // Buscar logo personalizado da empresa no banco
     const config = await prisma.configuracaoAuditoria.findFirst({
@@ -42,24 +30,27 @@ export default async function DashboardLayout({
     return (
         <div className="flex h-screen flex-col md:flex-row bg-[#F8FAFC] overflow-hidden">
             {/* Sidebar for Desktop (Client Component) */}
-            <SidebarNav user={{ name: session.user?.name, role: role }} logoUrl={logoUrl} />
+            <SidebarNav 
+                user={{ name: session.user?.name, role: role }} 
+                logoUrl={logoUrl} 
+                acessoDespesas={acessoDespesas}
+                acessoCoberturas={acessoCoberturas}
+            />
  
             {/* Main Content */}
             <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden relative">
-                <header className="flex h-20 items-center justify-between border-b bg-white/80 backdrop-blur-md px-6 md:hidden flex-none z-30">
-                    <img
-                        src={logoUrl}
-                        alt="ReembolsaFácil"
-                        className="h-10 w-auto object-contain rounded-lg"
-                    />
+                {/* Mobile Navigation Header (Client Component wrapper) */}
+                <MobileHeader 
+                    user={{ name: session.user?.name, role: role }} 
+                    logoUrl={logoUrl} 
+                    acessoDespesas={acessoDespesas}
+                    acessoCoberturas={acessoCoberturas}
+                />
  
-                    {/* Mobile Navigation (Client Component) */}
-                    <MobileNav user={{ name: session.user?.name, role: role }} logoUrl={logoUrl} />
-                </header>
- 
-                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 min-h-0">
+                {/* Main scrollable body area (Client Component wrapper) */}
+                <LayoutMainContainer>
                     {children}
-                </main>
+                </LayoutMainContainer>
             </div>
         </div>
     )

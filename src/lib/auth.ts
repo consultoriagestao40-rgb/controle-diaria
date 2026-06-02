@@ -33,7 +33,9 @@ export const authOptions: NextAuthOptions = {
                     id: user.id,
                     name: user.nome,
                     email: user.email,
-                    role: user.role, // Custom property, need to extend types
+                    role: user.role,
+                    acessoDespesas: user.acessoDespesas,
+                    acessoCoberturas: user.acessoCoberturas,
                 }
             },
         }),
@@ -43,13 +45,17 @@ export const authOptions: NextAuthOptions = {
             if (user) {
                 token.role = (user as any).role
                 token.id = user.id
+                token.acessoDespesas = (user as any).acessoDespesas
+                token.acessoCoberturas = (user as any).acessoCoberturas
             }
             return token
         },
         async session({ session, token }) {
             if (session.user) {
                 (session.user as any).role = token.role;
-                (session.user as any).id = token.id
+                (session.user as any).id = token.id;
+                (session.user as any).acessoDespesas = token.acessoDespesas;
+                (session.user as any).acessoCoberturas = token.acessoCoberturas;
             }
             return session
         },

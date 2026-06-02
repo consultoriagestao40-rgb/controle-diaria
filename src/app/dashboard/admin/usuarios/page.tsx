@@ -31,6 +31,8 @@ interface User {
     email: string
     role: string
     ativo: boolean
+    acessoDespesas: boolean
+    acessoCoberturas: boolean
     postosAutorizados: Posto[]
 }
 
@@ -50,6 +52,8 @@ export default function UsuariosPage() {
         password: "", // Only for create or optional update
         role: "SUPERVISOR",
         ativo: true,
+        acessoDespesas: true,
+        acessoCoberturas: true,
         postosIds: [] as string[]
     })
 
@@ -111,7 +115,7 @@ export default function UsuariosPage() {
 
     const openNew = () => {
         setEditingId(null)
-        setFormData({ nome: "", email: "", password: "", role: "SUPERVISOR", ativo: true, postosIds: [] })
+        setFormData({ nome: "", email: "", password: "", role: "SUPERVISOR", ativo: true, acessoDespesas: true, acessoCoberturas: true, postosIds: [] })
         setIsDialogOpen(true)
     }
 
@@ -123,6 +127,8 @@ export default function UsuariosPage() {
             password: "", // Don't show password
             role: u.role,
             ativo: u.ativo,
+            acessoDespesas: u.acessoDespesas !== undefined ? u.acessoDespesas : true,
+            acessoCoberturas: u.acessoCoberturas !== undefined ? u.acessoCoberturas : true,
             postosIds: u.postosAutorizados.map(p => p.id)
         })
         setIsDialogOpen(true)
@@ -200,12 +206,12 @@ export default function UsuariosPage() {
                     {loading ? (
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                     ) : (
-                        <Table>
-                            <TableHeader>
+                                                     <TableHeader>
                                 <TableRow>
                                     <TableHead>Nome</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead>Perfil</TableHead>
+                                    <TableHead>Módulos</TableHead>
                                     <TableHead>Detalhes</TableHead>
                                     <TableHead className="w-[100px]">Status</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
@@ -217,6 +223,16 @@ export default function UsuariosPage() {
                                         <TableCell className="font-medium">{u.nome}</TableCell>
                                         <TableCell>{u.email}</TableCell>
                                         <TableCell>{getRoleBadge(u.role)}</TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-1.5 flex-wrap">
+                                                <Badge variant={u.acessoDespesas ? "default" : "outline"} className={u.acessoDespesas ? "bg-indigo-600 hover:bg-indigo-700 text-white text-[9px]" : "text-[9px] text-slate-400 line-through"}>
+                                                    Despesas
+                                                </Badge>
+                                                <Badge variant={u.acessoCoberturas ? "default" : "outline"} className={u.acessoCoberturas ? "bg-cyan-600 hover:bg-cyan-700 text-white text-[9px]" : "text-[9px] text-slate-400 line-through"}>
+                                                    Diárias
+                                                </Badge>
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             {(u.role === 'SUPERVISOR' || u.role === 'ENCARREGADO') && (
                                                 <div className="flex flex-wrap gap-1">
@@ -334,6 +350,20 @@ export default function UsuariosPage() {
                         <div className="flex items-center space-x-2 mt-4">
                             <Switch id="ativo" checked={formData.ativo} onCheckedChange={c => setFormData({ ...formData, ativo: c })} />
                             <Label htmlFor="ativo">Usuário Ativo</Label>
+                        </div>
+
+                        <div className="border-t pt-4 space-y-3">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Módulos Liberados</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <Switch id="acessoDespesas" checked={formData.acessoDespesas} onCheckedChange={c => setFormData({ ...formData, acessoDespesas: c })} />
+                                    <Label htmlFor="acessoDespesas" className="text-sm font-medium cursor-pointer">Despesas Corporativas</Label>
+                                </div>
+                                <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <Switch id="acessoCoberturas" checked={formData.acessoCoberturas} onCheckedChange={c => setFormData({ ...formData, acessoCoberturas: c })} />
+                                    <Label htmlFor="acessoCoberturas" className="text-sm font-medium cursor-pointer">Diárias e Coberturas</Label>
+                                </div>
+                            </div>
                         </div>
 
                         <DialogFooter>
