@@ -30,6 +30,7 @@ interface SidebarNavProps {
 
 export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas = true }: SidebarNavProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
+    const pathname = usePathname()
     const role = user.role
 
     const getNavItems = () => {
