@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Loader2, Calendar, MapPin, User, AlertCircle } from "lucide-react"
+import { Plus, Loader2, Calendar, MapPin, User, AlertCircle, Clock, CheckCircle2, XCircle, AlertTriangle, Receipt, Wallet, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -14,6 +13,7 @@ interface Cobertura {
     status: string
     posto: { nome: string }
     diarista: { nome: string }
+    valor: number | string
 }
 
 export default function SupervisorDashboard() {
@@ -37,101 +37,177 @@ export default function SupervisorDashboard() {
         }
     }
 
-    const getStatusBadge = (status: string) => {
-        const map: any = {
-            'PENDENTE': 'bg-yellow-100 text-yellow-800',
-            'APROVADO': 'bg-green-100 text-green-800',
-            'REPROVADO': 'bg-red-100 text-red-800',
-            'PAGO': 'bg-blue-100 text-blue-800',
-            'AJUSTE': 'bg-orange-100 text-orange-800',
+    const totalLancado = coberturas.reduce((acc, item) => acc + Number(item.valor || 0), 0)
+    const totalPago = coberturas
+        .filter(item => ['PAGO', 'APROVADO'].includes(item.status))
+        .reduce((acc, item) => acc + Number(item.valor || 0), 0)
+    const totalPendente = coberturas
+        .filter(item => ['PENDENTE', 'AJUSTE'].includes(item.status))
+        .reduce((acc, item) => acc + Number(item.valor || 0), 0)
+
+    const getStatusCircleIcon = (status: string) => {
+        const iconMap: any = {
+            'PENDENTE': <Clock className="h-4 w-4 text-yellow-500 animate-pulse" />,
+            'APROVADO': <CheckCircle2 className="h-4 w-4 text-green-500" />,
+            'REPROVADO': <XCircle className="h-4 w-4 text-red-500" />,
+            'PAGO': <CheckCircle2 className="h-4 w-4 text-primary" />,
+            'AJUSTE': <AlertTriangle className="h-4 w-4 text-orange-500" />,
         }
-        return <Badge variant="outline" className={`${map[status] || 'bg-gray-100'} border-0`}>{status}</Badge>
+        const bgMap: any = {
+            'PENDENTE': 'bg-yellow-50',
+            'APROVADO': 'bg-green-50',
+            'REPROVADO': 'bg-red-50',
+            'PAGO': 'bg-blue-50',
+            'AJUSTE': 'bg-orange-50',
+        }
+        return (
+            <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ${bgMap[status] || 'bg-slate-50'} border border-slate-100`}>
+                {iconMap[status] || <AlertCircle className="h-4 w-4 text-slate-400" />}
+            </div>
+        )
+    }
+
+    const getStatusTextColor = (status: string) => {
+        const map: any = {
+            'PENDENTE': 'text-yellow-600',
+            'APROVADO': 'text-green-600',
+            'REPROVADO': 'text-red-600',
+            'PAGO': 'text-primary',
+            'AJUSTE': 'text-orange-600',
+        }
+        return map[status] || 'text-slate-400'
+    }
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center p-32 gap-6">
+                <div className="relative h-16 w-16">
+                    <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
+                    <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Sincronizando registros...</p>
+            </div>
+        )
     }
 
     return (
-        <div className="space-y-10 pb-32">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-                <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
-                        Minhas <span className="text-primary italic">Diárias</span>
-                    </h1>
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">Gestão e acompanhamento de registros</p>
-                </div>
-                {!loading && (
-                    <Link href="/dashboard/supervisor/nova" className="w-full lg:w-auto">
-                        <Button className="w-full lg:w-auto h-14 px-8 bg-slate-900 hover:bg-primary shadow-xl hover:shadow-primary/20 transition-all duration-500 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] group">
-                            <Plus className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform" />
-                            Nova Diária
-                        </Button>
-                    </Link>
-                )}
+        <div className="space-y-8 pb-32 max-w-2xl mx-auto px-1 sm:px-0">
+            {/* Header Greeting */}
+            <div className="space-y-1 px-1">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    Minhas Diárias
+                </h1>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Gestão e Acompanhamento Financeiro</p>
             </div>
 
-            <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                    <div className="h-8 w-1 bg-primary rounded-full" />
-                    <h2 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">Registros Recentes</h2>
+            {/* Fintech Card (Resumo Financeiro) */}
+            <div className="bg-slate-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden mx-1">
+                <div className="absolute top-[-30%] right-[-10%] w-[180px] h-[180px] bg-primary/25 rounded-full blur-[40px] pointer-events-none" />
+                
+                <div className="space-y-1 relative z-10">
+                    <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-500">Total Registrado</span>
+                    <div className="text-3xl font-black tracking-tighter flex items-baseline gap-1 text-white">
+                        <span className="text-base font-bold text-slate-400">R$</span>
+                        <span>{totalLancado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
                 </div>
 
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center p-32 gap-6">
-                        <div className="relative h-16 w-16">
-                            <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
-                            <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-                        </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Sincronizando registros...</p>
+                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-800/80 relative z-10">
+                    <div className="space-y-0.5">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                            <div className="h-2 w-2 rounded-full bg-green-500" /> Aprovado / Pago
+                        </span>
+                        <p className="text-sm font-black text-white tracking-tight">
+                            R$ {totalPago.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
                     </div>
-                ) : coberturas.length === 0 ? (
-                    <Card className="glass-card border-dashed border-2 py-32 flex flex-col items-center justify-center opacity-60">
-                        <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center mb-6">
-                            <AlertCircle className="h-10 w-10 text-slate-200" />
+                    <div className="space-y-0.5">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                            <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" /> Em Análise
+                        </span>
+                        <p className="text-sm font-black text-white tracking-tight">
+                            R$ {totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="space-y-3 px-1">
+                <h2 className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">Ações Rápidas</h2>
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
+                    <Link href="/dashboard/supervisor/nova" className="flex flex-col items-center gap-2 shrink-0 group">
+                        <div className="h-14 w-14 rounded-2xl bg-white border border-slate-200/60 shadow-xs flex items-center justify-center text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                            <Plus className="h-6 w-6" />
                         </div>
-                        <div className="text-center text-slate-400 font-bold uppercase tracking-widest text-sm">
-                            Nenhum registro localizado no sistema.
+                        <span className="text-[10px] font-bold text-slate-600 tracking-tight group-hover:text-primary transition-colors">Nova Diária</span>
+                    </Link>
+                    <Link href="/dashboard/despesas" className="flex flex-col items-center gap-2 shrink-0 group">
+                        <div className="h-14 w-14 rounded-2xl bg-white border border-slate-200/60 shadow-xs flex items-center justify-center text-indigo-500 group-hover:scale-105 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+                            <Receipt className="h-6 w-6" />
                         </div>
-                        <Link href="/dashboard/supervisor/nova" className="mt-6">
-                            <Button variant="ghost" className="text-primary font-bold uppercase tracking-widest text-[10px]">Lançar primeira diária</Button>
+                        <span className="text-[10px] font-bold text-slate-600 tracking-tight group-hover:text-indigo-500 transition-colors">Ver Despesas</span>
+                    </Link>
+                    <Link href="/dashboard/despesas?new=reembolso" className="flex flex-col items-center gap-2 shrink-0 group">
+                        <div className="h-14 w-14 rounded-2xl bg-white border border-slate-200/60 shadow-xs flex items-center justify-center text-teal-500 group-hover:scale-105 group-hover:bg-teal-500 group-hover:text-white transition-all duration-300">
+                            <Wallet className="h-6 w-6" />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600 tracking-tight group-hover:text-teal-500 transition-colors">Reembolso</span>
+                    </Link>
+                    <Link href="/dashboard/despesas?new=adiantamento" className="flex flex-col items-center gap-2 shrink-0 group">
+                        <div className="h-14 w-14 rounded-2xl bg-white border border-slate-200/60 shadow-xs flex items-center justify-center text-amber-500 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
+                            <DollarSign className="h-6 w-6" />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600 tracking-tight group-hover:text-amber-500 transition-colors">Adiantamento</span>
+                    </Link>
+                </div>
+            </div>
+
+            {/* Extrato Feed */}
+            <div className="space-y-4 px-1">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">Extrato de Lançamentos</h2>
+                    <span className="text-[10px] font-bold text-slate-400 tracking-tight">{coberturas.length} registros</span>
+                </div>
+
+                {coberturas.length === 0 ? (
+                    <Card className="border-dashed border-2 border-slate-200 py-20 flex flex-col items-center justify-center bg-white rounded-3xl">
+                        <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
+                            <AlertCircle className="h-8 w-8 text-slate-300" />
+                        </div>
+                        <div className="text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+                            Nenhum registro localizado.
+                        </div>
+                        <Link href="/dashboard/supervisor/nova" className="mt-4">
+                            <Button variant="ghost" className="text-primary font-bold uppercase tracking-widest text-[9px]">Registrar Diária</Button>
                         </Link>
                     </Card>
                 ) : (
-                    <div className="grid gap-6">
-                        {coberturas.map((item) => (
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
+                        {coberturas.map((item, idx) => (
                             <Link key={item.id} href={`/dashboard/supervisor/editar/${item.id}`} className="block">
-                                <Card className="glass-card group hover:scale-[1.01] transition-all duration-500 premium-shadow border-none">
-                                    <CardContent className="p-8">
-                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                                            <div className="flex items-center gap-6">
-                                                <div className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-all duration-500 border border-slate-100 group-hover:border-primary/20">
-                                                    <Calendar className="h-8 w-8" />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-2xl font-black text-slate-900 tracking-tighter">
-                                                            {new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
-                                                        </span>
-                                                        <div className="h-1 w-1 rounded-full bg-slate-300" />
-                                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">ID: {item.id.slice(0, 6)}</span>
-                                                    </div>
-                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
-                                                        <div className="flex items-center gap-2 font-bold text-slate-600">
-                                                            <MapPin className="h-4 w-4 text-primary opacity-50" />
-                                                            {item.posto.nome}
-                                                        </div>
-                                                        <div className="hidden sm:block h-3 w-[1px] bg-slate-200" />
-                                                        <div className="flex items-center gap-2 font-medium text-slate-500">
-                                                            <User className="h-4 w-4 text-orange-400 opacity-50" />
-                                                            {item.diarista.nome}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="w-full md:w-auto flex flex-row md:flex-col items-center md:items-end justify-between gap-2 border-t md:border-t-0 pt-4 md:pt-0">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] md:hidden">Status</span>
-                                                {getStatusBadge(item.status)}
-                                            </div>
+                                <div className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all ${idx !== coberturas.length - 1 ? 'border-b border-slate-100/80' : ''}`}>
+                                    <div className="flex items-center gap-3.5 min-w-0">
+                                        {/* Círculo do Status */}
+                                        {getStatusCircleIcon(item.status)}
+                                        
+                                        <div className="min-w-0 space-y-0.5">
+                                            <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.posto.nome}</p>
+                                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
+                                                {item.diarista.nome} &bull; {new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
+                                            </p>
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                    </div>
+
+                                    <div className="text-right shrink-0 ml-3 space-y-0.5">
+                                        <p className="text-xs font-black text-slate-900 tracking-tight">
+                                            R$ {Number(item.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </p>
+                                        <p className={`text-[8px] font-black uppercase tracking-widest ${getStatusTextColor(item.status)}`}>
+                                            {item.status}
+                                        </p>
+                                    </div>
+                                </div>
                             </Link>
                         ))}
                     </div>
