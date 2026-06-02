@@ -88,15 +88,13 @@ export async function GET(req: Request) {
                     }
                 }
 
-                // totalPendenteDevolucao (A Receber): include advance valorSolicitado if AGUARDANDO_PRESTACAO and valorComprovado is null;
-                // otherwise use positive saldoFinal.
-                if (['AGUARDANDO_PRESTACAO', 'AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO'].includes(d.status) && isPaid) {
-                    if (d.status === 'AGUARDANDO_PRESTACAO' && valorComprovado === null) {
-                        totalPendenteDevolucao += valorSolicitado
-                    } else if (saldo > 0) {
+                // totalPendenteDevolucao (A Receber): include positive saldoFinal for advances
+                if (['AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO'].includes(d.status) && isPaid) {
+                    if (saldo > 0) {
                         totalPendenteDevolucao += saldo
                     }
                 }
+
 
                 // totalPendenteReembolsoComp (A Pagar): include negative saldoFinal for advances
                 if (['AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO'].includes(d.status) && isPaid) {

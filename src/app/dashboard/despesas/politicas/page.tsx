@@ -84,26 +84,42 @@ export default function PoliticasConfigPage() {
 
         setUploadingLogo(true)
         try {
-            const formData = new FormData()
-            formData.append("tipoConfig", "AUDITORIA")
-            formData.append("logoFile", file)
+            const reader = new FileReader()
+            reader.readAsDataURL(file)
+            reader.onload = async () => {
+                const base64String = reader.result as string
 
-            const res = await fetch("/api/politicas", {
-                method: "POST",
-                body: formData
-            })
+                try {
+                    const res = await fetch("/api/politicas", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            tipoConfig: "AUDITORIA",
+                            logoPersonalizado: base64String
+                        })
+                    })
 
-            if (!res.ok) throw new Error()
-            const data = await res.json()
-            setLogoPersonalizado(data.logoPersonalizado)
-            toast.success("Logotipo da empresa atualizado com sucesso!")
-            router.refresh()
+                    if (!res.ok) throw new Error()
+                    const data = await res.json()
+                    setLogoPersonalizado(data.logoPersonalizado)
+                    toast.success("Logotipo da empresa atualizado com sucesso!")
+                    router.refresh()
+                } catch {
+                    toast.error("Erro ao salvar o logotipo personalizado.")
+                } finally {
+                    setUploadingLogo(false)
+                }
+            }
+            reader.onerror = () => {
+                toast.error("Erro ao ler arquivo de imagem.")
+                setUploadingLogo(false)
+            }
         } catch {
-            toast.error("Erro ao fazer upload do logotipo.")
-        } finally {
+            toast.error("Erro ao processar imagem do logotipo.")
             setUploadingLogo(false)
         }
     }
+
 
     const handleRemoveLogo = async () => {
         setUploadingLogo(true)

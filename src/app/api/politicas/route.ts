@@ -2,8 +2,6 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { writeFile } from "fs/promises"
-import { join } from "path"
 
 // GET: Retornar políticas e termos configurados
 export async function GET() {
@@ -45,60 +43,27 @@ export async function POST(req: Request) {
     }
 
     try {
-        let body: any = {}
-        let fileToUpload: File | null = null
-
-        const contentType = req.headers.get("content-type") || ""
-        if (contentType.includes("multipart/form-data")) {
-            const formData = await req.formData()
-            body.tipoConfig = formData.get("tipoConfig") as string
-            body.categoria = formData.get("categoria") as string | undefined
-            body.limiteValor = formData.get("limiteValor") as string | undefined
-            body.descricao = formData.get("descricao") as string | undefined
-            body.palavrasProibidas = formData.get("palavrasProibidas") as string | undefined
-            body.motivosRejeicao = formData.get("motivosRejeicao") as string | undefined
-            body.logoPersonalizado = formData.get("logoPersonalizado") as string | undefined // can be URL, "null" string, or undefined
-            fileToUpload = formData.get("logoFile") as File | null
-        } else {
-            body = await req.json()
-        }
-
-        const { tipoConfig, categoria, limiteValor, descricao, palavrasProibidas, motivosRejeicao } = body
-        let logoPersonalizado = body.logoPersonalizado
-
+        const body = await req.json()
+        const { tipoConfig, categoria, limiteValor, descricao, palavrasProibidas, motivosRejeicao, logoPersonalizado } = body
+ 
         if (tipoConfig === "AUDITORIA") {
-            // Process logo file if uploaded
-            if (fileToUpload) {
-                const bytes = await fileToUpload.arrayBuffer()
-                const buffer = Buffer.from(bytes)
-
-                const uploadDir = join(process.cwd(), "public", "uploads")
-                const filename = `logo-${Date.now()}-${fileToUpload.name.replace(/\s/g, '_')}`
-                const filepath = join(uploadDir, filename)
-
-                await writeFile(filepath, buffer)
-                logoPersonalizado = `/uploads/${filename}`
-            } else if (logoPersonalizado === "null" || logoPersonalizado === null) {
-                logoPersonalizado = null
-            }
-
-            if (palavrasProibidas === undefined && motivosRejeicao === undefined && logoPersonalizado === undefined && !fileToUpload) {
+            if (palavrasProibidas === undefined && motivosRejeicao === undefined && logoPersonalizado === undefined) {
                 return new NextResponse(
-                    JSON.stringify({ error: "Pelo menos um dos campos ('palavrasProibidas', 'motivosRejeicao', 'logoPersonalizado' ou arquivo de logo) deve ser informado." }),
+                    JSON.stringify({ error: "Pelo menos um dos campos ('palavrasProibidas', 'motivosRejeicao', 'logoPersonalizado') deve ser informado." }),
                     { status: 400, headers: { "Content-Type": "application/json" } }
                 )
             }
-
+ 
             // Atualiza ou cria as configurações de palavras, motivos e logo
             const current = await prisma.configuracaoAuditoria.findFirst({
                 where: { ativo: true }
             })
-
+ 
             const dataToUpdate: any = {}
             if (palavrasProibidas !== undefined) dataToUpdate.palavrasProibidas = palavrasProibidas
             if (motivosRejeicao !== undefined) dataToUpdate.motivosRejeicao = motivosRejeicao
-            if (logoPersonalizado !== undefined || fileToUpload) dataToUpdate.logoPersonalizado = logoPersonalizado
-
+            if (logoPersonalizado !== undefined) dataToUpdate.logoPersonalizado = logoPersonalizado
+ 
             let result
             if (current) {
                 result = await prisma.configuracaoAuditoria.update({
@@ -114,7 +79,7 @@ export async function POST(req: Request) {
                     }
                 })
             }
-
+ 
             return NextResponse.json(result)
         } else if (tipoConfig === "LIMITE") {
             if (!categoria || limiteValor === undefined || !descricao) {
@@ -150,4 +115,5 @@ export async function POST(req: Request) {
         return new NextResponse("Internal Error", { status: 500 })
     }
 }
+
 
