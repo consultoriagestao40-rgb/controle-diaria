@@ -16,7 +16,8 @@ import {
     BarChart,
     Receipt,
     Wallet,
-    Grid
+    Grid,
+    Landmark
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -54,6 +55,7 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                     { label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
                     { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
                     { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
+                    { label: "Centros de Custo", href: "/dashboard/despesas/admin/centros-custo", icon: Landmark },
                 ]
             case "SUPERVISOR":
                 return [

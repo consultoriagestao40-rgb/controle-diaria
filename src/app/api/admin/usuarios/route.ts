@@ -13,7 +13,10 @@ export async function GET() {
         const users = await prisma.user.findMany({
             // Remove 'where role: SUPERVISOR' to get all
             include: {
-                postosAutorizados: true
+                postosAutorizados: true,
+                centroCusto: {
+                    select: { id: true, nome: true }
+                }
             },
             orderBy: { nome: 'asc' }
         })
@@ -31,7 +34,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json()
-        const { nome, email, password, postosIds, ativo, role, acessoDespesas, acessoCoberturas } = body
+        const { nome, email, password, postosIds, ativo, role, acessoDespesas, acessoCoberturas, centroCustoId } = body
 
         if (!nome || !email || !password || !role) {
             return new NextResponse("Missing fields", { status: 400 })
@@ -49,12 +52,14 @@ export async function POST(req: Request) {
                 ativo: ativo !== undefined ? ativo : true,
                 acessoDespesas: acessoDespesas !== undefined ? acessoDespesas : true,
                 acessoCoberturas: acessoCoberturas !== undefined ? acessoCoberturas : true,
+                centroCustoId: centroCustoId || null,
                 postosAutorizados: {
                     connect: postosIds?.map((id: string) => ({ id })) || []
                 }
             },
             include: {
-                postosAutorizados: true
+                postosAutorizados: true,
+                centroCusto: true
             }
         })
 

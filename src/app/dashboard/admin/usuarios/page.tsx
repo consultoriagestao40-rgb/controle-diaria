@@ -34,11 +34,14 @@ interface User {
     acessoDespesas: boolean
     acessoCoberturas: boolean
     postosAutorizados: Posto[]
+    centroCustoId?: string | null
+    centroCusto?: { id: string, nome: string } | null
 }
 
 export default function UsuariosPage() {
     const [users, setUsers] = useState<User[]>([])
     const [postos, setPostos] = useState<Posto[]>([])
+    const [centrosCusto, setCentrosCusto] = useState<{ id: string, nome: string }[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
 
@@ -54,7 +57,8 @@ export default function UsuariosPage() {
         ativo: true,
         acessoDespesas: true,
         acessoCoberturas: true,
-        postosIds: [] as string[]
+        postosIds: [] as string[],
+        centroCustoId: "none"
     })
 
     const [saving, setSaving] = useState(false)
@@ -65,15 +69,17 @@ export default function UsuariosPage() {
 
     const fetchData = async () => {
         try {
-            const [resUsers, resPostos] = await Promise.all([
+            const [resUsers, resPostos, resCentros] = await Promise.all([
                 fetch("/api/admin/usuarios"),
-                fetch("/api/admin/postos")
+                fetch("/api/admin/postos"),
+                fetch("/api/admin/centros-custo")
             ])
 
-            if (!resUsers.ok || !resPostos.ok) throw new Error("Erro ao carregar dados")
+            if (!resUsers.ok || !resPostos.ok || !resCentros.ok) throw new Error("Erro ao carregar dados")
 
             setUsers(await resUsers.json())
             setPostos(await resPostos.json())
+            setCentrosCusto(await resCentros.json())
         } catch {
             toast.error("Erro ao carregar usuários")
         } finally {
@@ -92,10 +98,15 @@ export default function UsuariosPage() {
 
             const method = editingId ? "PUT" : "POST"
 
+            const payload = {
+                ...formData,
+                centroCustoId: formData.centroCustoId === "none" ? null : formData.centroCustoId
+            }
+
             const res = await fetch(url, {
                 method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             })
 
             if (!res.ok) {
@@ -115,7 +126,7 @@ export default function UsuariosPage() {
 
     const openNew = () => {
         setEditingId(null)
-        setFormData({ nome: "", email: "", password: "", role: "SUPERVISOR", ativo: true, acessoDespesas: true, acessoCoberturas: true, postosIds: [] })
+        setFormData({ nome: "", email: "", password: "", role: "SUPERVISOR", ativo: true, acessoDespesas: true, acessoCoberturas: true, postosIds: [], centroCustoId: "none" })
         setIsDialogOpen(true)
     }
 
@@ -129,7 +140,8 @@ export default function UsuariosPage() {
             ativo: u.ativo,
             acessoDespesas: u.acessoDespesas !== undefined ? u.acessoDespesas : true,
             acessoCoberturas: u.acessoCoberturas !== undefined ? u.acessoCoberturas : true,
-            postosIds: u.postosAutorizados.map(p => p.id)
+            postosIds: u.postosAutorizados.map(p => p.id),
+            centroCustoId: u.centroCustoId || "none"
         })
         setIsDialogOpen(true)
     }
@@ -206,7 +218,8 @@ export default function UsuariosPage() {
                     {loading ? (
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                     ) : (
-                                                     <TableHeader>
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
                                     <TableHead>Nome</TableHead>
                                     <TableHead>Email</TableHead>
@@ -220,7 +233,14 @@ export default function UsuariosPage() {
                             <TableBody>
                                 {filtered.map((u) => (
                                     <TableRow key={u.id}>
-                                        <TableCell className="font-medium">{u.nome}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{u.nome}</span>
+                                                {u.centroCusto && (
+                                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{u.centroCusto.nome}</span>
+                                                )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>{u.email}</TableCell>
                                         <TableCell>{getRoleBadge(u.role)}</TableCell>
                                         <TableCell>
@@ -321,6 +341,21 @@ export default function UsuariosPage() {
                                     placeholder={editingId ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="centroCustoId">Centro de Custo (Área/Departamento)</Label>
+                            <Select value={formData.centroCustoId} onValueChange={(v) => setFormData({ ...formData, centroCustoId: v })}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Nenhum</SelectItem>
+                                    {centrosCusto.map(c => (
+                                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {(formData.role === 'SUPERVISOR' || formData.role === 'ENCARREGADO') && (

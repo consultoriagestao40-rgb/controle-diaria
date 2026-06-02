@@ -58,6 +58,13 @@ model User {
   despesasAprovadas     Despesa[] @relation("AprovadorDespesa")
   despesasPagas         Despesa[] @relation("FinanceiroDespesa")
   historicosDespesa     HistoricoDespesa[]
+
+  // Centro de Custo Relacoes
+  centroCustoId         String?
+  centroCusto           CentroCusto? @relation("UserCentroCusto", fields: [centroCustoId], references: [id])
+  centrosAprovadosN1    CentroCusto[] @relation("AprovadorN1Centro")
+  centrosAprovadosN2    CentroCusto[] @relation("AprovadorN2Centro")
+  centrosFinanceiro     CentroCusto[] @relation("FinanceiroCentro")
 }
 
 // Catalogs
@@ -235,6 +242,8 @@ enum TipoDespesa {
 
 enum StatusDespesa {
   RASCUNHO
+  AGUARDANDO_APROVACAO_N1
+  AGUARDANDO_APROVACAO_N2
   AGUARDANDO_APROVACAO
   APROVADO
   REPROVADO
@@ -272,6 +281,10 @@ model Despesa {
 
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
+
+  // Centro de Custo
+  centroCustoId         String?
+  centroCusto           CentroCusto?      @relation(fields: [centroCustoId], references: [id])
 
   // Relacionamentos modulares
   anexos                Anexo[]           @relation("AnexosDespesa")
@@ -324,4 +337,25 @@ model ItemDespesa {
   valorUnitario Decimal
   valorTotal    Decimal
   createdAt     DateTime @default(now())
+}
+
+model CentroCusto {
+  id             String    @id @default(uuid())
+  nome           String    @unique
+  ativo          Boolean   @default(true)
+  
+  // Aprovadores e Financeiro por Area
+  aprovadorN1Id  String?
+  aprovadorN1    User?     @relation("AprovadorN1Centro", fields: [aprovadorN1Id], references: [id])
+  aprovadorN2Id  String?
+  aprovadorN2    User?     @relation("AprovadorN2Centro", fields: [aprovadorN2Id], references: [id])
+  financeiroId   String?
+  financeiro     User?     @relation("FinanceiroCentro", fields: [financeiroId], references: [id])
+  
+  // Relações
+  users          User[]    @relation("UserCentroCusto")
+  despesas       Despesa[]
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }

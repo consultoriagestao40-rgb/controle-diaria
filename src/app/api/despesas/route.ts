@@ -18,9 +18,17 @@ export async function GET(req: Request) {
         const filter: any = isAdminOrFinance ? {} : { solicitanteId: user.id }
         
         if (tipo) filter.tipo = tipo
-        if (status) filter.status = status
+        if (status) {
+            if (status === 'AGUARDANDO_APROVACAO') {
+                filter.status = {
+                    in: ['AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2']
+                }
+            } else {
+                filter.status = status
+            }
+        }
 
-        const despesas = await prisma.despesa.findMany({
+        let despesas = await prisma.despesa.findMany({
             where: filter,
             include: {
                 solicitante: {
@@ -32,11 +40,44 @@ export async function GET(req: Request) {
                 financeiro: {
                     select: { id: true, nome: true, email: true }
                 },
+                centroCusto: true,
                 anexos: true,
                 itens: true
             },
             orderBy: { createdAt: 'desc' }
         })
+
+        // Roteamento Dinâmico de Exibição com base no Aprovador N1 / N2 do Centro de Custo
+        if (user.role !== 'ADMIN') {
+            const isApproverRole = ['APROVADOR', 'APROVADOR_N1', 'APROVADOR_N2'].includes(user.role)
+            if (isApproverRole) {
+                despesas = despesas.filter(d => {
+                    if (d.status === 'AGUARDANDO_APROVACAO') return true
+                    
+                    if (d.status === 'AGUARDANDO_APROVACAO_N1') {
+                        return d.centroCusto?.aprovadorN1Id === user.id
+                    }
+                    
+                    if (d.status === 'AGUARDANDO_APROVACAO_N2') {
+                        return d.centroCusto?.aprovadorN2Id === user.id
+                    }
+                    
+                    return true
+                })
+            }
+
+            if (user.role === 'FINANCEIRO') {
+                despesas = despesas.filter(d => {
+                    const isFinancePhase = ['APROVADO', 'AGUARDANDO_CONCILIACAO', 'AGUARDANDO_PRESTACAO'].includes(d.status)
+                    if (isFinancePhase) {
+                        if (d.centroCusto?.financeiroId) {
+                            return d.centroCusto.financeiroId === user.id
+                        }
+                    }
+                    return true
+                })
+            }
+        }
 
         return NextResponse.json(despesas)
     } catch (error) {
@@ -120,13 +161,31 @@ export async function POST(req: Request) {
         // Rodar auditoria de políticas e termos proibidos (incluindo itens)
         const auditResult = await runExpenseAudit(descricao, valor, anexos || [], itemsToCreate)
  
+        // Buscar o centro de custo do usuário solicitante para roteamento e registro
+        const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            include: {
+                centroCusto: true
+            }
+        })
+        const userCentroCustoId = dbUser?.centroCustoId || null
+        const hasN1 = dbUser?.centroCusto?.aprovadorN1Id ? true : false
+        const hasN2 = dbUser?.centroCusto?.aprovadorN2Id ? true : false
+
         // Define status inicial: adiantamentos sempre vão para aprovação. Reembolsos dependem da política.
         let statusInicial: any = 'RASCUNHO'
         if (enviarParaAprovacao) {
-            if (tipo === 'ADIANTAMENTO') {
-                statusInicial = 'AGUARDANDO_APROVACAO'
+            const needsApproval = tipo === 'ADIANTAMENTO' || auditResult.hasProhibitedItems
+            if (needsApproval) {
+                if (hasN1) {
+                    statusInicial = 'AGUARDANDO_APROVACAO_N1'
+                } else if (hasN2) {
+                    statusInicial = 'AGUARDANDO_APROVACAO_N2'
+                } else {
+                    statusInicial = 'AGUARDANDO_APROVACAO'
+                }
             } else {
-                statusInicial = auditResult.hasProhibitedItems ? 'AGUARDANDO_APROVACAO' : 'APROVADO'
+                statusInicial = 'APROVADO'
             }
         }
  
@@ -138,6 +197,7 @@ export async function POST(req: Request) {
                     descricao,
                     valorSolicitado: valor,
                     solicitanteId: user.id,
+                    centroCustoId: userCentroCustoId,
                     alertaAuditoria: auditResult.alertMessage,
                     itens: itemsToCreate.length > 0 ? {
                         create: itemsToCreate.map(item => ({

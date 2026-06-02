@@ -20,7 +20,10 @@ export async function PATCH(
 
     try {
         const despesa = await prisma.despesa.findUnique({
-            where: { id }
+            where: { id },
+            include: {
+                centroCusto: true
+            }
         })
 
         if (!despesa) {
@@ -30,7 +33,8 @@ export async function PATCH(
             )
         }
 
-        if (despesa.status !== 'AGUARDANDO_APROVACAO') {
+        const validStatuses = ['AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2']
+        if (!validStatuses.includes(despesa.status)) {
             return new NextResponse(
                 JSON.stringify({ error: "Apenas despesas aguardando aprovação podem ser aprovadas ou reprovadas." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
@@ -54,11 +58,17 @@ export async function PATCH(
             )
         }
 
-        let novoStatus: any = action === 'APROVAR' ? 'APROVADO' : 'REPROVADO'
         let isPrestacao = despesa.tipo === 'ADIANTAMENTO' && despesa.valorComprovado !== null
+        let novoStatus: any = 'RASCUNHO'
 
-        if (isPrestacao) {
-            novoStatus = action === 'APROVAR' ? 'AGUARDANDO_CONCILIACAO' : 'AGUARDANDO_PRESTACAO'
+        if (action === 'APROVAR') {
+            if (despesa.status === 'AGUARDANDO_APROVACAO_N1' && despesa.centroCusto?.aprovadorN2Id) {
+                novoStatus = 'AGUARDANDO_APROVACAO_N2'
+            } else {
+                novoStatus = isPrestacao ? 'AGUARDANDO_CONCILIACAO' : 'APROVADO'
+            }
+        } else {
+            novoStatus = isPrestacao ? 'AGUARDANDO_PRESTACAO' : 'REPROVADO'
         }
 
         const despesaAtualizada = await prisma.$transaction(async (tx) => {
@@ -76,11 +86,15 @@ export async function PATCH(
             let obs = ""
             if (isPrestacao) {
                 obs = action === 'APROVAR'
-                    ? `Prestação de contas aprovada por gestor ${user.nome}. Encaminhado para conciliação final. ${justificativa || ""}`
+                    ? (novoStatus === 'AGUARDANDO_APROVACAO_N2'
+                        ? `Prestação de contas aprovada em N1 por ${user.nome}. Encaminhado para aprovação final N2.`
+                        : `Prestação de contas aprovada por gestor ${user.nome}. Encaminhado para conciliação final. ${justificativa || ""}`)
                     : `Prestação de contas devolvida para correção por gestor ${user.nome}. Motivo: ${justificativa}`
             } else {
                 obs = action === 'APROVAR'
-                    ? `Solicitação aprovada por ${user.nome}. ${justificativa || ""}`
+                    ? (novoStatus === 'AGUARDANDO_APROVACAO_N2'
+                        ? `Solicitação aprovada em N1 por ${user.nome}. Encaminhado para aprovação final N2.`
+                        : `Solicitação aprovada por ${user.nome}. ${justificativa || ""}`)
                     : `Solicitação reprovada por ${user.nome}. Motivo: ${justificativa}`
             }
 
@@ -88,7 +102,7 @@ export async function PATCH(
             await tx.historicoDespesa.create({
                 data: {
                     despesaId: id,
-                    deStatus: 'AGUARDANDO_APROVACAO',
+                    deStatus: despesa.status,
                     paraStatus: novoStatus,
                     usuarioId: user.id,
                     observacao: obs

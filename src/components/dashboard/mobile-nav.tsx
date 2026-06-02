@@ -15,7 +15,8 @@ import {
     BarChart,
     Receipt,
     Wallet,
-    Grid
+    Grid,
+    Landmark
 } from "lucide-react"
 
 interface MobileNavProps {
@@ -48,6 +49,7 @@ export function MobileNav({ user, logoUrl, acessoDespesas = true, acessoCobertur
                     { label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
                     { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
                     { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
+                    { label: "Centros de Custo", href: "/dashboard/despesas/admin/centros-custo", icon: Landmark },
                 ]
             case "SUPERVISOR":
                 return [

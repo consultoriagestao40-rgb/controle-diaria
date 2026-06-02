@@ -174,6 +174,16 @@ export default function AprovacoesDespesasPage() {
                                                 }`}>
                                                     {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
                                                 </Badge>
+                                                {item.status === 'AGUARDANDO_APROVACAO_N1' && (
+                                                    <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50/50 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider">
+                                                        N1
+                                                    </Badge>
+                                                )}
+                                                {item.status === 'AGUARDANDO_APROVACAO_N2' && (
+                                                    <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50/50 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider">
+                                                        N2
+                                                    </Badge>
+                                                )}
                                                 <div className="h-1.5 w-1.5 rounded-full bg-slate-300" />
                                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{new Date(item.createdAt).toLocaleDateString('pt-BR')}</span>
                                                 <div className="h-1.5 w-1.5 rounded-full bg-slate-300" />

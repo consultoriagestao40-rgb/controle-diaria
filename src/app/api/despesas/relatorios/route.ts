@@ -78,7 +78,7 @@ export async function GET(req: Request) {
             if (d.tipo === 'ADIANTAMENTO') {
                 // totalAdiantado: count valorComprovado if CONCLUIDO, else valorSolicitado if paid.
                 const isPaid = ['PAGO', 'AGUARDANDO_PRESTACAO', 'AGUARDANDO_CONCILIACAO', 'CONCLUIDO'].includes(d.status) || 
-                               (d.status === 'AGUARDANDO_APROVACAO' && valorComprovado !== null)
+                               (['AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2'].includes(d.status) && valorComprovado !== null)
 
                 if (isPaid) {
                     if (d.status === 'CONCLUIDO') {
@@ -88,16 +88,25 @@ export async function GET(req: Request) {
                     }
                 }
 
-                // totalPendenteDevolucao (A Receber): include positive saldoFinal for advances
-                if (['AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO'].includes(d.status) && isPaid) {
+                // totalPendenteDevolucao (A Receber): include pending advance amount or positive saldoFinal
+                if (d.status === 'AGUARDANDO_PRESTACAO') {
+                    if (valorComprovado === null) {
+                        totalPendenteDevolucao += valorSolicitado
+                    } else if (saldo > 0) {
+                        totalPendenteDevolucao += saldo
+                    }
+                } else if (['AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2'].includes(d.status) && isPaid) {
                     if (saldo > 0) {
                         totalPendenteDevolucao += saldo
                     }
                 }
 
-
                 // totalPendenteReembolsoComp (A Pagar): include negative saldoFinal for advances
-                if (['AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO'].includes(d.status) && isPaid) {
+                if (d.status === 'AGUARDANDO_PRESTACAO') {
+                    if (valorComprovado !== null && saldo < 0) {
+                        totalPendenteReembolsoComp += Math.abs(saldo)
+                    }
+                } else if (['AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2'].includes(d.status) && isPaid) {
                     if (saldo < 0) {
                         totalPendenteReembolsoComp += Math.abs(saldo)
                     }
@@ -108,8 +117,8 @@ export async function GET(req: Request) {
                     totalReembolsado += valorSolicitado
                 }
 
-                // totalPendenteReembolsoComp (A Pagar): include valorSolicitado for all Reembolsos in AGUARDANDO_APROVACAO or APROVADO
-                if (['AGUARDANDO_APROVACAO', 'APROVADO'].includes(d.status)) {
+                // totalPendenteReembolsoComp (A Pagar): include valorSolicitado for all Reembolsos in AGUARDANDO_APROVACAO or APROVADO or N1/N2
+                if (['AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2', 'APROVADO'].includes(d.status)) {
                     totalPendenteReembolsoComp += valorSolicitado
                 }
             }
