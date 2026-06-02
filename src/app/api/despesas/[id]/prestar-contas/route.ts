@@ -39,9 +39,9 @@ export async function POST(
             )
         }
  
-        if (despesa.status !== 'AGUARDANDO_PRESTACAO') {
+        if (despesa.status !== 'AGUARDANDO_PRESTACAO' && despesa.status !== 'APROVADO') {
             return new NextResponse(
-                JSON.stringify({ error: "Despesa não está em estado de prestação de contas (deve ser paga primeiro)." }),
+                JSON.stringify({ error: "Despesa não está em estado de prestação de contas." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
@@ -138,6 +138,11 @@ export async function POST(
                 })
             }
 
+            // Limpar anexos anteriores para evitar duplicações
+            await tx.anexo.deleteMany({
+                where: { despesaId: id }
+            })
+
             // Criar os anexos da prestação de contas
             for (const anexo of anexos) {
                 await tx.anexo.create({
@@ -170,7 +175,7 @@ export async function POST(
             await tx.historicoDespesa.create({
                 data: {
                     despesaId: id,
-                    deStatus: 'AGUARDANDO_PRESTACAO',
+                    deStatus: despesa.status,
                     paraStatus: novoStatus,
                     usuarioId: user.id,
                     observacao: historicoObs

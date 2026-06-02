@@ -126,20 +126,26 @@ export default function MinhasDespesasPage() {
         const map: any = {
             'RASCUNHO': 'bg-slate-100 text-slate-700',
             'AGUARDANDO_APROVACAO': 'bg-yellow-100 text-yellow-800',
+            'AGUARDANDO_APROVACAO_N1': 'bg-yellow-100 text-yellow-800',
+            'AGUARDANDO_APROVACAO_N2': 'bg-yellow-100 text-yellow-800',
             'APROVADO': 'bg-green-100 text-green-800',
             'REPROVADO': 'bg-red-100 text-red-800',
             'PAGO': 'bg-teal-100 text-teal-800',
             'AGUARDANDO_PRESTACAO': 'bg-orange-100 text-orange-800',
+            'AGUARDANDO_CONCILIACAO': 'bg-purple-100 text-purple-800',
             'CONCLUIDO': 'bg-blue-100 text-blue-800',
         }
         
         const labels: any = {
             'RASCUNHO': 'Rascunho',
             'AGUARDANDO_APROVACAO': 'Aguardando Aprovação',
+            'AGUARDANDO_APROVACAO_N1': 'Aguardando Aprov. N1',
+            'AGUARDANDO_APROVACAO_N2': 'Aguardando Aprov. N2',
             'APROVADO': 'Aprovado',
             'REPROVADO': 'Reprovado',
             'PAGO': 'Pago',
             'AGUARDANDO_PRESTACAO': 'Aguardando Prestação',
+            'AGUARDANDO_CONCILIACAO': 'Aguardando Conciliação',
             'CONCLUIDO': 'Concluído',
         }
 
@@ -499,7 +505,7 @@ export default function MinhasDespesasPage() {
                                                 </div>
                                             )}
 
-                                            {item.status === 'AGUARDANDO_PRESTACAO' && (
+                                            {(item.status === 'AGUARDANDO_PRESTACAO' || (item.tipo === 'ADIANTAMENTO' && item.status === 'APROVADO')) && (
                                                 <Button
                                                     size="sm"
                                                     onClick={() => openPrestacaoModal(item)}
