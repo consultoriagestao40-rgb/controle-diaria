@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Wallet, Plus, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileUp, CheckCircle, FileText, Settings } from "lucide-react"
+import { Wallet, Plus, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileUp, CheckCircle, FileText, Settings, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
