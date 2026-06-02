@@ -134,7 +134,7 @@ function EditarDiariaForm({ id }: { id: string }) {
     }
 
     return (
-        <div className="space-y-6 max-w-lg mx-auto pb-10 px-4 sm:px-0">
+        <div className="space-y-6 max-w-lg mx-auto pb-10 px-6 sm:px-0">
             <div className="flex items-center gap-2">
                 <Link href="/dashboard/supervisor">
                     <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
@@ -187,7 +187,7 @@ function EditarDiariaForm({ id }: { id: string }) {
                                                     disabled={isReadOnly}
                                                     variant={"outline"}
                                                     className={cn(
-                                                        "w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all",
+                                                        "w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all",
                                                         !field.value && "text-slate-400"
                                                     )}
                                                 >
@@ -220,11 +220,11 @@ function EditarDiariaForm({ id }: { id: string }) {
                                 <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Posto de Trabalho *</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                             <SelectValue />
                                         </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                    <SelectContent className="rounded-xl border-none shadow-2xl">
                                         {options.postos.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>))}
                                     </SelectContent>
                                 </Select>
@@ -239,11 +239,11 @@ function EditarDiariaForm({ id }: { id: string }) {
                                 <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Quem Cobriu? (Diarista) *</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                             <SelectValue />
                                         </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                    <SelectContent className="rounded-xl border-none shadow-2xl">
                                         {options.diaristas.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>))}
                                     </SelectContent>
                                 </Select>
@@ -258,11 +258,11 @@ function EditarDiariaForm({ id }: { id: string }) {
                                 <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Cobriu Quem? (Ausente) *</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                             <SelectValue />
                                         </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                    <SelectContent className="rounded-xl border-none shadow-2xl">
                                         {options.reservas.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>))}
                                     </SelectContent>
                                 </Select>
@@ -278,11 +278,11 @@ function EditarDiariaForm({ id }: { id: string }) {
                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Motivo *</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
-                                            <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                            <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                 <SelectValue />
                                             </SelectTrigger>
                                         </FormControl>
-                                        <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                        <SelectContent className="rounded-xl border-none shadow-2xl">
                                             {options.motivos.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.descricao}</SelectItem>))}
                                         </SelectContent>
                                     </Select>
@@ -296,11 +296,11 @@ function EditarDiariaForm({ id }: { id: string }) {
                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Carga *</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
-                                            <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                            <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                 <SelectValue />
                                             </SelectTrigger>
                                         </FormControl>
-                                        <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                        <SelectContent className="rounded-xl border-none shadow-2xl">
                                             {options.cargas.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.descricao}</SelectItem>))}
                                         </SelectContent>
                                     </Select>
@@ -316,7 +316,7 @@ function EditarDiariaForm({ id }: { id: string }) {
                                     <FormControl>
                                         <div className="relative">
                                             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
-                                            <Input type="number" step="0.01" inputMode="decimal" {...field} className="h-12 pl-9 bg-white border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-black text-slate-900 tracking-tighter" />
+                                            <Input type="number" step="0.01" inputMode="decimal" {...field} className="w-full h-12 pl-9 bg-white border border-slate-200 hover:border-slate-300 rounded-xl focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-black text-slate-900 tracking-tighter" />
                                         </div>
                                     </FormControl>
                                 </FormItem>
@@ -327,11 +327,11 @@ function EditarDiariaForm({ id }: { id: string }) {
                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Meio Pagamento *</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
-                                            <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                            <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                 <SelectValue />
                                             </SelectTrigger>
                                         </FormControl>
-                                        <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                        <SelectContent className="rounded-xl border-none shadow-2xl">
                                             {options.meios.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.descricao}</SelectItem>))}
                                         </SelectContent>
                                     </Select>
@@ -344,7 +344,7 @@ function EditarDiariaForm({ id }: { id: string }) {
                             <FormItem>
                                 <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Observação</FormLabel>
                                 <FormControl>
-                                    <Textarea placeholder="Observações adicionais..." className="min-h-[100px] bg-white border border-slate-200 rounded-xl p-4 text-sm font-medium text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none shadow-none" {...field} />
+                                    <Textarea placeholder="Observações adicionais..." className="w-full min-h-[100px] bg-white border border-slate-200 hover:border-slate-300 rounded-xl p-4 text-sm font-medium text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none shadow-none" {...field} />
                                 </FormControl>
                             </FormItem>
                         )}

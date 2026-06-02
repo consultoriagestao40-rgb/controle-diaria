@@ -141,7 +141,7 @@ export default function NovaDiariaPage() {
     }
 
     return (
-        <div className="space-y-8 max-w-2xl mx-auto pb-32 px-4 sm:px-0 relative">
+        <div className="space-y-8 max-w-2xl mx-auto pb-32 px-6 sm:px-0 relative">
             {/* Background Glow */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
 
@@ -160,7 +160,7 @@ export default function NovaDiariaPage() {
             </div>
 
             <Card className="glass-card border-none premium-shadow relative z-10">
-                <CardContent className="p-5 sm:p-8">
+                <CardContent className="p-6 sm:p-8">
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
                             console.log("Validation Errors:", errors)
@@ -405,7 +405,7 @@ export default function NovaDiariaPage() {
                                     <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Logística e Valores</h2>
                                 </div>
 
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                                     <FormField
                                         control={form.control}
                                         name="horaInicio"
@@ -413,7 +413,7 @@ export default function NovaDiariaPage() {
                                             <FormItem>
                                                 <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Início</FormLabel>
                                                 <FormControl>
-                                                    <Input type="time" {...field} className="h-12 bg-white border border-slate-200 rounded-xl px-4 focus:bg-white focus:border-primary/20 transition-all text-sm font-semibold text-slate-700" />
+                                                    <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -427,7 +427,7 @@ export default function NovaDiariaPage() {
                                             <FormItem>
                                                 <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Término</FormLabel>
                                                 <FormControl>
-                                                    <Input type="time" {...field} className="h-12 bg-white border border-slate-200 rounded-xl px-4 focus:bg-white focus:border-primary/20 transition-all text-sm font-semibold text-slate-700" />
+                                                    <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -438,15 +438,15 @@ export default function NovaDiariaPage() {
                                         control={form.control}
                                         name="motivoId"
                                         render={({ field }) => (
-                                            <FormItem className="col-span-2 md:col-span-1">
+                                            <FormItem className="col-span-1 sm:col-span-2 md:col-span-1">
                                                 <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Motivo *</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
-                                                        <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                             <SelectValue placeholder="Selecione" />
                                                         </SelectTrigger>
                                                     </FormControl>
-                                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                                    <SelectContent className="rounded-xl border-none shadow-2xl">
                                                         {options.motivos.map((i: any) => (
                                                             <SelectItem key={i.id} value={i.id} className="py-2.5">{i.descricao}</SelectItem>
                                                         ))}
@@ -461,15 +461,15 @@ export default function NovaDiariaPage() {
                                         control={form.control}
                                         name="cargaHorariaId"
                                         render={({ field }) => (
-                                            <FormItem className="col-span-2 md:col-span-1">
+                                            <FormItem className="col-span-1 sm:col-span-2 md:col-span-1">
                                                 <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Carga *</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
-                                                        <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                             <SelectValue placeholder="Hrs" />
                                                         </SelectTrigger>
                                                     </FormControl>
-                                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                                    <SelectContent className="rounded-xl border-none shadow-2xl">
                                                         {options.cargas.map((i: any) => (
                                                             <SelectItem key={i.id} value={i.id} className="py-2.5">{i.descricao}</SelectItem>
                                                         ))}
@@ -491,7 +491,7 @@ export default function NovaDiariaPage() {
                                                 <FormControl>
                                                     <div className="relative">
                                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
-                                                        <Input type="number" step="0.01" inputMode="decimal" {...field} className="h-12 pl-10 bg-white border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-black text-lg text-slate-900 tracking-tighter" />
+                                                        <Input type="number" step="0.01" inputMode="decimal" {...field} className="w-full h-12 pl-10 bg-white border border-slate-200 hover:border-slate-300 rounded-xl focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-black text-lg text-slate-900 tracking-tighter" />
                                                     </div>
                                                 </FormControl>
                                                 <FormMessage />
@@ -507,11 +507,11 @@ export default function NovaDiariaPage() {
                                                 <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Meio de Pagamento *</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
-                                                        <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                             <SelectValue placeholder="Tipo" />
                                                         </SelectTrigger>
                                                     </FormControl>
-                                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                                    <SelectContent className="rounded-xl border-none shadow-2xl">
                                                         {options.meios.map((i: any) => (
                                                             <SelectItem key={i.id} value={i.id} className="py-2.5">{i.descricao}</SelectItem>
                                                         ))}
@@ -539,11 +539,11 @@ export default function NovaDiariaPage() {
                                             <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Empresa do Grupo</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
-                                                    <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                                    <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                         <SelectValue placeholder="Selecione a empresa correlata" />
                                                     </SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                                <SelectContent className="rounded-xl border-none shadow-2xl">
                                                     {options.empresas.map((i: any) => (
                                                         <SelectItem key={i.id} value={i.id} className="py-2.5">{i.nome}</SelectItem>
                                                     ))}
@@ -563,7 +563,7 @@ export default function NovaDiariaPage() {
                                             <FormControl>
                                                 <Textarea
                                                     placeholder="Descreva aqui qualquer detalhe relevante sobre este lançamento..."
-                                                    className="min-h-[100px] bg-white border border-slate-200 rounded-xl p-4 text-sm font-medium text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none shadow-none"
+                                                    className="w-full min-h-[100px] bg-white border border-slate-200 hover:border-slate-300 rounded-xl p-4 text-sm font-medium text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none shadow-none"
                                                     {...field}
                                                 />
                                             </FormControl>
