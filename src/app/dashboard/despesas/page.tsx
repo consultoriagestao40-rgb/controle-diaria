@@ -145,6 +145,45 @@ export default function MinhasDespesasPage() {
         }
     }
 
+    const handleEnviarParaAprovacao = async (id: string) => {
+        try {
+            const res = await fetch(`/api/despesas/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enviarParaAprovacao: true })
+            })
+
+            if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.error || "Erro ao enviar solicitação")
+            }
+
+            toast.success("Solicitação enviada para aprovação!")
+            fetchDespesas()
+        } catch (error: any) {
+            toast.error(error.message || "Erro ao processar solicitação")
+        }
+    }
+
+    const handleDeletarDespesa = async (id: string) => {
+        if (!confirm("Tem certeza que deseja excluir esta solicitação em rascunho?")) return
+
+        try {
+            const res = await fetch(`/api/despesas/${id}`, {
+                method: "DELETE"
+            })
+
+            if (!res.ok) {
+                throw new Error("Erro ao excluir rascunho")
+            }
+
+            toast.success("Rascunho excluído com sucesso.")
+            fetchDespesas()
+        } catch (error: any) {
+            toast.error(error.message || "Erro ao deletar")
+        }
+    }
+
     const filteredDespesas = despesas.filter((d) => {
         if (activeTab === "TODAS") return true
         return d.tipo === activeTab
@@ -265,6 +304,26 @@ export default function MinhasDespesasPage() {
                                         <div className="w-full lg:w-auto flex items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 pt-4 lg:pt-0">
                                             {getStatusBadge(item.status)}
                                             
+                                            {item.status === 'RASCUNHO' && (
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => handleDeletarDespesa(item.id)}
+                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 font-bold uppercase tracking-widest text-[10px] h-10 px-3 rounded-xl active:scale-95 transition-all"
+                                                    >
+                                                        Excluir
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleEnviarParaAprovacao(item.id)}
+                                                        className="bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
+                                                    >
+                                                        Enviar para Aprovação
+                                                    </Button>
+                                                </div>
+                                            )}
+
                                             {item.status === 'AGUARDANDO_PRESTACAO' && (
                                                 <Button
                                                     size="sm"
