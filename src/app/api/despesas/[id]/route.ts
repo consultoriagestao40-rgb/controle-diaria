@@ -108,7 +108,7 @@ export async function PATCH(
                     { status: 400, headers: { "Content-Type": "application/json" } }
                 )
             }
-            valor = parsedValor
+            valor = Math.round(parsedValor * 100) / 100
             updateData.valorSolicitado = valor
         }
 
@@ -129,7 +129,11 @@ export async function PATCH(
 
         let novoStatus = despesa.status as any
         if (enviarParaAprovacao && (despesa.status === 'RASCUNHO' || despesa.status === 'REPROVADO')) {
-            novoStatus = auditResult.hasProhibitedItems ? 'AGUARDANDO_APROVACAO' : 'APROVADO'
+            if (despesa.tipo === 'ADIANTAMENTO') {
+                novoStatus = 'AGUARDANDO_APROVACAO'
+            } else {
+                novoStatus = auditResult.hasProhibitedItems ? 'AGUARDANDO_APROVACAO' : 'APROVADO'
+            }
             updateData.status = novoStatus
         }
 
@@ -149,7 +153,9 @@ export async function PATCH(
                         usuarioId: user.id,
                         observacao: novoStatus === 'APROVADO'
                             ? "Despesa aprovada automaticamente por estar dentro da política e encaminhada ao financeiro."
-                            : "Despesa enviada para aprovação do gestor."
+                            : (despesa.tipo === 'ADIANTAMENTO'
+                                ? "Adiantamento enviado para aprovação superior do gestor."
+                                : "Reembolso enviado para aprovação do gestor por violar políticas.")
                     }
                 })
             }

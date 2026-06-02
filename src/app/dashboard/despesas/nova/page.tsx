@@ -138,13 +138,14 @@ export default function NovaDespesaPage() {
         setLoading(true)
 
         try {
+            const roundedValorAdiantamento = Math.round(parseFloat(valorAdiantamento) * 100) / 100
             const finalItens = tipo === "ADIANTAMENTO" ? [{
                 categoria: "VIAGEM",
                 descricao: descricao,
                 data: dataAdiantamento,
                 quantidade: 1,
-                valorUnitario: parseFloat(valorAdiantamento),
-                valorTotal: parseFloat(valorAdiantamento)
+                valorUnitario: roundedValorAdiantamento,
+                valorTotal: roundedValorAdiantamento
             }] : itens
 
             const res = await fetch("/api/despesas", {
@@ -153,7 +154,7 @@ export default function NovaDespesaPage() {
                 body: JSON.stringify({
                     tipo,
                     descricao,
-                    valorSolicitado: tipo === "ADIANTAMENTO" ? parseFloat(valorAdiantamento) : totalDespesa,
+                    valorSolicitado: tipo === "ADIANTAMENTO" ? roundedValorAdiantamento : Math.round(totalDespesa * 100) / 100,
                     itens: finalItens,
                     anexos,
                     enviarParaAprovacao

@@ -64,7 +64,7 @@ export async function POST(
                 }
 
                 const qty = parseInt(quantidade)
-                const valUnit = parseFloat(valorUnitario)
+                const valUnit = Math.round(parseFloat(valorUnitario) * 100) / 100
 
                 if (isNaN(qty) || qty <= 0 || isNaN(valUnit) || valUnit <= 0) {
                     return new NextResponse(
@@ -73,8 +73,8 @@ export async function POST(
                     )
                 }
 
-                const valTotal = qty * valUnit
-                totalCalculado += valTotal
+                const valTotal = Math.round(qty * valUnit * 100) / 100
+                totalCalculado = Math.round((totalCalculado + valTotal) * 100) / 100
 
                 itemsToCreate.push({
                     categoria: categoria.toUpperCase().trim(),
@@ -87,7 +87,7 @@ export async function POST(
             }
         }
  
-        const valorComp = itemsToCreate.length > 0 ? totalCalculado : parseFloat(valorComprovado)
+        const valorComp = itemsToCreate.length > 0 ? totalCalculado : Math.round(parseFloat(valorComprovado) * 100) / 100
 
         if (isNaN(valorComp) || valorComp < 0) {
             return new NextResponse(
@@ -104,7 +104,7 @@ export async function POST(
         }
  
         const valorSolicitado = Number(despesa.valorSolicitado)
-        const saldo = valorSolicitado - valorComp
+        const saldo = Math.round((valorSolicitado - valorComp) * 100) / 100
  
         // Executar auditoria de termos e políticas (com itens)
         const auditResult = await runExpenseAudit(
@@ -114,8 +114,8 @@ export async function POST(
             itemsToCreate
         )
 
-        // Roteamento inteligente baseado na auditoria das políticas
-        const novoStatus = auditResult.hasProhibitedItems ? 'AGUARDANDO_APROVACAO' : 'AGUARDANDO_CONCILIACAO'
+        // Prestações de contas sempre passam pela aprovação superior do gestor antes da conciliação final do financeiro
+        const novoStatus = 'AGUARDANDO_APROVACAO'
  
         const despesaAtualizada = await prisma.$transaction(async (tx) => {
             // Limpar itens anteriores de adiantamento (estimativas)
@@ -165,18 +165,7 @@ export async function POST(
             })
  
             // Histórico de auditoria
-            let historicoObs = `Prestação de contas enviada por ${user.nome}. Gasto real: R$ ${valorComp.toFixed(2)}. `
-            if (novoStatus === 'AGUARDANDO_APROVACAO') {
-                historicoObs += "Identificadas violações de política de despesa. Direcionado para aprovação do gestor."
-            } else {
-                if (saldo === 0) {
-                    historicoObs += "Saldo zerado. Enviado para conciliação final do financeiro."
-                } else if (saldo > 0) {
-                    historicoObs += `Sobrou dinheiro. Colaborador deve devolver R$ ${saldo.toFixed(2)}. Enviado para conciliação do financeiro.`
-                } else {
-                    historicoObs += `Faltou dinheiro. Empresa deve reembolsar complementar de R$ ${Math.abs(saldo).toFixed(2)}. Enviado para conciliação do financeiro.`
-                }
-            }
+            let historicoObs = `Prestação de contas enviada por ${user.nome}. Gasto real: R$ ${valorComp.toFixed(2)}. Direcionado para aprovação superior do gestor.`
  
             await tx.historicoDespesa.create({
                 data: {

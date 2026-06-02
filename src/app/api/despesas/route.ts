@@ -85,7 +85,7 @@ export async function POST(req: Request) {
                 }
 
                 const qty = parseInt(quantidade)
-                const valUnit = parseFloat(valorUnitario)
+                const valUnit = Math.round(parseFloat(valorUnitario) * 100) / 100
 
                 if (isNaN(qty) || qty <= 0 || isNaN(valUnit) || valUnit <= 0) {
                     return new NextResponse(
@@ -94,8 +94,8 @@ export async function POST(req: Request) {
                     )
                 }
 
-                const valTotal = qty * valUnit
-                totalCalculado += valTotal
+                const valTotal = Math.round(qty * valUnit * 100) / 100
+                totalCalculado = Math.round((totalCalculado + valTotal) * 100) / 100
 
                 itemsToCreate.push({
                     categoria: categoria.toUpperCase().trim(),
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
             }
         }
 
-        const valor = itemsToCreate.length > 0 ? totalCalculado : parseFloat(valorSolicitado)
+        const valor = itemsToCreate.length > 0 ? totalCalculado : Math.round(parseFloat(valorSolicitado) * 100) / 100
         
         if (isNaN(valor) || valor <= 0) {
             return new NextResponse(
@@ -120,10 +120,14 @@ export async function POST(req: Request) {
         // Rodar auditoria de políticas e termos proibidos (incluindo itens)
         const auditResult = await runExpenseAudit(descricao, valor, anexos || [], itemsToCreate)
  
-        // Define status inicial com base na política se enviado para aprovação
+        // Define status inicial: adiantamentos sempre vão para aprovação. Reembolsos dependem da política.
         let statusInicial: any = 'RASCUNHO'
         if (enviarParaAprovacao) {
-            statusInicial = auditResult.hasProhibitedItems ? 'AGUARDANDO_APROVACAO' : 'APROVADO'
+            if (tipo === 'ADIANTAMENTO') {
+                statusInicial = 'AGUARDANDO_APROVACAO'
+            } else {
+                statusInicial = auditResult.hasProhibitedItems ? 'AGUARDANDO_APROVACAO' : 'APROVADO'
+            }
         }
  
         const despesa = await prisma.$transaction(async (tx) => {
@@ -157,7 +161,9 @@ export async function POST(req: Request) {
                     observacao: enviarParaAprovacao 
                         ? (statusInicial === 'APROVADO' 
                             ? "Despesa criada e aprovada automaticamente por estar dentro da política e encaminhada ao financeiro." 
-                            : "Despesa criada e enviada para aprovação do gestor por violar políticas.") 
+                            : (tipo === 'ADIANTAMENTO' 
+                                ? "Adiantamento criado e enviado para aprovação superior do gestor."
+                                : "Reembolso criado e enviado para aprovação do gestor por violar políticas.")) 
                         : "Despesa salva em rascunho."
                 }
             })
