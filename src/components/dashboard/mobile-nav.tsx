@@ -18,9 +18,10 @@ import {
 
 interface MobileNavProps {
     user: { name?: string | null, role?: string }
+    logoUrl?: string
 }
 
-export function MobileNav({ user }: MobileNavProps) {
+export function MobileNav({ user, logoUrl }: MobileNavProps) {
     const role = user.role
 
     const getNavItems = () => {
@@ -125,7 +126,7 @@ export function MobileNav({ user }: MobileNavProps) {
                     <div className="flex h-24 items-center border-b border-white/5 px-8">
                         <div className="flex flex-col gap-1">
                             <img
-                                src="/logo.png"
+                                src={logoUrl || "/logo.png"}
                                 alt="ReembolsaFácil"
                                 className="h-10 w-auto object-contain rounded-lg"
                             />

@@ -20,9 +20,10 @@ import { cn } from "@/lib/utils"
 
 interface SidebarNavProps {
     user: { name?: string | null, role?: string }
+    logoUrl?: string
 }
 
-export function SidebarNav({ user }: SidebarNavProps) {
+export function SidebarNav({ user, logoUrl }: SidebarNavProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const role = user.role
 
@@ -145,7 +146,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
                 {isCollapsed ? (
                     <div className="p-1 rounded-xl bg-white/5 border border-white/10">
                         <img
-                            src="/logo.png"
+                            src={logoUrl || "/logo.png"}
                             alt="Logo"
                             className="h-10 w-10 object-contain rounded-lg"
                         />
@@ -153,7 +154,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
                 ) : (
                     <div className="flex flex-col gap-1 active:scale-95 transition-transform duration-200">
                         <img
-                            src="/logo.png"
+                            src={logoUrl || "/logo.png"}
                             alt="ReembolsaFácil"
                             className="h-14 w-auto object-contain rounded-xl"
                         />

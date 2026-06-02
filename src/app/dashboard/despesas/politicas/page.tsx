@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, ShieldAlert, Sparkles, Loader2, Save, BadgeDollarSign, Plus, Check } from "lucide-react"
+import { Settings, ShieldAlert, Sparkles, Loader2, Save, BadgeDollarSign, Plus, Check, Building2, Upload, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 interface Politica {
     id?: string
@@ -19,14 +20,18 @@ interface AuditoriaConfig {
     id?: string
     palavrasProibidas: string
     motivosRejeicao?: string
+    logoPersonalizado?: string | null
 }
 
 export default function PoliticasConfigPage() {
+    const router = useRouter()
     const [politicas, setPoliticas] = useState<Politica[]>([])
     const [palavrasProibidas, setPalavrasProibidas] = useState("")
     const [motivosRejeicao, setMotivosRejeicao] = useState("")
+    const [logoPersonalizado, setLogoPersonalizado] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [savingAuditoria, setSavingAuditoria] = useState(false)
+    const [uploadingLogo, setUploadingLogo] = useState(false)
     const [savingLimite, setSavingLimite] = useState<string | null>(null)
     const [userRole, setUserRole] = useState("")
 
@@ -55,10 +60,71 @@ export default function PoliticasConfigPage() {
             setPoliticas(data.politicas || [])
             setPalavrasProibidas(data.auditoria?.palavrasProibidas || "")
             setMotivosRejeicao(data.auditoria?.motivosRejeicao || "")
+            setLogoPersonalizado(data.auditoria?.logoPersonalizado || null)
         } catch {
             toast.error("Erro ao carregar configurações de políticas")
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleUploadLogo = async (file: File) => {
+        if (!file) return
+
+        const fileTypes = ["image/jpeg", "image/png", "image/svg+xml", "image/webp"]
+        if (!fileTypes.includes(file.type)) {
+            toast.error("Formato de arquivo não suportado. Use PNG, JPG, SVG ou WEBP.")
+            return
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("O arquivo do logotipo deve ter no máximo 2MB.")
+            return
+        }
+
+        setUploadingLogo(true)
+        try {
+            const formData = new FormData()
+            formData.append("tipoConfig", "AUDITORIA")
+            formData.append("logoFile", file)
+
+            const res = await fetch("/api/politicas", {
+                method: "POST",
+                body: formData
+            })
+
+            if (!res.ok) throw new Error()
+            const data = await res.json()
+            setLogoPersonalizado(data.logoPersonalizado)
+            toast.success("Logotipo da empresa atualizado com sucesso!")
+            router.refresh()
+        } catch {
+            toast.error("Erro ao fazer upload do logotipo.")
+        } finally {
+            setUploadingLogo(false)
+        }
+    }
+
+    const handleRemoveLogo = async () => {
+        setUploadingLogo(true)
+        try {
+            const res = await fetch("/api/politicas", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tipoConfig: "AUDITORIA",
+                    logoPersonalizado: null
+                })
+            })
+
+            if (!res.ok) throw new Error()
+            setLogoPersonalizado(null)
+            toast.success("Logotipo personalizado removido. Usando logotipo padrão!")
+            router.refresh()
+        } catch {
+            toast.error("Erro ao remover logotipo personalizado.")
+        } finally {
+            setUploadingLogo(false)
         }
     }
 
@@ -83,6 +149,7 @@ export default function PoliticasConfigPage() {
             setSavingAuditoria(false)
         }
     }
+
 
     const handleSaveLimite = async (categoria: string, valor: number, desc: string) => {
         setSavingLimite(categoria)
@@ -369,6 +436,82 @@ export default function PoliticasConfigPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* 3. Identidade Visual (Logo) */}
+            {isAdmin && (
+                <Card className="glass-card shadow-xl border-none bg-white rounded-3xl overflow-hidden mt-8">
+                    <CardHeader className="bg-slate-50 border-b p-8">
+                        <CardTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
+                            <Building2 className="h-5 w-5 text-indigo-600" />
+                            Logotipo da Empresa
+                        </CardTitle>
+                        <CardDescription className="text-slate-400 text-xs pt-1">
+                            Customize a identidade visual da plataforma. Faça o upload do logotipo da sua empresa que será exibido no menu lateral e nas navegações internas. Se nenhum logotipo for carregado, o sistema usará o logotipo padrão (ReembolsaFácil).
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-8 space-y-6">
+                        <div className="grid md:grid-cols-3 gap-8 items-center">
+                            {/* Visualização Atual */}
+                            <div className="flex flex-col items-center justify-center p-6 border border-slate-100 bg-slate-50 rounded-2xl">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Logotipo Atual</span>
+                                <div className="h-24 w-full flex items-center justify-center bg-white border border-slate-200/50 rounded-xl p-4 shadow-sm">
+                                    <img
+                                        src={logoPersonalizado || "/logo.png"}
+                                        alt="Logo da Empresa"
+                                        className="h-16 w-auto object-contain rounded"
+                                    />
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-semibold mt-3">
+                                    {logoPersonalizado ? "Logotipo Customizado" : "Logotipo Padrão"}
+                                </span>
+                            </div>
+
+                            {/* Upload Area */}
+                            <div className="md:col-span-2 space-y-4">
+                                <Label className="text-xs font-bold text-slate-700">Fazer Upload de Novo Logotipo</Label>
+                                <div className="border-2 border-dashed border-slate-200 hover:border-indigo-500 rounded-2xl p-6 text-center cursor-pointer transition-all bg-slate-50 hover:bg-indigo-50/20 group relative">
+                                    <input
+                                        type="file"
+                                        accept="image/png, image/jpeg, image/svg+xml, image/webp"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) handleUploadLogo(file)
+                                        }}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        disabled={uploadingLogo}
+                                    />
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                        <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
+                                            {uploadingLogo ? (
+                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                            ) : (
+                                                <Upload className="h-5 w-5" />
+                                            )}
+                                        </div>
+                                        <p className="text-xs font-bold text-slate-800">Clique para selecionar arquivo de imagem</p>
+                                        <p className="text-[10px] text-slate-400 font-semibold">Formatos suportados: PNG, JPG, SVG, WEBP (Máx. 2MB)</p>
+                                    </div>
+                                </div>
+
+                                {logoPersonalizado && (
+                                    <div className="flex justify-end pt-2">
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleRemoveLogo}
+                                            disabled={uploadingLogo}
+                                            className="h-10 px-4 rounded-xl text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 font-bold uppercase tracking-wider text-[9px] gap-1.5 active:scale-95 transition-all"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            Remover Logo Personalizado
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     )
 }
+
