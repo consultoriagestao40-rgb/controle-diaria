@@ -102,11 +102,11 @@ export function MobileNav({ user }: MobileNavProps) {
                     <div className="flex h-24 items-center border-b border-white/5 px-8">
                         <div className="flex flex-col gap-1">
                             <img
-                                src="https://grupojvsserv.com.br/wp-content/uploads/2023/11/logo-horizontal-300px.png"
-                                alt="Grupo JVS"
-                                className="h-10 w-auto object-contain brightness-0 invert"
+                                src="/logo.png"
+                                alt="ReembolsaFácil"
+                                className="h-10 w-auto object-contain rounded-lg"
                             />
-                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Diárias</span>
+                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">ReembolsaFácil</span>
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto py-8 px-6">

@@ -20,6 +20,7 @@ interface Despesa {
     createdAt: string
     solicitante: { nome: string, email: string }
     anexos: any[]
+    alertaAuditoria: string | null
 }
 
 export default function FinanceiroDespesasPage() {
@@ -41,20 +42,20 @@ export default function FinanceiroDespesasPage() {
     const fetchFinanceData = async () => {
         setLoading(true)
         try {
-            // Buscar despesas aprovadas (aguardando pagamento inicial)
-            const resAprovadas = await fetch("/api/despesas?status=APROVADO")
-            const dataAprovadas = await resAprovadas.json()
-            setDespesasAprovadas(dataAprovadas)
-
-            // Buscar despesas pagas (aguardando conciliação de saldo diferente de zero)
-            const resPrestacao = await fetch("/api/despesas?status=AGUARDANDO_PRESTACAO")
-            const dataPrestacao = await resPrestacao.json()
+            const res = await fetch("/api/despesas")
+            if (!res.ok) throw new Error()
+            const data = await res.json()
             
-            // Filtra as que já possuem prestação de contas enviada (valorComprovado preenchido) e que possuem saldo pendente (saldoFinal != 0)
-            const pendentesReconciliacao = dataPrestacao.filter(
-                (d: Despesa) => d.valorComprovado !== null && d.saldoFinal !== null && d.saldoFinal !== 0
+            // Pagamentos iniciais
+            const aprovadas = data.filter((d: Despesa) => d.status === 'APROVADO')
+            setDespesasAprovadas(aprovadas)
+
+            // Conciliações pendentes
+            const conciliacoes = data.filter(
+                (d: Despesa) => d.status === 'AGUARDANDO_CONCILIACAO' || 
+                                (d.status === 'AGUARDANDO_PRESTACAO' && d.valorComprovado !== null && d.saldoFinal !== null && d.saldoFinal !== 0)
             )
-            setDespesasPendentesPrestacao(pendentesReconciliacao)
+            setDespesasPendentesPrestacao(conciliacoes)
         } catch {
             toast.error("Erro ao sincronizar informações com o servidor")
         } finally {
@@ -72,7 +73,7 @@ export default function FinanceiroDespesasPage() {
         if (!selectedDespesa) return
 
         setSubmitting(true)
-        const isReconciliation = selectedDespesa.status === 'AGUARDANDO_PRESTACAO'
+        const isReconciliation = selectedDespesa.status === 'AGUARDANDO_PRESTACAO' || selectedDespesa.status === 'AGUARDANDO_CONCILIACAO'
         const endpoint = isReconciliation 
             ? `/api/despesas/${selectedDespesa.id}/conciliar`
             : `/api/despesas/${selectedDespesa.id}/pagar`
@@ -91,7 +92,7 @@ export default function FinanceiroDespesasPage() {
 
             toast.success(
                 isReconciliation
-                    ? "Conciliação efetuada e fluxo concluído!"
+                    ? "Prestação de contas aprovada e fluxo concluído!"
                     : "Pagamento registrado com sucesso!"
             )
             setActionModalOpen(false)
@@ -189,6 +190,13 @@ export default function FinanceiroDespesasPage() {
                                                             <p className="text-xs text-slate-400 font-semibold pt-0.5">Colaborador beneficiário: <span className="text-slate-700">{item.solicitante.nome}</span></p>
                                                         </div>
 
+                                                        {item.alertaAuditoria && (
+                                                            <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-xs font-bold flex items-start gap-2">
+                                                                <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
+                                                                <span>{item.alertaAuditoria}</span>
+                                                            </div>
+                                                        )}
+
                                                         <p className="text-slate-600 text-sm font-semibold bg-slate-50 p-4 rounded-xl border border-slate-100">{item.descricao}</p>
                                                     </div>
 
@@ -241,6 +249,13 @@ export default function FinanceiroDespesasPage() {
                                                                 </div>
                                                                 <p className="text-xs text-slate-400 font-semibold pt-0.5">Colaborador beneficiário: <span className="text-slate-700">{item.solicitante.nome}</span></p>
                                                             </div>
+
+                                                            {item.alertaAuditoria && (
+                                                                <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-xs font-bold flex items-start gap-2">
+                                                                    <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
+                                                                    <span>{item.alertaAuditoria}</span>
+                                                                </div>
+                                                            )}
 
                                                             <div className={`p-4 rounded-xl border font-bold text-xs space-y-1 ${
                                                                 saldo > 0

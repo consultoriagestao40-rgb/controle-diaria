@@ -18,6 +18,7 @@ interface Despesa {
     createdAt: string
     solicitante: { nome: string, email: string, role: string }
     anexos: any[]
+    alertaAuditoria: string | null
 }
 
 export default function AprovacoesDespesasPage() {
@@ -156,6 +157,13 @@ export default function AprovacoesDespesasPage() {
                                                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">R$ {Number(item.valorSolicitado).toFixed(2)}</h3>
                                                 <p className="text-xs text-slate-400 font-semibold pt-0.5">Solicitado por: <span className="text-slate-700">{item.solicitante.nome}</span> ({item.solicitante.role})</p>
                                             </div>
+
+                                            {item.alertaAuditoria && (
+                                                <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-xs font-bold flex items-start gap-2">
+                                                    <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
+                                                    <span>{item.alertaAuditoria}</span>
+                                                </div>
+                                            )}
 
                                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600 font-semibold">
                                                 {item.descricao}

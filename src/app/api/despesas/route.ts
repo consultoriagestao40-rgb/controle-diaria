@@ -2,8 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-
-// GET: Listar despesas (Reembolso / Adiantamento)
+import { runExpenseAudit } from "@/lib/audit"
 export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
@@ -14,10 +13,6 @@ export async function GET(req: Request) {
     const status = searchParams.get("status")
 
     try {
-        // Regra de Visibilidade:
-        // - ADMIN e FINANCEIRO: enxergam todas as despesas
-        // - APROVADORES/SUPERVISORES: enxergam todas ou apenas do fluxo (para simplicidade, enxergam todas para aprovação)
-        // - Outros (RH, ENCARREGADO, SUPERVISOR): enxergam suas próprias solicitações, a menos que tenham papel de aprovação
         const isAdminOrFinance = ['ADMIN', 'FINANCEIRO', 'APROVADOR', 'APROVADOR_N1', 'APROVADOR_N2'].includes(user.role)
         
         const filter: any = isAdminOrFinance ? {} : { solicitanteId: user.id }
@@ -82,6 +77,9 @@ export async function POST(req: Request) {
             )
         }
 
+        // Rodar auditoria de políticas e termos proibidos
+        const auditResult = await runExpenseAudit(descricao, valor, anexos || [])
+
         // Define status inicial: RASCUNHO ou AGUARDANDO_APROVACAO
         const statusInicial = enviarParaAprovacao ? 'AGUARDANDO_APROVACAO' : 'RASCUNHO'
 
@@ -92,7 +90,8 @@ export async function POST(req: Request) {
                     status: statusInicial,
                     descricao,
                     valorSolicitado: valor,
-                    solicitanteId: user.id
+                    solicitanteId: user.id,
+                    alertaAuditoria: auditResult.alertMessage
                 }
             })
 

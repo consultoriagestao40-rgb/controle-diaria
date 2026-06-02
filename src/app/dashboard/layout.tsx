@@ -41,9 +41,9 @@ export default async function DashboardLayout({
             <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden relative">
                 <header className="flex h-20 items-center justify-between border-b bg-white/80 backdrop-blur-md px-6 md:hidden flex-none z-30">
                     <img
-                        src="https://grupojvsserv.com.br/wp-content/uploads/2023/11/logo-horizontal-300px.png"
-                        alt="Grupo JVS"
-                        className="h-8 w-auto object-contain"
+                        src="/logo.png"
+                        alt="ReembolsaFácil"
+                        className="h-10 w-auto object-contain rounded-lg"
                     />
 
                     {/* Mobile Navigation (Client Component) */}

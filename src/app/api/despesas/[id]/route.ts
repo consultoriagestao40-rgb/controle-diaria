@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { runExpenseAudit } from "@/lib/audit"
 
 // GET: Detalhes de uma despesa específica
 export async function GET(
@@ -97,16 +98,23 @@ export async function PATCH(
         const updateData: any = {}
         if (descricao) updateData.descricao = descricao
         
+        let valor = Number(despesa.valorSolicitado)
         if (valorSolicitado) {
-            const valor = parseFloat(valorSolicitado)
-            if (isNaN(valor) || valor <= 0) {
+            const parsedValor = parseFloat(valorSolicitado)
+            if (isNaN(parsedValor) || parsedValor <= 0) {
                 return new NextResponse(
                     JSON.stringify({ error: "Valor solicitado inválido." }),
                     { status: 400, headers: { "Content-Type": "application/json" } }
                 )
             }
+            valor = parsedValor
             updateData.valorSolicitado = valor
         }
+
+        // Rodar auditoria ao atualizar ou enviar para aprovação
+        const existingAnexos = await prisma.anexo.findMany({ where: { despesaId: id } })
+        const auditResult = await runExpenseAudit(descricao || despesa.descricao, valor, existingAnexos)
+        updateData.alertaAuditoria = auditResult.alertMessage
 
         let novoStatus = despesa.status
         if (enviarParaAprovacao && despesa.status === 'RASCUNHO') {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { runExpenseAudit } from "@/lib/audit"
 
 export async function POST(
     req: Request,
@@ -71,20 +72,17 @@ export async function POST(
         }
 
         const valorSolicitado = Number(despesa.valorSolicitado)
-        // Saldo = Solicitado - Comprovado
-        // Ex: Solicitou 500, comprovou 400. Saldo = 100 (Colaborador deve devolver 100).
-        // Ex: Solicitou 500, comprovou 600. Saldo = -100 (Empresa deve reembolsar 100).
         const saldo = valorSolicitado - valorComp
 
-        // Se o saldo for exatamente 0, transiciona direto para CONCLUIDO.
-        // Se houver saldo pendente (devedor ou credor), transiciona para CONCLUIDO após conciliação financeira, 
-        // mas marcamos como concluído ou aguardando conciliação. 
-        // Para manter compatibilidade com o enum de StatusDespesa, definimos:
-        // - Saldo = 0: CONCLUIDO
-        // - Saldo != 0: Mantém em AGUARDANDO_PRESTACAO até conciliação (ou podemos usar CONCLUIDO com saldo pendente para o financeiro liquidar)
-        // Vamos definir que se o saldo for 0, vai direto para CONCLUIDO.
-        // Se houver diferença, transiciona para CONCLUIDO após o Financeiro liquidar a diferença na rota de conciliar.
-        const novoStatus = saldo === 0 ? 'CONCLUIDO' : 'AGUARDANDO_PRESTACAO'
+        // Nova Regra: Toda prestação de contas vai para AGUARDANDO_CONCILIACAO para o financeiro aprovar!
+        const novoStatus = 'AGUARDANDO_CONCILIACAO'
+
+        // Executar auditoria de termos e políticas
+        const auditResult = await runExpenseAudit(
+            despesa.descricao + " | Prestação: " + (observacao || ""),
+            valorComp,
+            anexos
+        )
 
         const despesaAtualizada = await prisma.$transaction(async (tx) => {
             // Criar os anexos da prestação de contas
@@ -108,18 +106,19 @@ export async function POST(
                     status: novoStatus,
                     valorComprovado: valorComp,
                     saldoFinal: saldo,
-                    observacao: observacao || null
+                    observacao: observacao || null,
+                    alertaAuditoria: auditResult.alertMessage
                 }
             })
 
             // Histórico de auditoria
             let historicoObs = `Prestação de contas enviada por ${user.nome}. Gasto real: R$ ${valorComp.toFixed(2)}. `
             if (saldo === 0) {
-                historicoObs += "Saldo zerado. Fluxo finalizado."
+                historicoObs += "Saldo zerado. Enviado para conciliação final do financeiro."
             } else if (saldo > 0) {
-                historicoObs += `Sobrou dinheiro. Colaborador deve devolver R$ ${saldo.toFixed(2)} ao financeiro.`
+                historicoObs += `Sobrou dinheiro. Colaborador deve devolver R$ ${saldo.toFixed(2)}. Aguardando conciliação do financeiro.`
             } else {
-                historicoObs += `Faltou dinheiro. Empresa deve reembolsar complementar de R$ ${Math.abs(saldo).toFixed(2)} ao colaborador.`
+                historicoObs += `Faltou dinheiro. Empresa deve reembolsar complementar de R$ ${Math.abs(saldo).toFixed(2)}. Aguardando conciliação do financeiro.`
             }
 
             await tx.historicoDespesa.create({

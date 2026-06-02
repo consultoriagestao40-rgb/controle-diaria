@@ -237,6 +237,7 @@ enum StatusDespesa {
   REPROVADO
   PAGO
   AGUARDANDO_PRESTACAO
+  AGUARDANDO_CONCILIACAO
   CONCLUIDO
 }
 
@@ -248,6 +249,7 @@ model Despesa {
   valorSolicitado       Decimal           // Valor estimado (Adiantamento) ou Gasto (Reembolso)
   valorComprovado       Decimal?          // Preenchido na Prestação de Contas
   saldoFinal            Decimal?          // Calculado automaticamente (Solicitado vs Comprovado)
+  alertaAuditoria       String?           // Armazena alertas gerados pelo motor de auditoria de termos proibidos
   
   // Atores do Fluxo
   solicitanteId         String
@@ -286,4 +288,20 @@ model HistoricoDespesa {
   
   data         DateTime        @default(now())
   observacao   String?
+}
+
+model PoliticaDespesa {
+  id          String   @id @default(uuid())
+  categoria   String   @unique // ex: REFEICAO, HOSPEDAGEM, TRANSPORTE
+  descricao   String
+  limiteValor Decimal
+  ativo       Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+model ConfiguracaoAuditoria {
+  id               String   @id @default(uuid())
+  palavrasProibidas String   // CSV: "cerveja,energetico,preservativo,chiclete,bala,doce,bebida"
+  ativo            Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
 }

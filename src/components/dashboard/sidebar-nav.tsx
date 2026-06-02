@@ -133,17 +133,21 @@ export function SidebarNav({ user }: SidebarNavProps) {
                 isCollapsed ? "justify-center px-2" : "justify-start"
             )}>
                 {isCollapsed ? (
-                    <div className="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
-                        <span className="text-xl font-black text-white tracking-tighter">JVS</span>
+                    <div className="p-1 rounded-xl bg-white/5 border border-white/10">
+                        <img
+                            src="/logo.png"
+                            alt="Logo"
+                            className="h-10 w-10 object-contain rounded-lg"
+                        />
                     </div>
                 ) : (
                     <div className="flex flex-col gap-1 active:scale-95 transition-transform duration-200">
                         <img
-                            src="https://grupojvsserv.com.br/wp-content/uploads/2023/11/logo-horizontal-300px.png"
-                            alt="Grupo JVS"
-                            className="h-12 w-auto object-contain brightness-0 invert"
+                            src="/logo.png"
+                            alt="ReembolsaFácil"
+                            className="h-14 w-auto object-contain rounded-xl"
                         />
-                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] ml-1">Controle de Diárias</span>
+                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.25em] ml-1">Reembolsos & Adiantamentos</span>
                     </div>
                 )}
             </div>

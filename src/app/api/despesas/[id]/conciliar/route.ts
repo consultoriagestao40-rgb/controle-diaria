@@ -30,20 +30,14 @@ export async function PATCH(
             )
         }
 
-        if (despesa.status !== 'AGUARDANDO_PRESTACAO') {
+        if (despesa.status !== 'AGUARDANDO_CONCILIACAO' && despesa.status !== 'AGUARDANDO_PRESTACAO') {
             return new NextResponse(
-                JSON.stringify({ error: "Apenas despesas aguardando prestação de contas com saldo pendente podem ser conciliadas." }),
+                JSON.stringify({ error: "Apenas despesas aguardando conciliação ou prestação de contas podem ser finalizadas." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
 
         const saldo = despesa.saldoFinal ? Number(despesa.saldoFinal) : 0
-        if (saldo === 0) {
-            return new NextResponse(
-                JSON.stringify({ error: "Esta despesa não possui saldo pendente para conciliação manual." }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
-            )
-        }
 
         const body = await req.json()
         const { observacao } = body
@@ -58,8 +52,10 @@ export async function PATCH(
                 }
             })
 
-            let historicoObs = `Conciliação financeira realizada por ${user.nome}. `
-            if (saldo > 0) {
+            let historicoObs = `Prestação de contas aprovada e conciliação financeira por ${user.nome}. `
+            if (saldo === 0) {
+                historicoObs += "Confirmado fechamento de saldo zerado."
+            } else if (saldo > 0) {
                 historicoObs += `Confirmado o recebimento da devolução de R$ ${saldo.toFixed(2)} pelo colaborador.`
             } else {
                 historicoObs += `Confirmado o pagamento do reembolso complementar de R$ ${Math.abs(saldo).toFixed(2)} ao colaborador.`
@@ -70,7 +66,7 @@ export async function PATCH(
             await tx.historicoDespesa.create({
                 data: {
                     despesaId: id,
-                    deStatus: 'AGUARDANDO_PRESTACAO',
+                    deStatus: despesa.status,
                     paraStatus: 'CONCLUIDO',
                     usuarioId: user.id,
                     observacao: historicoObs
