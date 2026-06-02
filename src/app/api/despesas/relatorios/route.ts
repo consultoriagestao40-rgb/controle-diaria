@@ -67,25 +67,52 @@ export async function GET(req: Request) {
 
         let totalAdiantado = 0
         let totalReembolsado = 0
-        let totalPendenteDevolucao = 0 // saldoFinal > 0
-        let totalPendenteReembolsoComp = 0 // saldoFinal < 0
+        let totalPendenteDevolucao = 0 // saldoFinal > 0 or unproven advances
+        let totalPendenteReembolsoComp = 0 // saldoFinal < 0 or unpaid reembolsos
 
         for (const d of allDespesasForStats) {
             const valorSolicitado = Number(d.valorSolicitado)
-            const saldo = d.saldoFinal ? Number(d.saldoFinal) : 0
+            const valorComprovado = d.valorComprovado !== null ? Number(d.valorComprovado) : null
+            const saldo = d.saldoFinal !== null ? Number(d.saldoFinal) : 0
 
             if (d.tipo === 'ADIANTAMENTO') {
-                if (['PAGO', 'AGUARDANDO_PRESTACAO', 'AGUARDANDO_CONCILIACAO', 'CONCLUIDO'].includes(d.status)) {
-                    totalAdiantado += valorSolicitado
+                // totalAdiantado: count valorComprovado if CONCLUIDO, else valorSolicitado if paid.
+                const isPaid = ['PAGO', 'AGUARDANDO_PRESTACAO', 'AGUARDANDO_CONCILIACAO', 'CONCLUIDO'].includes(d.status) || 
+                               (d.status === 'AGUARDANDO_APROVACAO' && valorComprovado !== null)
+
+                if (isPaid) {
+                    if (d.status === 'CONCLUIDO') {
+                        totalAdiantado += (valorComprovado !== null ? valorComprovado : valorSolicitado)
+                    } else {
+                        totalAdiantado += valorSolicitado
+                    }
                 }
-                
-                if (d.status === 'AGUARDANDO_PRESTACAO' || d.status === 'AGUARDANDO_CONCILIACAO') {
-                    if (saldo > 0) totalPendenteDevolucao += saldo
-                    if (saldo < 0) totalPendenteReembolsoComp += Math.abs(saldo)
+
+                // totalPendenteDevolucao (A Receber): include advance valorSolicitado if AGUARDANDO_PRESTACAO and valorComprovado is null;
+                // otherwise use positive saldoFinal.
+                if (['AGUARDANDO_PRESTACAO', 'AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO'].includes(d.status) && isPaid) {
+                    if (d.status === 'AGUARDANDO_PRESTACAO' && valorComprovado === null) {
+                        totalPendenteDevolucao += valorSolicitado
+                    } else if (saldo > 0) {
+                        totalPendenteDevolucao += saldo
+                    }
+                }
+
+                // totalPendenteReembolsoComp (A Pagar): include negative saldoFinal for advances
+                if (['AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO'].includes(d.status) && isPaid) {
+                    if (saldo < 0) {
+                        totalPendenteReembolsoComp += Math.abs(saldo)
+                    }
                 }
             } else if (d.tipo === 'REEMBOLSO') {
+                // totalReembolsado: paid reembolsos
                 if (['PAGO', 'CONCLUIDO'].includes(d.status)) {
                     totalReembolsado += valorSolicitado
+                }
+
+                // totalPendenteReembolsoComp (A Pagar): include valorSolicitado for all Reembolsos in AGUARDANDO_APROVACAO or APROVADO
+                if (['AGUARDANDO_APROVACAO', 'APROVADO'].includes(d.status)) {
+                    totalPendenteReembolsoComp += valorSolicitado
                 }
             }
         }

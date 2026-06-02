@@ -44,30 +44,37 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json()
-        const { tipoConfig, categoria, limiteValor, descricao, palavrasProibidas } = body
+        const { tipoConfig, categoria, limiteValor, descricao, palavrasProibidas, motivosRejeicao } = body
 
         if (tipoConfig === "AUDITORIA") {
-            if (palavrasProibidas === undefined) {
+            if (palavrasProibidas === undefined && motivosRejeicao === undefined) {
                 return new NextResponse(
-                    JSON.stringify({ error: "Campo 'palavrasProibidas' é obrigatório para esta configuração." }),
+                    JSON.stringify({ error: "Campo 'palavrasProibidas' ou 'motivosRejeicao' é obrigatório para esta configuração." }),
                     { status: 400, headers: { "Content-Type": "application/json" } }
                 )
             }
 
-            // Atualiza ou cria as configurações de palavras
+            // Atualiza ou cria as configurações de palavras e motivos
             const current = await prisma.configuracaoAuditoria.findFirst({
                 where: { ativo: true }
             })
+
+            const dataToUpdate: any = {}
+            if (palavrasProibidas !== undefined) dataToUpdate.palavrasProibidas = palavrasProibidas
+            if (motivosRejeicao !== undefined) dataToUpdate.motivosRejeicao = motivosRejeicao
 
             let result
             if (current) {
                 result = await prisma.configuracaoAuditoria.update({
                     where: { id: current.id },
-                    data: { palavrasProibidas }
+                    data: dataToUpdate
                 })
             } else {
                 result = await prisma.configuracaoAuditoria.create({
-                    data: { palavrasProibidas }
+                    data: {
+                        palavrasProibidas: palavrasProibidas || "cerveja,energetico,preservativo,chiclete,bala,doce,bebida",
+                        motivosRejeicao: motivosRejeicao || "Fora da política,Despesas não autorizada,Comprovante ilegível,Outros"
+                    }
                 })
             }
 
