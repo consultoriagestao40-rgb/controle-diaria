@@ -525,7 +525,7 @@ export default function MinhasDespesasPage() {
 
             {/* Modal de Prestação de Contas (Radix Dialog com Responsividade Extrema) */}
             <Dialog open={prestacaoModalOpen} onOpenChange={(val) => !val && setPrestacaoModalOpen(false)}>
-                <DialogContent showCloseButton={false} className="fixed bottom-0! sm:bottom-auto! top-0! sm:top-1/2! left-0! sm:left-1/2! translate-x-0! sm:-translate-x-1/2! translate-y-0! sm:-translate-y-1/2! w-full sm:max-w-xl h-full! sm:h-auto sm:max-h-[90vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
+                <DialogContent showCloseButton={false} className="fixed inset-0! sm:inset-auto! sm:top-1/2! sm:left-1/2! sm:-translate-x-1/2! sm:-translate-y-1/2! w-full! max-w-full! sm:max-w-xl h-full! sm:h-auto sm:max-h-[90vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
                     <div className="p-5 pt-4 sm:p-8 pb-4 border-b border-slate-100 flex-none flex flex-col gap-3">
                         <div className="flex items-center">
                             <Button
@@ -552,7 +552,7 @@ export default function MinhasDespesasPage() {
                     
                     <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6">
                         {selectedDespesa && (
-                            <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 text-xs font-semibold text-orange-800 space-y-1">
+                            <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100 text-xs font-semibold text-orange-800 space-y-1">
                                 <p>💵 **Valor Recebido Adiantado: {formatCurrency(selectedDespesa.valorSolicitado)}**</p>
                                 <p>Preencha os itens realmente gastos e anexe as notas fiscais correspondentes. O sistema calculará o saldo credor ou devedor automaticamente.</p>
                             </div>
@@ -560,17 +560,17 @@ export default function MinhasDespesasPage() {
 
                         {/* Itemização da Prestação */}
                         <div className="space-y-4">
-                            <p className="text-xs font-black uppercase tracking-wider text-slate-800">Lançamento de Gastos Reais</p>
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Lançamento de Gastos Reais</p>
                             
-                            <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 space-y-4">
+                            <div className="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-100 space-y-4">
                                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                     {/* Categoria */}
                                     <div className="col-span-2 sm:col-span-1 space-y-1">
-                                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Categoria *</Label>
+                                        <Label className="text-xs font-semibold text-slate-500 ml-1">Categoria *</Label>
                                         <select
                                             value={itemCategoria}
                                             onChange={(e) => setItemCategoria(e.target.value)}
-                                            className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500"
+                                            className="w-full h-12 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-sm focus:ring-indigo-500 focus:border-indigo-500"
                                         >
                                             <option value="">Selecione...</option>
                                             {categorias.map(cat => (
@@ -581,18 +581,18 @@ export default function MinhasDespesasPage() {
 
                                     {/* Data */}
                                     <div className="col-span-2 sm:col-span-1 space-y-1">
-                                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Data do Evento *</Label>
+                                        <Label className="text-xs font-semibold text-slate-500 ml-1">Data do Evento *</Label>
                                         <Input
                                             type="date"
                                             value={itemData}
                                             onChange={(e) => setItemData(e.target.value)}
-                                            className="h-11 rounded-xl bg-white border-slate-200 text-xs"
+                                            className="h-12 rounded-xl bg-white border-slate-200 text-sm"
                                         />
                                     </div>
 
                                     {/* Quantidade */}
                                     <div className="col-span-1 space-y-1">
-                                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Qtd. *</Label>
+                                        <Label className="text-xs font-semibold text-slate-500 ml-1">Qtd. *</Label>
                                         <Input
                                             type="number"
                                             min="1"
@@ -600,13 +600,13 @@ export default function MinhasDespesasPage() {
                                             pattern="[0-9]*"
                                             value={itemQuantidade}
                                             onChange={(e) => setItemQuantidade(e.target.value)}
-                                            className="h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
+                                            className="h-12 rounded-xl bg-white border-slate-200 text-sm font-semibold"
                                         />
                                     </div>
 
                                     {/* Valor Unitario */}
                                     <div className="col-span-1 space-y-1">
-                                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Valor Unit. *</Label>
+                                        <Label className="text-xs font-semibold text-slate-500 ml-1">Valor Unit. *</Label>
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
                                             <Input
@@ -616,19 +616,19 @@ export default function MinhasDespesasPage() {
                                                 placeholder="0,00"
                                                 value={itemValorUnitario}
                                                 onChange={(e) => setItemValorUnitario(e.target.value)}
-                                                className="pl-8 h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
+                                                className="pl-8 h-12 rounded-xl bg-white border-slate-200 text-sm font-semibold"
                                             />
                                         </div>
                                     </div>
 
                                     {/* Descrição do Item */}
                                     <div className="col-span-2 space-y-1">
-                                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Descrição/Justificativa *</Label>
+                                        <Label className="text-xs font-semibold text-slate-500 ml-1">Descrição/Justificativa *</Label>
                                         <Input
                                             placeholder="Ex: Almoço com cliente ou Hotel"
                                             value={itemDescricao}
                                             onChange={(e) => setItemDescricao(e.target.value)}
-                                            className="h-11 rounded-xl bg-white border-slate-200 text-xs font-medium"
+                                            className="h-12 rounded-xl bg-white border-slate-200 text-sm font-medium"
                                         />
                                     </div>
                                 </div>
@@ -637,7 +637,7 @@ export default function MinhasDespesasPage() {
                                     <Button
                                         type="button"
                                         onClick={handleAddPrestacaoItem}
-                                        className="h-10 px-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold uppercase tracking-wider text-[10px] rounded-xl flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                                        className="h-12 px-6 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
                                     >
                                         <Plus className="h-4 w-4" /> Adicionar Gasto
                                     </Button>
@@ -753,7 +753,7 @@ export default function MinhasDespesasPage() {
                                     size="sm"
                                     disabled={uploadingComprovante}
                                     onClick={handleFileSimulate}
-                                    className="w-full sm:w-auto h-10 px-4 rounded-xl font-bold uppercase tracking-wider text-[10px] gap-1.5 cursor-pointer"
+                                    className="w-full sm:w-auto h-12 px-4 rounded-xl font-bold text-xs gap-1.5 cursor-pointer border-slate-200"
                                 >
                                     {uploadingComprovante ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -786,7 +786,7 @@ export default function MinhasDespesasPage() {
                                                             updated[idx].valor = parseFloat(e.target.value) || 0
                                                             setAnexosPrestacao(updated)
                                                         }}
-                                                        className="pl-6 h-8 text-[11px] font-bold rounded-lg bg-slate-50 focus:bg-white"
+                                                        className="pl-6 h-8 text-[11px] font-bold rounded-lg bg-slate-50 focus:bg-white border-slate-200"
                                                     />
                                                 </div>
                                                 <Button
@@ -827,7 +827,7 @@ export default function MinhasDespesasPage() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="border-dashed border-2 border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50/50">
+                                <div className="border-dashed border-2 border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center bg-slate-50/50">
                                     <FileUp className="h-8 w-8 text-slate-300 mb-2" />
                                     <p className="text-xs font-semibold text-slate-400">Pelo menos um recibo fiscal é obrigatório.</p>
                                 </div>
@@ -840,7 +840,7 @@ export default function MinhasDespesasPage() {
                             type="button"
                             variant="outline"
                             onClick={() => setPrestacaoModalOpen(false)}
-                            className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold uppercase tracking-wider text-[10px] cursor-pointer"
+                            className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold text-sm border-slate-200 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
                         >
                             Cancelar
                         </Button>
@@ -848,7 +848,7 @@ export default function MinhasDespesasPage() {
                             type="button"
                             disabled={submittingPrestacao || uploadingComprovante}
                             onClick={handlePrestarContasSubmit}
-                            className="w-full sm:w-auto h-12 px-8 rounded-xl bg-slate-900 hover:bg-indigo-600 shadow-xl hover:shadow-indigo-500/20 text-white font-bold uppercase tracking-wider text-[10px] gap-1.5 cursor-pointer"
+                            className="w-full sm:w-auto h-12 px-8 rounded-xl bg-slate-900 hover:bg-indigo-600 shadow-xl hover:shadow-indigo-500/20 text-white font-bold text-sm gap-1.5 cursor-pointer active:scale-95 transition-all"
                         >
                             {submittingPrestacao ? (
                                 <Loader2 className="h-4.5 w-4.5 animate-spin" />

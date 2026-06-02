@@ -165,7 +165,7 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent showCloseButton={false} className="fixed bottom-0! sm:bottom-auto! top-0! sm:top-1/2! left-0! sm:left-1/2! translate-x-0! sm:-translate-x-1/2! translate-y-0! sm:-translate-y-1/2! w-full sm:max-w-4xl h-full! sm:h-[80vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
+            <DialogContent showCloseButton={false} className="fixed inset-0! sm:inset-auto! sm:top-1/2! sm:left-1/2! sm:-translate-x-1/2! sm:-translate-y-1/2! w-full! max-w-full! sm:max-w-4xl h-full! sm:h-[80vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
                 <div className="p-5 pt-4 sm:p-8 pb-4 border-b border-slate-100 flex-none flex flex-col gap-3">
                     <div className="flex items-center">
                         <Button
@@ -193,14 +193,14 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                 <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6">
                     {/* Descrição */}
                     <div className="space-y-2">
-                        <Label htmlFor="desc-reemb" className="font-bold text-slate-700 text-xs sm:text-sm">Finalidade Geral da Solicitação *</Label>
+                        <Label htmlFor="desc-reemb" className="text-xs font-semibold text-slate-500 ml-1">Finalidade Geral da Solicitação *</Label>
                         <Textarea
                             id="desc-reemb"
                             placeholder="Descreva o propósito geral da despesa (ex: Viagem corporativa para Londrina - Visita técnica...)"
                             rows={2}
                             value={descricao}
                             onChange={(e) => setDescricao(e.target.value)}
-                            className="rounded-2xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-colors text-xs sm:text-sm"
+                            className="rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-colors text-sm"
                         />
                     </div>
 
@@ -208,21 +208,21 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                     <div className="pt-4 border-t border-slate-100 space-y-6">
                         <div className="flex items-center gap-3">
                             <div className="h-6 w-1 bg-indigo-500 rounded-full" />
-                            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Itens / Lançamentos da Despesa</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Itens / Lançamentos da Despesa</h3>
                         </div>
 
                         {/* Form para adicionar item */}
-                        <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 space-y-4">
+                        <div className="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-100 space-y-4">
                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Adicionar Novo Lançamento</p>
                             
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                                 {/* Categoria */}
                                 <div className="col-span-2 md:col-span-1 space-y-1">
-                                    <Label className="text-[10px] font-bold text-slate-600">Categoria *</Label>
+                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Categoria *</Label>
                                     <select
                                         value={itemCategoria}
                                         onChange={(e) => setItemCategoria(e.target.value)}
-                                        className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full h-12 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-sm focus:ring-indigo-500 focus:border-indigo-500"
                                     >
                                         <option value="">Selecione...</option>
                                         {categorias.map(cat => (
@@ -233,18 +233,18 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
 
                                 {/* Data */}
                                 <div className="col-span-2 md:col-span-1 space-y-1">
-                                    <Label className="text-[10px] font-bold text-slate-600">Data do Evento *</Label>
+                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Data do Evento *</Label>
                                     <Input
                                         type="date"
                                         value={itemData}
                                         onChange={(e) => setItemData(e.target.value)}
-                                        className="h-11 rounded-xl bg-white border-slate-200 text-xs"
+                                        className="h-12 rounded-xl bg-white border-slate-200 text-sm"
                                     />
                                 </div>
 
                                 {/* Quantidade */}
                                 <div className="col-span-1 space-y-1">
-                                    <Label className="text-[10px] font-bold text-slate-600">Quantidade *</Label>
+                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Quantidade *</Label>
                                     <Input
                                         type="number"
                                         min="1"
@@ -252,13 +252,13 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                                         pattern="[0-9]*"
                                         value={itemQuantidade}
                                         onChange={(e) => setItemQuantidade(e.target.value)}
-                                        className="h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
+                                        className="h-12 rounded-xl bg-white border-slate-200 text-sm font-semibold"
                                     />
                                 </div>
 
                                 {/* Valor Unitario */}
                                 <div className="col-span-1 space-y-1">
-                                    <Label className="text-[10px] font-bold text-slate-600">Valor Unitário (R$) *</Label>
+                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Valor Unitário (R$) *</Label>
                                     <div className="relative">
                                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
                                         <Input
@@ -268,19 +268,19 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                                             placeholder="0,00"
                                             value={itemValorUnitario}
                                             onChange={(e) => setItemValorUnitario(e.target.value)}
-                                            className="pl-9 h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
+                                            className="pl-9 h-12 rounded-xl bg-white border-slate-200 text-sm font-semibold"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Descrição do Item */}
                                 <div className="col-span-2 space-y-1">
-                                    <Label className="text-[10px] font-bold text-slate-600">Descrição / Justificativa *</Label>
+                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Descrição / Justificativa *</Label>
                                     <Input
                                         placeholder="Ex: Almoço com cliente ou Hospedagem"
                                         value={itemDescricao}
                                         onChange={(e) => setItemDescricao(e.target.value)}
-                                        className="h-11 rounded-xl bg-white border-slate-200 text-xs font-medium"
+                                        className="h-12 rounded-xl bg-white border-slate-200 text-sm font-medium"
                                     />
                                 </div>
                             </div>
@@ -289,7 +289,7 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                                 <Button
                                     type="button"
                                     onClick={handleAddItem}
-                                    className="h-10 px-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold uppercase tracking-wider text-[10px] rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                                    className="h-12 px-6 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
                                 >
                                     <Plus className="h-4 w-4" /> Adicionar Item
                                 </Button>
@@ -365,7 +365,7 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                                 variant="outline"
                                 disabled={uploading}
                                 onClick={handleFileSimulate}
-                                className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold uppercase tracking-widest text-[10px] gap-2 hover:bg-slate-50 transition-all active:scale-95 cursor-pointer"
+                                className="w-full sm:w-auto h-12 px-5 rounded-xl font-bold text-xs gap-2 hover:bg-slate-50 transition-all active:scale-95 cursor-pointer border-slate-200"
                             >
                                 {uploading ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -377,7 +377,7 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                         </div>
 
                          {anexos.length > 0 ? (
-                            <div className="grid gap-2.5 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100">
+                            <div className="grid gap-2.5 bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-100">
                                 {anexos.map((file, idx) => (
                                     <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3.5 rounded-xl shadow-sm border border-slate-100 font-semibold text-slate-600">
                                         <div className="flex items-center gap-3">
@@ -403,7 +403,7 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                                                         updated[idx].valor = parseFloat(e.target.value) || 0
                                                         setAnexos(updated)
                                                     }}
-                                                    className="pl-7 h-9 rounded-xl text-xs font-bold bg-slate-50 focus:bg-white"
+                                                    className="pl-7 h-9 rounded-xl text-xs font-bold bg-slate-50 focus:bg-white border-slate-200"
                                                 />
                                             </div>
                                             <Button
@@ -444,7 +444,7 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                                 </div>
                             </div>
                         ) : (
-                            <div className="border-dashed border-2 border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50/50">
+                            <div className="border-dashed border-2 border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center bg-slate-50/50">
                                 <FileUp className="h-8 w-8 text-slate-300 mb-2" />
                                 <p className="text-[11px] font-medium text-slate-400">É obrigatório anexar os comprovantes fiscais dos itens lançados.</p>
                             </div>
@@ -458,7 +458,7 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                         variant="outline"
                         disabled={loading}
                         onClick={() => handleSubmit(false)}
-                        className="w-full sm:w-auto h-12 px-6 rounded-2xl font-black uppercase tracking-wider text-[10px] border-slate-200 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                        className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold text-sm border-slate-200 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
                     >
                         Salvar Rascunho
                     </Button>
@@ -466,7 +466,7 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
                         type="button"
                         disabled={loading || uploading}
                         onClick={() => handleSubmit(true)}
-                        className="w-full sm:w-auto h-12 px-8 rounded-2xl bg-slate-900 hover:bg-indigo-600 shadow-xl hover:shadow-indigo-500/20 text-white font-black uppercase tracking-wider text-[10px] gap-2 active:scale-95 transition-all group cursor-pointer"
+                        className="w-full sm:w-auto h-12 px-8 rounded-xl bg-slate-900 hover:bg-indigo-600 shadow-xl hover:shadow-indigo-500/20 text-white font-bold text-sm gap-2 active:scale-95 transition-all group cursor-pointer"
                     >
                         {loading ? (
                             <Loader2 className="h-4.5 w-4.5 animate-spin" />

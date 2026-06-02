@@ -213,9 +213,22 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                         <ul className="space-y-1">
                             {section.items.map((item) => {
                                 const isDespesasItem = item.href.startsWith("/dashboard/despesas")
-                                const isActive = item.href === "/dashboard"
-                                    ? pathname === "/dashboard"
-                                    : pathname.startsWith(item.href)
+                                const isActive = (() => {
+                                    if (item.href === "/dashboard") {
+                                        return pathname === "/dashboard"
+                                    }
+                                    if (!pathname.startsWith(item.href)) {
+                                        return false
+                                    }
+                                    const allItems = sections.flatMap(s => s.items)
+                                    const hasMoreSpecific = allItems.some(otherItem => {
+                                        return otherItem.href !== item.href &&
+                                               otherItem.href !== "/dashboard" &&
+                                               pathname.startsWith(otherItem.href) &&
+                                               otherItem.href.length > item.href.length
+                                    })
+                                    return !hasMoreSpecific
+                                })()
 
                                 return (
                                     <li key={item.href}>

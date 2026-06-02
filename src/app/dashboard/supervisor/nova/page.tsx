@@ -141,7 +141,7 @@ export default function NovaDiariaPage() {
     }
 
     return (
-        <div className="space-y-8 max-w-2xl mx-auto pb-32 relative">
+        <div className="space-y-8 max-w-2xl mx-auto pb-32 px-4 sm:px-0 relative">
             {/* Background Glow */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
 
@@ -160,7 +160,7 @@ export default function NovaDiariaPage() {
             </div>
 
             <Card className="glass-card border-none premium-shadow relative z-10">
-                <CardContent className="p-8">
+                <CardContent className="p-5 sm:p-8">
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
                             console.log("Validation Errors:", errors)
@@ -171,24 +171,24 @@ export default function NovaDiariaPage() {
                             <div className="space-y-4">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="h-5 w-1 bg-primary rounded-full" />
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Identificação do Plantão</h2>
+                                    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Identificação do Plantão</h2>
                                 </div>
 
-                                <div className="grid md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* DATA */}
                                     <FormField
                                         control={form.control}
                                         name="data"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col">
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Data do Plantão</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Data do Plantão *</FormLabel>
                                                 <Popover open={openDate} onOpenChange={setOpenDate}>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
                                                             <Button
                                                                 variant={"outline"}
                                                                 className={cn(
-                                                                    "w-full h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 text-left font-medium hover:bg-white hover:border-primary/20",
+                                                                    "w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all",
                                                                     !field.value && "text-slate-400"
                                                                 )}
                                                             >
@@ -227,7 +227,7 @@ export default function NovaDiariaPage() {
                                         name="postoId"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col">
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Posto de Trabalho</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Posto de Trabalho *</FormLabel>
                                                 <Popover open={openPosto} onOpenChange={setOpenPosto}>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
@@ -235,7 +235,7 @@ export default function NovaDiariaPage() {
                                                                 variant="outline"
                                                                 role="combobox"
                                                                 className={cn(
-                                                                    "w-full h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 text-left font-medium hover:bg-white hover:border-primary/20 justify-between",
+                                                                    "w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all justify-between",
                                                                     !field.value && "text-slate-400"
                                                                 )}
                                                             >
@@ -282,17 +282,17 @@ export default function NovaDiariaPage() {
                             <div className="space-y-4">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="h-5 w-1 bg-orange-400 rounded-full" />
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Atribuição de Equipe</h2>
+                                    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Atribuição de Equipe</h2>
                                 </div>
 
-                                <div className="grid md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* DIARISTA */}
                                     <FormField
                                         control={form.control}
                                         name="diaristaId"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col">
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Quem Cobriu? (Diarista)</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Quem Cobriu? (Diarista) *</FormLabel>
                                                 <Popover open={openDiarista} onOpenChange={setOpenDiarista}>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
@@ -300,7 +300,7 @@ export default function NovaDiariaPage() {
                                                                 variant="outline"
                                                                 role="combobox"
                                                                 className={cn(
-                                                                    "w-full h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 text-left font-medium hover:bg-white hover:border-primary/20 justify-between",
+                                                                    "w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all justify-between",
                                                                     !field.value && "text-slate-400"
                                                                 )}
                                                             >
@@ -347,7 +347,7 @@ export default function NovaDiariaPage() {
                                         name="reservaId"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col">
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Quem Faltou? (Colaborador)</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Quem Faltou? (Colaborador) *</FormLabel>
                                                 <Popover open={openReserva} onOpenChange={setOpenReserva}>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
@@ -355,7 +355,7 @@ export default function NovaDiariaPage() {
                                                                 variant="outline"
                                                                 role="combobox"
                                                                 className={cn(
-                                                                    "w-full h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 text-left font-medium hover:bg-white hover:border-primary/20 justify-between",
+                                                                    "w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all justify-between",
                                                                     !field.value && "text-slate-400"
                                                                 )}
                                                             >
@@ -402,7 +402,7 @@ export default function NovaDiariaPage() {
                             <div className="space-y-4">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="h-5 w-1 bg-green-400 rounded-full" />
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Logística e Valores</h2>
+                                    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Logística e Valores</h2>
                                 </div>
 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -411,9 +411,9 @@ export default function NovaDiariaPage() {
                                         name="horaInicio"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Início</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Início</FormLabel>
                                                 <FormControl>
-                                                    <Input type="time" {...field} className="h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 focus:bg-white focus:border-primary/20 transition-all font-medium" />
+                                                    <Input type="time" {...field} className="h-12 bg-white border border-slate-200 rounded-xl px-4 focus:bg-white focus:border-primary/20 transition-all text-sm font-semibold text-slate-700" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -425,9 +425,9 @@ export default function NovaDiariaPage() {
                                         name="horaFim"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Término</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Término</FormLabel>
                                                 <FormControl>
-                                                    <Input type="time" {...field} className="h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 focus:bg-white focus:border-primary/20 transition-all font-medium" />
+                                                    <Input type="time" {...field} className="h-12 bg-white border border-slate-200 rounded-xl px-4 focus:bg-white focus:border-primary/20 transition-all text-sm font-semibold text-slate-700" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -439,10 +439,10 @@ export default function NovaDiariaPage() {
                                         name="motivoId"
                                         render={({ field }) => (
                                             <FormItem className="col-span-2 md:col-span-1">
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Motivo</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Motivo *</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
-                                                        <SelectTrigger className="h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 font-medium">
+                                                        <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                             <SelectValue placeholder="Selecione" />
                                                         </SelectTrigger>
                                                     </FormControl>
@@ -462,10 +462,10 @@ export default function NovaDiariaPage() {
                                         name="cargaHorariaId"
                                         render={({ field }) => (
                                             <FormItem className="col-span-2 md:col-span-1">
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Carga</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Carga *</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
-                                                        <SelectTrigger className="h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 font-medium">
+                                                        <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                             <SelectValue placeholder="Hrs" />
                                                         </SelectTrigger>
                                                     </FormControl>
@@ -481,17 +481,17 @@ export default function NovaDiariaPage() {
                                     />
                                 </div>
 
-                                <div className="grid md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <FormField
                                         control={form.control}
                                         name="valor"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Valor do Plantão (R$)</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Valor do Plantão (R$) *</FormLabel>
                                                 <FormControl>
                                                     <div className="relative">
                                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
-                                                        <Input type="number" step="0.01" inputMode="decimal" {...field} className="h-12 pl-10 bg-slate-50/50 border-slate-200 rounded-xl focus:bg-white focus:border-primary/20 transition-all font-black text-lg text-slate-900 tracking-tighter" />
+                                                        <Input type="number" step="0.01" inputMode="decimal" {...field} className="h-12 pl-10 bg-white border border-slate-200 rounded-xl focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-black text-lg text-slate-900 tracking-tighter" />
                                                     </div>
                                                 </FormControl>
                                                 <FormMessage />
@@ -504,10 +504,10 @@ export default function NovaDiariaPage() {
                                         name="meioPagamentoSolicitadoId"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Meio de Pagamento</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Meio de Pagamento *</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
-                                                        <SelectTrigger className="h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 font-medium">
+                                                        <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                             <SelectValue placeholder="Tipo" />
                                                         </SelectTrigger>
                                                     </FormControl>
@@ -528,7 +528,7 @@ export default function NovaDiariaPage() {
                             <div className="space-y-4">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="h-5 w-1 bg-slate-400 rounded-full" />
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Dados Corporativos</h2>
+                                    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Dados Corporativos</h2>
                                 </div>
 
                                 <FormField
@@ -536,10 +536,10 @@ export default function NovaDiariaPage() {
                                     name="empresaId"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Empresa do Grupo</FormLabel>
+                                            <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Empresa do Grupo</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
-                                                    <SelectTrigger className="h-12 bg-slate-50/50 border-slate-200 rounded-xl px-4 font-medium">
+                                                    <SelectTrigger className="h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
                                                         <SelectValue placeholder="Selecione a empresa correlata" />
                                                     </SelectTrigger>
                                                 </FormControl>
@@ -559,11 +559,11 @@ export default function NovaDiariaPage() {
                                     name="observacao"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Observações Adicionais</FormLabel>
+                                            <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Observações Adicionais</FormLabel>
                                             <FormControl>
                                                 <Textarea
                                                     placeholder="Descreva aqui qualquer detalhe relevante sobre este lançamento..."
-                                                    className="min-h-[100px] bg-slate-50/50 border-slate-200 rounded-2xl p-4 focus:bg-white focus:border-primary/20 transition-all font-medium resize-none shadow-inner"
+                                                    className="min-h-[100px] bg-white border border-slate-200 rounded-xl p-4 text-sm font-medium text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none shadow-none"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -576,7 +576,7 @@ export default function NovaDiariaPage() {
                             <div className="pt-4">
                                 <Button
                                     type="submit"
-                                    className="w-full h-16 bg-slate-900 hover:bg-primary shadow-2xl shadow-primary/20 transition-all duration-500 rounded-2xl font-black uppercase tracking-[0.3em] text-[11px] group"
+                                    className="w-full h-14 bg-slate-900 hover:bg-primary shadow-xl hover:shadow-primary/20 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 active:scale-95 transition-all duration-200 group cursor-pointer"
                                     disabled={form.formState.isSubmitting}
                                 >
                                     {form.formState.isSubmitting ? (

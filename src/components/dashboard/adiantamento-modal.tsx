@@ -93,7 +93,7 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user }: Adiantam
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent showCloseButton={false} className="fixed bottom-0! sm:bottom-auto! top-0! sm:top-1/2! left-0! sm:left-1/2! translate-x-0! sm:-translate-x-1/2! translate-y-0! sm:-translate-y-1/2! w-full sm:max-w-xl h-full! sm:h-auto sm:max-h-[90vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
+            <DialogContent showCloseButton={false} className="fixed inset-0! sm:inset-auto! sm:top-1/2! sm:left-1/2! sm:-translate-x-1/2! sm:-translate-y-1/2! w-full! max-w-full! sm:max-w-xl h-full! sm:h-auto sm:max-h-[90vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
                 <div className="p-5 pt-4 sm:p-8 pb-4 border-b border-slate-100 flex-none flex flex-col gap-3">
                     <div className="flex items-center">
                         <Button
@@ -121,35 +121,35 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user }: Adiantam
                 <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6">
                     {/* Descrição */}
                     <div className="space-y-2">
-                        <Label htmlFor="desc-adiant" className="font-bold text-slate-700 text-xs sm:text-sm">Finalidade Geral da Solicitação *</Label>
+                        <Label htmlFor="desc-adiant" className="text-xs font-semibold text-slate-500 ml-1">Finalidade Geral da Solicitação *</Label>
                         <Textarea
                             id="desc-adiant"
                             placeholder="Descreva o propósito geral da viagem/operação (ex: Participação na feira de tecnologia em SP...)"
                             rows={3}
                             value={descricao}
                             onChange={(e) => setDescricao(e.target.value)}
-                            className="rounded-2xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-colors text-xs sm:text-sm"
+                            className="rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-colors text-sm"
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         {/* Data Prevista */}
                         <div className="col-span-1 space-y-2">
-                            <Label htmlFor="dataAdiantamento" className="font-bold text-slate-700 text-xs sm:text-sm">Data Prevista *</Label>
+                            <Label htmlFor="dataAdiantamento" className="text-xs font-semibold text-slate-500 ml-1">Data Prevista *</Label>
                             <Input
                                 id="dataAdiantamento"
                                 type="date"
                                 value={dataAdiantamento}
                                 onChange={(e) => setDataAdiantamento(e.target.value)}
-                                className="rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-colors h-11 text-xs"
+                                className="rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-colors h-12 text-sm"
                             />
                         </div>
 
                         {/* Valor Solicitado */}
                         <div className="col-span-1 space-y-2">
-                            <Label htmlFor="valorAdiantamento" className="font-bold text-slate-700 text-xs sm:text-sm">Valor Total Previsto *</Label>
+                            <Label htmlFor="valorAdiantamento" className="text-xs font-semibold text-slate-500 ml-1">Valor Total Previsto *</Label>
                             <div className="relative">
-                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">R$</span>
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
                                 <Input
                                     id="valorAdiantamento"
                                     type="number"
@@ -158,7 +158,7 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user }: Adiantam
                                     placeholder="0,00"
                                     value={valorAdiantamento}
                                     onChange={(e) => setValorAdiantamento(e.target.value)}
-                                    className="pl-8 rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-colors h-11 text-xs font-black"
+                                    className="pl-8 rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-colors h-12 text-sm font-semibold"
                                 />
                             </div>
                         </div>
@@ -171,7 +171,7 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user }: Adiantam
                         variant="outline"
                         disabled={loading}
                         onClick={() => handleSubmit(false)}
-                        className="w-full sm:w-auto h-12 px-6 rounded-2xl font-black uppercase tracking-wider text-[10px] border-slate-200 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                        className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold text-sm border-slate-200 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
                     >
                         Salvar Rascunho
                     </Button>
@@ -179,7 +179,7 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user }: Adiantam
                         type="button"
                         disabled={loading}
                         onClick={() => handleSubmit(true)}
-                        className="w-full sm:w-auto h-12 px-8 rounded-2xl bg-slate-900 hover:bg-indigo-600 shadow-xl hover:shadow-indigo-500/20 text-white font-black uppercase tracking-wider text-[10px] gap-2 active:scale-95 transition-all group cursor-pointer"
+                        className="w-full sm:w-auto h-12 px-8 rounded-xl bg-slate-900 hover:bg-indigo-600 shadow-xl hover:shadow-indigo-500/20 text-white font-bold text-sm gap-2 active:scale-95 transition-all group cursor-pointer"
                     >
                         {loading ? (
                             <Loader2 className="h-4.5 w-4.5 animate-spin" />
