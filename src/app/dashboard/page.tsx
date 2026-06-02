@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
@@ -44,12 +45,14 @@ export default async function DashboardPage() {
     const logoUrl = config?.logoPersonalizado || "/logo.png"
 
     return (
-        <DashboardPortal 
-            user={{ name: session.user?.name, role }}
-            logoUrl={logoUrl}
-            acessoDespesas={acessoDespesas}
-            acessoCoberturas={acessoCoberturas}
-        />
+        <Suspense fallback={null}>
+            <DashboardPortal 
+                user={{ name: session.user?.name, role }}
+                logoUrl={logoUrl}
+                acessoDespesas={acessoDespesas}
+                acessoCoberturas={acessoCoberturas}
+            />
+        </Suspense>
     )
 }
 

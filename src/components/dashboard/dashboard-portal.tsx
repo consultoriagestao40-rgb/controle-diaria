@@ -35,7 +35,7 @@ import {
     Tooltip,
     ResponsiveContainer
 } from "recharts"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ReembolsoModal } from "./reembolso-modal"
 import { AdiantamentoModal } from "./adiantamento-modal"
 
@@ -53,20 +53,20 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
     const [isReembolsoOpen, setIsReembolsoOpen] = useState(false)
     const [isAdiantamentoOpen, setIsAdiantamentoOpen] = useState(false)
     const router = useRouter()
+    const searchParams = useSearchParams()
 
     useEffect(() => {
         fetchMetrics()
-        
-        if (typeof window !== "undefined") {
-            const params = new URLSearchParams(window.location.search)
-            const action = params.get("action")
-            if (action === "reembolso") {
-                setIsReembolsoOpen(true)
-            } else if (action === "adiantamento") {
-                setIsAdiantamentoOpen(true)
-            }
-        }
     }, [])
+
+    useEffect(() => {
+        const action = searchParams.get("action")
+        if (action === "reembolso") {
+            setIsReembolsoOpen(true)
+        } else if (action === "adiantamento") {
+            setIsAdiantamentoOpen(true)
+        }
+    }, [searchParams])
 
     const fetchMetrics = async () => {
         setLoading(true)
