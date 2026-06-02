@@ -32,6 +32,12 @@ export async function GET(req: Request) {
                 solicitante: {
                     select: { id: true, nome: true, email: true, role: true }
                 },
+                aprovador: {
+                    select: { id: true, nome: true, email: true }
+                },
+                financeiro: {
+                    select: { id: true, nome: true, email: true }
+                },
                 anexos: true
             },
             orderBy: { createdAt: 'desc' }

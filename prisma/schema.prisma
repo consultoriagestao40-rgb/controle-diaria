@@ -303,6 +303,7 @@ model PoliticaDespesa {
 model ConfiguracaoAuditoria {
   id               String   @id @default(uuid())
   palavrasProibidas String   // CSV: "cerveja,energetico,preservativo,chiclete,bala,doce,bebida"
+  motivosRejeicao  String   @default("Fora da política,Despesas não autorizada,Comprovante ilegível,Outros")
   ativo            Boolean  @default(true)
   updatedAt        DateTime @updatedAt
 }

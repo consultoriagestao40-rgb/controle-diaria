@@ -17,6 +17,11 @@ interface Despesa {
     saldoFinal: number | null
     createdAt: string
     solicitante: { id: string, nome: string, email: string }
+    aprovador?: { id: string, nome: string, email: string } | null
+    financeiro?: { id: string, nome: string, email: string } | null
+    justificativaAprovacao?: string | null
+    justificativaReprovacao?: string | null
+    observacao?: string | null
     anexos: any[]
 }
 
@@ -282,6 +287,8 @@ export default function RelatoriosDespesasPage() {
                                     <th className="py-4 px-6 text-right">Solicitado (R$)</th>
                                     <th className="py-4 px-6 text-right">Gasto Real (R$)</th>
                                     <th className="py-4 px-6 text-right">Saldo (R$)</th>
+                                    <th className="py-4 px-6">Aprovadores / Atores</th>
+                                    <th className="py-4 px-6">Parecer / Justificativa</th>
                                     <th className="py-4 px-6 text-center">Status</th>
                                 </tr>
                             </thead>
@@ -292,11 +299,42 @@ export default function RelatoriosDespesasPage() {
                                         <tr key={item.id} className="border-b last:border-0 hover:bg-slate-50/30 transition-colors font-semibold text-slate-600 text-xs">
                                             <td className="py-4 px-6 font-bold text-slate-900">{item.solicitante.nome}</td>
                                             <td className="py-4 px-6">{item.tipo === 'REEMBOLSO' ? 'Reembolso' : 'Adiantamento'}</td>
-                                            <td className="py-4 px-6 max-w-xs truncate">{item.descricao}</td>
+                                            <td className="py-4 px-6 max-w-sm break-words whitespace-pre-wrap">{item.descricao}</td>
                                             <td className="py-4 px-6 text-right font-bold text-slate-800">R$ {Number(item.valorSolicitado).toFixed(2)}</td>
                                             <td className="py-4 px-6 text-right font-medium text-indigo-600">{item.valorComprovado !== null ? `R$ ${Number(item.valorComprovado).toFixed(2)}` : "-"}</td>
                                             <td className={`py-4 px-6 text-right font-bold ${saldo === 0 ? "text-slate-400" : saldo > 0 ? "text-amber-600" : "text-rose-600"}`}>
                                                 {saldo === 0 ? "-" : saldo > 0 ? `Devolver R$ ${saldo.toFixed(2)}` : `Reembolsar R$ ${Math.abs(saldo).toFixed(2)}`}
+                                            </td>
+                                            <td className="py-4 px-6 text-slate-700 text-[11px] leading-relaxed">
+                                                {item.aprovador && (
+                                                    <p className="font-semibold text-slate-800">
+                                                        👤 Gestor: <span className="font-bold text-slate-900">{item.aprovador.nome}</span>
+                                                    </p>
+                                                )}
+                                                {item.financeiro && (
+                                                    <p className="font-semibold text-slate-500 mt-1">
+                                                        💼 Fin: <span className="font-bold text-slate-700">{item.financeiro.nome}</span>
+                                                    </p>
+                                                )}
+                                                {!item.aprovador && !item.financeiro && <span className="text-slate-400 font-medium">-</span>}
+                                            </td>
+                                            <td className="py-4 px-6 max-w-xs break-words text-[11px] leading-relaxed text-slate-600 whitespace-pre-wrap">
+                                                {item.justificativaAprovacao && (
+                                                    <p className="font-semibold text-emerald-600">
+                                                        Aprovação: <span className="text-slate-600 font-normal">{item.justificativaAprovacao}</span>
+                                                    </p>
+                                                )}
+                                                {item.justificativaReprovacao && (
+                                                    <p className="font-semibold text-rose-600">
+                                                        Reprovação/Devolução: <span className="text-slate-600 font-normal">{item.justificativaReprovacao}</span>
+                                                    </p>
+                                                )}
+                                                {item.observacao && (
+                                                    <p className="font-semibold text-indigo-600 mt-1">
+                                                        Obs/Conciliação: <span className="text-slate-600 font-normal">{item.observacao}</span>
+                                                    </p>
+                                                )}
+                                                {!item.justificativaAprovacao && !item.justificativaReprovacao && !item.observacao && <span className="text-slate-400">-</span>}
                                             </td>
                                             <td className="py-4 px-6 text-center">{getStatusBadge(item.status)}</td>
                                         </tr>
