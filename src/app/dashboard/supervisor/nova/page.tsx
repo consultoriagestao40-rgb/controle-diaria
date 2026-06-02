@@ -405,80 +405,84 @@ export default function NovaDiariaPage() {
                                     <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Logística e Valores</h2>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                                    <FormField
-                                        control={form.control}
-                                        name="horaInicio"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Início</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="horaFim"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Término</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="motivoId"
-                                        render={({ field }) => (
-                                            <FormItem className="col-span-1 sm:col-span-2 md:col-span-1">
-                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Motivo *</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="horaInicio"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Início</FormLabel>
                                                     <FormControl>
-                                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
-                                                            <SelectValue placeholder="Selecione" />
-                                                        </SelectTrigger>
+                                                        <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-3 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
                                                     </FormControl>
-                                                    <SelectContent className="rounded-xl border-none shadow-2xl">
-                                                        {options.motivos.map((i: any) => (
-                                                            <SelectItem key={i.id} value={i.id} className="py-2.5">{i.descricao}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                    <FormField
-                                        control={form.control}
-                                        name="cargaHorariaId"
-                                        render={({ field }) => (
-                                            <FormItem className="col-span-1 sm:col-span-2 md:col-span-1">
-                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Carga *</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormField
+                                            control={form.control}
+                                            name="horaFim"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Término</FormLabel>
                                                     <FormControl>
-                                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
-                                                            <SelectValue placeholder="Hrs" />
-                                                        </SelectTrigger>
+                                                        <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-3 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
                                                     </FormControl>
-                                                    <SelectContent className="rounded-xl border-none shadow-2xl">
-                                                        {options.cargas.map((i: any) => (
-                                                            <SelectItem key={i.id} value={i.id} className="py-2.5">{i.descricao}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="motivoId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Motivo *</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                                                <SelectValue placeholder="Selecione" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                            {options.motivos.map((i: any) => (
+                                                                <SelectItem key={i.id} value={i.id} className="py-2.5">{i.descricao}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="cargaHorariaId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Carga *</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                                                <SelectValue placeholder="Hrs" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                            {options.cargas.map((i: any) => (
+                                                                <SelectItem key={i.id} value={i.id} className="py-2.5">{i.descricao}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
