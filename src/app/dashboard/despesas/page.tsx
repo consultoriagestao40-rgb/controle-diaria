@@ -50,6 +50,7 @@ interface Despesa {
     observacao?: string | null
     createdAt: string
     anexos: any[]
+    itens?: any[]
 }
 
 export default function MinhasDespesasPage() {
