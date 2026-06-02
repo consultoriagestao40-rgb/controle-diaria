@@ -28,111 +28,132 @@ interface SidebarNavProps {
     acessoCoberturas?: boolean
 }
 
+interface NavItem {
+    label: string
+    href: string
+    icon: any
+}
+
+interface NavSection {
+    title: string
+    items: NavItem[]
+}
+
 export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas = true }: SidebarNavProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const pathname = usePathname()
-    const role = user.role
+    const role = user.role || ""
 
-    const getNavItems = () => {
-        switch (role) {
-            case "ADMIN":
-                return [
+    const getNavSections = (): NavSection[] => {
+        const sections: NavSection[] = []
+
+        // 1. Geral Section
+        sections.push({
+            title: "Geral",
+            items: [
+                { label: "Painel Principal", href: "/dashboard", icon: Grid }
+            ]
+        })
+
+        // 2. Reembolsos & Adiantamentos (Despesas)
+        if (acessoDespesas) {
+            const despesasItems: NavItem[] = []
+            
+            if (["ADMIN", "SUPERVISOR", "ENCARREGADO"].includes(role)) {
+                despesasItems.push({ label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt })
+            }
+            
+            despesasItems.push({ label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet })
+            
+            if (["ADMIN", "APROVADOR", "APROVADOR_N1", "APROVADOR_N2"].includes(role)) {
+                despesasItems.push({ label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare })
+            }
+            
+            if (["ADMIN", "FINANCEIRO"].includes(role)) {
+                despesasItems.push({ label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign })
+            }
+            
+            despesasItems.push({ label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings })
+            
+            if (["ADMIN", "FINANCEIRO", "RH"].includes(role)) {
+                despesasItems.push({ label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart })
+            }
+            
+            if (role === "ADMIN") {
+                despesasItems.push({ label: "Centros de Custo", href: "/dashboard/despesas/admin/centros-custo", icon: Landmark })
+            }
+
+            if (despesasItems.length > 0) {
+                sections.push({
+                    title: "Reembolsos",
+                    items: despesasItems
+                })
+            }
+        }
+
+        // 3. Diárias & Escalas (Coberturas)
+        if (acessoCoberturas) {
+            const coberturasItems: NavItem[] = []
+            
+            if (role === "ADMIN") {
+                coberturasItems.push(
                     { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
                     { label: "Usuários", href: "/dashboard/admin/usuarios", icon: UserIcon },
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
-                    // Supervisor Access
                     { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText },
                     { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
-                    // Approver Access
                     { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
-                    // Finance Access
-                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
-                    
-                    // REEMBOLSA FÁCIL - Novas Ferramentas
-                    { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
-                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
-                    { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
-                    { label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
-                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
-                    { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
-                    { label: "Centros de Custo", href: "/dashboard/despesas/admin/centros-custo", icon: Landmark },
-                ]
-            case "SUPERVISOR":
-                return [
+                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign }
+                )
+            } else if (role === "SUPERVISOR") {
+                coberturasItems.push(
                     { label: "Meus Lançamentos", href: "/dashboard/supervisor", icon: FileText },
                     { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
-                    { label: "Cadastros", href: "/dashboard/admin", icon: Settings },
-                    
-                    // REEMBOLSA FÁCIL
-                    { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
-                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
-                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
-                ]
-            case "APROVADOR":
-                return [
-                    { label: "Aprovações", href: "/dashboard/aprovador", icon: CheckSquare },
-                    
-                    // REEMBOLSA FÁCIL
-                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
-                    { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
-                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
-                ]
-            case "APROVADOR_N1":
-            case "APROVADOR_N2":
-                return [
+                    { label: "Cadastros", href: "/dashboard/admin", icon: Settings }
+                )
+            } else if (role === "APROVADOR") {
+                coberturasItems.push(
+                    { label: "Aprovações", href: "/dashboard/aprovador", icon: CheckSquare }
+                )
+            } else if (["APROVADOR_N1", "APROVADOR_N2"].includes(role)) {
+                coberturasItems.push(
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
                     { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText },
                     { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
-                    { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
-                    
-                    // REEMBOLSA FÁCIL
-                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
-                    { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
-                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
-                ]
-            case "FINANCEIRO":
-                return [
+                    { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare }
+                )
+            } else if (role === "FINANCEIRO") {
+                coberturasItems.push(
                     { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart }
+                )
+            } else if (role === "ENCARREGADO") {
+                coberturasItems.push(
+                    { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText }
+                )
+            } else if (role === "RH") {
+                coberturasItems.push(
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
-                    
-                    // REEMBOLSA FÁCIL
-                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
-                    { label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
-                    { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
-                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
-                ]
-            case "ENCARREGADO":
-                return [
-                    { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
-                    { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
-                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
-                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
-                ]
-            case "RH":
-                return [
-                    { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
-                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
-                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
-                    { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
-                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
-                ]
-            default:
-                return []
+                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText }
+                )
+            }
+
+            if (coberturasItems.length > 0) {
+                sections.push({
+                    title: "Diárias & Escalas",
+                    items: coberturasItems
+                })
+            }
         }
+
+        return sections
     }
 
-    if (pathname === "/dashboard") return null
-
-    const isDespesasActive = pathname.startsWith("/dashboard/despesas")
-    const allItems = getNavItems()
-    const navItems = allItems.filter(item => {
-        const isDespesasItem = item.href.startsWith("/dashboard/despesas")
-        return isDespesasActive ? isDespesasItem : !isDespesasItem
-    })
+    const sections = getNavSections()
 
     return (
         <aside
@@ -141,7 +162,7 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                 isCollapsed ? "w-20" : "w-72"
             )}
         >
-            {/* Toggle Button - Sophisticated Design */}
+            {/* Toggle Button */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className="absolute -right-3 top-24 z-50 flex h-7 w-7 items-center justify-center rounded-full border bg-white shadow-[0_4px_10px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.15)] hover:scale-110 transition-all duration-300 group"
@@ -173,73 +194,79 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                             className="h-14 w-auto object-contain rounded-xl"
                         />
                         <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.25em] ml-1">
-                            {isDespesasActive ? "Reembolsos & Adiantamentos" : "Diárias & Coberturas"}
+                            Painel Integrado
                         </span>
                     </div>
                 )}
             </div>
 
             {/* Nav Items */}
-            <nav className="flex-1 overflow-y-auto py-8 scrollbar-hide">
-                <ul className="space-y-2 px-4">
-                    {acessoDespesas && acessoCoberturas && (
-                        <li className="mb-4">
-                            <Link
-                                href="/dashboard"
-                                className={cn(
-                                    "group flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all duration-300",
-                                    "text-indigo-400 hover:text-white bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 active:scale-[0.98]",
-                                    isCollapsed && "justify-center px-2"
-                                )}
-                                title="Voltar ao Hub de Módulos"
-                            >
-                                <Grid className={cn(
-                                    "h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110",
-                                    "text-indigo-400"
-                                )} />
-                                {!isCollapsed && (
-                                    <span className="tracking-tight font-black uppercase text-[10px] text-indigo-300">Mudar de Área</span>
-                                )}
-                            </Link>
-                        </li>
-                    )}
-                    {navItems.map((item) => (
-                        <li key={item.href}>
-                            <Link
-                                href={item.href}
-                                className={cn(
-                                    "group flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all duration-300",
-                                    "text-slate-400 hover:text-white hover:bg-white/5 active:scale-[0.98]",
-                                    isCollapsed && "justify-center px-2"
-                                )}
-                                title={isCollapsed ? item.label : undefined}
-                            >
-                                <item.icon className={cn(
-                                    "h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
-                                    "text-slate-500 group-hover:text-primary"
-                                )} />
-                                {!isCollapsed && (
-                                    <span className="tracking-tight">{item.label}</span>
-                                )}
-                                {!isCollapsed && (
-                                    <div className="ml-auto w-1 h-1 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
+            <nav className="flex-1 overflow-y-auto py-6 scrollbar-hide space-y-6">
+                {sections.map((section, idx) => (
+                    <div key={idx} className="px-4 space-y-1.5">
+                        {!isCollapsed && (
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-4 mb-2">
+                                {section.title}
+                            </h4>
+                        )}
+                        <ul className="space-y-1">
+                            {section.items.map((item) => {
+                                const isDespesasItem = item.href.startsWith("/dashboard/despesas")
+                                const isActive = item.href === "/dashboard"
+                                    ? pathname === "/dashboard"
+                                    : pathname.startsWith(item.href)
+
+                                return (
+                                    <li key={item.href}>
+                                        <Link
+                                            href={item.href}
+                                            className={cn(
+                                                "group flex items-center gap-4 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 active:scale-[0.98]",
+                                                isActive
+                                                    ? isDespesasItem || item.href === "/dashboard"
+                                                        ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                                                        : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                                                    : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent",
+                                                isCollapsed && "justify-center px-2"
+                                            )}
+                                            title={isCollapsed ? item.label : undefined}
+                                        >
+                                            <item.icon className={cn(
+                                                "h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
+                                                isActive
+                                                    ? isDespesasItem || item.href === "/dashboard"
+                                                        ? "text-indigo-400"
+                                                        : "text-cyan-400"
+                                                    : "text-slate-500 group-hover:text-white"
+                                            )} />
+                                            {!isCollapsed && (
+                                                <span className="tracking-tight">{item.label}</span>
+                                            )}
+                                            {!isCollapsed && isActive && (
+                                                <div className={cn(
+                                                    "ml-auto w-1 h-1 rounded-full",
+                                                    isDespesasItem || item.href === "/dashboard" ? "bg-indigo-400" : "bg-cyan-400"
+                                                )} />
+                                            )}
+                                        </Link>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    </div>
+                ))}
             </nav>
 
             {/* Footer / User Info */}
-            <div className="border-t p-4">
+            <div className="border-t border-white/5 p-4">
                 <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-400">
                         <UserIcon className="h-6 w-6" />
                     </div>
                     {!isCollapsed && (
-                        <div className="overflow-hidden transition-all duration-300">
-                            <p className="text-sm font-medium truncate">{user.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{user.role}</p>
+                        <div className="overflow-hidden transition-all duration-300 text-white">
+                            <p className="text-sm font-semibold truncate">{user.name}</p>
+                            <p className="text-xs text-slate-400 truncate uppercase tracking-wider font-bold">{user.role}</p>
                         </div>
                     )}
                 </div>
@@ -247,7 +274,7 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                 <Button
                     variant="ghost"
                     className={cn(
-                        "mt-4 w-full text-red-600 hover:text-red-700 hover:bg-red-50",
+                        "mt-4 w-full text-red-400 hover:text-red-300 hover:bg-red-500/10",
                         isCollapsed ? "justify-center px-0" : "justify-start"
                     )}
                     asChild
