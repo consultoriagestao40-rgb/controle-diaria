@@ -46,7 +46,9 @@ export function SidebarNav({ user }: SidebarNavProps) {
                     { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                     { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
-                    { label: "Pagar Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
+                    { label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
+                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
+                    { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
                 ]
             case "SUPERVISOR":
                 return [
@@ -88,7 +90,8 @@ export function SidebarNav({ user }: SidebarNavProps) {
                     
                     // REEMBOLSA FÁCIL
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
-                    { label: "Pagar Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
+                    { label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
+                    { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
                 ]
             case "ENCARREGADO":
                 return [
@@ -101,6 +104,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
+                    { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
                 ]
             default:
                 return []

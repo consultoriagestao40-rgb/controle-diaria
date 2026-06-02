@@ -40,7 +40,9 @@ export function MobileNav({ user }: MobileNavProps) {
                     { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                     { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
-                    { label: "Pagar Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
+                    { label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
+                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
+                    { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
                 ]
             case "SUPERVISOR":
                 return [
@@ -61,6 +63,19 @@ export function MobileNav({ user }: MobileNavProps) {
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                     { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
                 ]
+            case "APROVADOR_N1":
+            case "APROVADOR_N2":
+                return [
+                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
+                    { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText },
+                    { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
+                    { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
+                    
+                    // REEMBOLSA FÁCIL
+                    { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
+                    { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
+                ]
             case "FINANCEIRO":
                 return [
                     { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
@@ -69,7 +84,8 @@ export function MobileNav({ user }: MobileNavProps) {
                     
                     // REEMBOLSA FÁCIL
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
-                    { label: "Pagar Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
+                    { label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
+                    { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
                 ]
             case "ENCARREGADO":
                 return [
@@ -82,6 +98,7 @@ export function MobileNav({ user }: MobileNavProps) {
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
+                    { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
                 ]
             default:
                 return []
