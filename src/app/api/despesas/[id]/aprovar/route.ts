@@ -54,7 +54,7 @@ export async function PATCH(
             )
         }
 
-        let novoStatus = action === 'APROVAR' ? 'APROVADO' : 'REPROVADO'
+        let novoStatus: any = action === 'APROVAR' ? 'APROVADO' : 'REPROVADO'
         let isPrestacao = despesa.tipo === 'ADIANTAMENTO' && despesa.valorComprovado !== null
 
         if (isPrestacao) {
