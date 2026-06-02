@@ -525,7 +525,7 @@ export default function MinhasDespesasPage() {
 
             {/* Modal de Prestação de Contas (Radix Dialog com Responsividade Extrema) */}
             <Dialog open={prestacaoModalOpen} onOpenChange={(val) => !val && setPrestacaoModalOpen(false)}>
-                <DialogContent className="fixed bottom-0 sm:bottom-auto top-auto sm:top-1/2 left-0 sm:left-1/2 translate-x-0 sm:-translate-x-1/2 translate-y-0 sm:-translate-y-1/2 w-full sm:max-w-xl h-[92dvh] sm:h-auto sm:max-h-[90vh] flex flex-col gap-0 rounded-t-[2rem] rounded-b-none sm:rounded-3xl p-0 bg-white border border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
+                <DialogContent className="fixed bottom-0! sm:bottom-auto! top-auto! sm:top-1/2! left-0! sm:left-1/2! translate-x-0! sm:-translate-x-1/2! translate-y-0! sm:-translate-y-1/2! w-full sm:max-w-xl h-[92dvh] sm:h-auto sm:max-h-[90vh] flex flex-col gap-0 rounded-t-[2rem] rounded-b-none sm:rounded-3xl p-0 bg-white border border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
                     <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-4 mb-1 sm:hidden flex-none" />
                     <DialogHeader className="p-5 pt-2 sm:p-8 pb-4 border-b border-slate-100 flex-none">
                         <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
@@ -583,6 +583,8 @@ export default function MinhasDespesasPage() {
                                         <Input
                                             type="number"
                                             min="1"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
                                             value={itemQuantidade}
                                             onChange={(e) => setItemQuantidade(e.target.value)}
                                             className="h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
@@ -597,6 +599,7 @@ export default function MinhasDespesasPage() {
                                             <Input
                                                 type="number"
                                                 step="0.01"
+                                                inputMode="decimal"
                                                 placeholder="0,00"
                                                 value={itemValorUnitario}
                                                 onChange={(e) => setItemValorUnitario(e.target.value)}
@@ -762,6 +765,7 @@ export default function MinhasDespesasPage() {
                                                     <Input
                                                         type="number"
                                                         step="0.01"
+                                                        inputMode="decimal"
                                                         placeholder="Valor"
                                                         value={file.valor || ""}
                                                         onChange={(e) => {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Receipt, DollarSign, ArrowRight, Loader2, FileUp, Sparkles, CheckCircle, Plus, Trash2, Calendar, Settings } from "lucide-react"
+import { Receipt, DollarSign, ArrowRight, Loader2, FileUp, Sparkles, CheckCircle, Plus, Trash2, Calendar, Settings, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -183,13 +183,20 @@ export default function NovaDespesaPage() {
     return (
         <div className="space-y-10 pb-32 max-w-4xl mx-auto pt-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
-                        Solicitar <span className="text-primary italic">Reembolso ou Adiantamento</span>
-                    </h1>
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">
-                        Preencha os dados e anexe os comprovantes necessários
-                    </p>
+                <div className="flex items-center gap-3">
+                    <Link href="/dashboard/despesas">
+                        <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-600 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 transition-all shrink-0 cursor-pointer">
+                            <ChevronLeft className="h-5 w-5 stroke-[2.5]" />
+                        </Button>
+                    </Link>
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
+                            Solicitar <span className="text-primary italic">Reembolso ou Adiantamento</span>
+                        </h1>
+                        <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">
+                            Preencha os dados e anexe os comprovantes necessários
+                        </p>
+                    </div>
                 </div>
                 <Link
                     href="/dashboard/despesas/politicas"
@@ -323,6 +330,8 @@ export default function NovaDespesaPage() {
                                         <Input
                                             type="number"
                                             min="1"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
                                             value={itemQuantidade}
                                             onChange={(e) => setItemQuantidade(e.target.value)}
                                             className="h-11 rounded-xl bg-white border-slate-200 text-xs font-bold"
@@ -337,6 +346,7 @@ export default function NovaDespesaPage() {
                                             <Input
                                                 type="number"
                                                 step="0.01"
+                                                inputMode="decimal"
                                                 placeholder="0,00"
                                                 value={itemValorUnitario}
                                                 onChange={(e) => setItemValorUnitario(e.target.value)}
@@ -449,6 +459,7 @@ export default function NovaDespesaPage() {
                                         id="valorAdiantamento"
                                         type="number"
                                         step="0.01"
+                                        inputMode="decimal"
                                         placeholder="0,00"
                                         value={valorAdiantamento}
                                         onChange={(e) => setValorAdiantamento(e.target.value)}
@@ -504,6 +515,7 @@ export default function NovaDespesaPage() {
                                                     <Input
                                                         type="number"
                                                         step="0.01"
+                                                        inputMode="decimal"
                                                         placeholder="Valor do Recibo"
                                                         value={file.valor || ""}
                                                         onChange={(e) => {

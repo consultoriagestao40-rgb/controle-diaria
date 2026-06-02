@@ -209,3 +209,25 @@
   scrollbar-width: auto !important;
   scrollbar-color: #94a3b8 #f1f5f9 !important;
 }
+
+/* Date input mobile alignment & style resets */
+input[type="date"] {
+  min-height: 2.75rem !important; /* Forces h-11 */
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  min-height: 1.5em !important;
+  display: flex !important;
+  align-items: center !important;
+  text-align: left !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
