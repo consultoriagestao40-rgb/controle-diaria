@@ -6,9 +6,11 @@ import { MobileNav } from "./mobile-nav"
 interface MobileHeaderProps {
     user: { name?: string | null, role?: string }
     logoUrl: string
+    acessoDespesas?: boolean
+    acessoCoberturas?: boolean
 }
 
-export function MobileHeader({ user, logoUrl }: MobileHeaderProps) {
+export function MobileHeader({ user, logoUrl, acessoDespesas = true, acessoCoberturas = true }: MobileHeaderProps) {
     const pathname = usePathname()
     const isHub = pathname === "/dashboard"
 
@@ -21,7 +23,12 @@ export function MobileHeader({ user, logoUrl }: MobileHeaderProps) {
                 alt="ReembolsaFácil"
                 className="h-10 w-auto object-contain rounded-lg"
             />
-            <MobileNav user={user} logoUrl={logoUrl} />
+            <MobileNav 
+                user={user} 
+                logoUrl={logoUrl} 
+                acessoDespesas={acessoDespesas}
+                acessoCoberturas={acessoCoberturas}
+            />
         </header>
     )
 }
