@@ -13,24 +13,24 @@ export async function POST(
     
     const user = session.user as any
     const { id } = await params
-
+ 
     try {
         const despesa = await prisma.despesa.findUnique({
             where: { id }
         })
-
+ 
         if (!despesa) {
             return new NextResponse(
                 JSON.stringify({ error: "Despesa não encontrada." }),
                 { status: 404, headers: { "Content-Type": "application/json" } }
             )
         }
-
+ 
         // Apenas o solicitante original ou Admin pode prestar contas
         if (despesa.solicitanteId !== user.id && user.role !== 'ADMIN') {
             return new NextResponse("Forbidden", { status: 403 })
         }
-
+ 
         // Deve ser um adiantamento e estar no status correto
         if (despesa.tipo !== 'ADIANTAMENTO') {
             return new NextResponse(
@@ -38,53 +38,106 @@ export async function POST(
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
-
+ 
         if (despesa.status !== 'AGUARDANDO_PRESTACAO') {
             return new NextResponse(
                 JSON.stringify({ error: "Despesa não está em estado de prestação de contas (deve ser paga primeiro)." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
-
+ 
         const body = await req.json()
-        const { valorComprovado, anexos, observacao } = body
+        const { valorComprovado, anexos, observacao, itens } = body
 
-        if (valorComprovado === undefined || valorComprovado === null) {
-            return new NextResponse(
-                JSON.stringify({ error: "O valor comprovado é obrigatório." }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
-            )
+        // Processar itens detalhados da prestação de contas
+        let itemsToCreate: any[] = []
+        let totalCalculado = 0
+
+        if (itens && Array.isArray(itens) && itens.length > 0) {
+            for (const item of itens) {
+                const { categoria, descricao: itemDesc, data, quantidade, valorUnitario } = item
+                if (!categoria || !itemDesc || !data || !quantidade || !valorUnitario) {
+                    return new NextResponse(
+                        JSON.stringify({ error: "Todos os itens de prestação devem conter: categoria, descrição, data, quantidade e valor unitário." }),
+                        { status: 400, headers: { "Content-Type": "application/json" } }
+                    )
+                }
+
+                const qty = parseInt(quantidade)
+                const valUnit = parseFloat(valorUnitario)
+
+                if (isNaN(qty) || qty <= 0 || isNaN(valUnit) || valUnit <= 0) {
+                    return new NextResponse(
+                        JSON.stringify({ error: "Quantidade e valor unitário devem ser maiores que zero." }),
+                        { status: 400, headers: { "Content-Type": "application/json" } }
+                    )
+                }
+
+                const valTotal = qty * valUnit
+                totalCalculado += valTotal
+
+                itemsToCreate.push({
+                    categoria: categoria.toUpperCase().trim(),
+                    descricao: itemDesc,
+                    data: new Date(data),
+                    quantidade: qty,
+                    valorUnitario: valUnit,
+                    valorTotal: valTotal
+                })
+            }
         }
+ 
+        const valorComp = itemsToCreate.length > 0 ? totalCalculado : parseFloat(valorComprovado)
 
-        const valorComp = parseFloat(valorComprovado)
         if (isNaN(valorComp) || valorComp < 0) {
             return new NextResponse(
                 JSON.stringify({ error: "Valor comprovado inválido." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
-
+ 
         if (!anexos || !Array.isArray(anexos) || anexos.length === 0) {
             return new NextResponse(
                 JSON.stringify({ error: "É obrigatório anexar pelo menos um comprovante físico/recibo." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
-
+ 
         const valorSolicitado = Number(despesa.valorSolicitado)
         const saldo = valorSolicitado - valorComp
-
+ 
         // Nova Regra: Toda prestação de contas vai para AGUARDANDO_CONCILIACAO para o financeiro aprovar!
         const novoStatus = 'AGUARDANDO_CONCILIACAO'
-
-        // Executar auditoria de termos e políticas
+ 
+        // Executar auditoria de termos e políticas (com itens)
         const auditResult = await runExpenseAudit(
             despesa.descricao + " | Prestação: " + (observacao || ""),
             valorComp,
-            anexos
+            anexos,
+            itemsToCreate
         )
-
+ 
         const despesaAtualizada = await prisma.$transaction(async (tx) => {
+            // Limpar itens anteriores de adiantamento (estimativas)
+            await tx.itemDespesa.deleteMany({
+                where: { despesaId: id }
+            })
+
+            // Criar novos itens reais de prestação
+            for (const item of itemsToCreate) {
+                await tx.itemDespesa.create({
+                    data: {
+                        despesaId: id,
+                        categoria: item.categoria,
+                        descricao: item.descricao,
+                        data: item.data,
+                        quantidade: item.quantidade,
+                        valorUnitario: item.valorUnitario,
+                        valorTotal: item.valorTotal
+                    }
+                })
+            }
+
             // Criar os anexos da prestação de contas
             for (const anexo of anexos) {
                 await tx.anexo.create({
@@ -98,7 +151,7 @@ export async function POST(
                     }
                 })
             }
-
+ 
             // Atualiza dados da despesa
             const atualizada = await tx.despesa.update({
                 where: { id },
@@ -110,7 +163,7 @@ export async function POST(
                     alertaAuditoria: auditResult.alertMessage
                 }
             })
-
+ 
             // Histórico de auditoria
             let historicoObs = `Prestação de contas enviada por ${user.nome}. Gasto real: R$ ${valorComp.toFixed(2)}. `
             if (saldo === 0) {
@@ -120,7 +173,7 @@ export async function POST(
             } else {
                 historicoObs += `Faltou dinheiro. Empresa deve reembolsar complementar de R$ ${Math.abs(saldo).toFixed(2)}. Aguardando conciliação do financeiro.`
             }
-
+ 
             await tx.historicoDespesa.create({
                 data: {
                     despesaId: id,
@@ -130,10 +183,10 @@ export async function POST(
                     observacao: historicoObs
                 }
             })
-
+ 
             return atualizada
         })
-
+ 
         return NextResponse.json(despesaAtualizada)
     } catch (error) {
         console.error("Erro ao realizar prestação de contas:", error)

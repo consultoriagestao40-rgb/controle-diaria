@@ -54,6 +54,7 @@ export function MobileNav({ user }: MobileNavProps) {
                     // REEMBOLSA FÁCIL
                     { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
+                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
                 ]
             case "APROVADOR":
                 return [
@@ -62,6 +63,7 @@ export function MobileNav({ user }: MobileNavProps) {
                     // REEMBOLSA FÁCIL
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                     { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
+                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
                 ]
             case "APROVADOR_N1":
             case "APROVADOR_N2":
@@ -75,6 +77,7 @@ export function MobileNav({ user }: MobileNavProps) {
                     // REEMBOLSA FÁCIL
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                     { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare },
+                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
                 ]
             case "FINANCEIRO":
                 return [
@@ -86,12 +89,14 @@ export function MobileNav({ user }: MobileNavProps) {
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                     { label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign },
                     { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
+                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
                 ]
             case "ENCARREGADO":
                 return [
                     { label: "Novo Lançamento", href: "/dashboard/supervisor/nova", icon: FileText },
                     { label: "Nova Despesa", href: "/dashboard/despesas/nova", icon: Receipt },
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
+                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
                 ]
             case "RH":
                 return [
@@ -99,6 +104,7 @@ export function MobileNav({ user }: MobileNavProps) {
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet },
                     { label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart },
+                    { label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings },
                 ]
             default:
                 return []

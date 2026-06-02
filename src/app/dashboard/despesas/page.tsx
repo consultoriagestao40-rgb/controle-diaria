@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Wallet, Plus, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileUp, CheckCircle, FileText } from "lucide-react"
+import { Wallet, Plus, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileUp, CheckCircle, FileText, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -36,8 +36,41 @@ export default function MinhasDespesasPage() {
     const [submittingPrestacao, setSubmittingPrestacao] = useState(false)
     const [uploadingComprovante, setUploadingComprovante] = useState(false)
 
+    // Itemização da prestação de contas
+    const [itensPrestacao, setItensPrestacao] = useState<any[]>([])
+    const [categorias, setCategorias] = useState<string[]>([])
+    const [userRole, setUserRole] = useState("")
+    
+    // Form temporário do item
+    const [itemCategoria, setItemCategoria] = useState("")
+    const [itemDescricao, setItemDescricao] = useState("")
+    const [itemData, setItemData] = useState("")
+    const [itemQuantidade, setItemQuantidade] = useState("1")
+    const [itemValorUnitario, setItemValorUnitario] = useState("")
+
     useEffect(() => {
         fetchDespesas()
+        fetch("/api/politicas")
+            .then(res => res.json())
+            .then(data => {
+                if (data.politicas && Array.isArray(data.politicas)) {
+                    setCategorias(data.politicas.map((p: any) => p.categoria))
+                } else {
+                    setCategorias(["REFEICAO", "HOSPEDAGEM", "TRANSPORTE", "OUTROS"])
+                }
+            })
+            .catch(() => {
+                setCategorias(["REFEICAO", "HOSPEDAGEM", "TRANSPORTE", "OUTROS"])
+            })
+
+        fetch("/api/auth/session")
+            .then(res => res.json())
+            .then(session => {
+                if (session?.user?.role) {
+                    setUserRole(session.user.role)
+                }
+            })
+            .catch(() => {})
     }, [])
 
     const fetchDespesas = async () => {
@@ -97,19 +130,65 @@ export default function MinhasDespesasPage() {
         setSelectedDespesa(despesa)
         setValorComprovado("")
         setAnexosPrestacao([])
+        setItensPrestacao([])
+        
+        // Reset item fields
+        setItemCategoria("")
+        setItemDescricao("")
+        setItemData("")
+        setItemQuantidade("1")
+        setItemValorUnitario("")
+        
         setPrestacaoModalOpen(true)
     }
 
-    const handlePrestarContasSubmit = async () => {
-        if (!selectedDespesa) return
-        if (!valorComprovado) {
-            toast.error("Por favor, informe o valor real comprovado.")
+    const handleAddPrestacaoItem = () => {
+        if (!itemCategoria || !itemDescricao || !itemData || !itemQuantidade || !itemValorUnitario) {
+            toast.error("Por favor, preencha todos os campos do item.")
             return
         }
 
-        const valor = parseFloat(valorComprovado)
-        if (isNaN(valor) || valor < 0) {
-            toast.error("Valor comprovado inválido.")
+        const qty = parseInt(itemQuantidade)
+        const valUnit = parseFloat(itemValorUnitario)
+
+        if (isNaN(qty) || qty <= 0 || isNaN(valUnit) || valUnit <= 0) {
+            toast.error("Quantidade e valor unitário inválidos.")
+            return
+        }
+
+        const newItem = {
+            categoria: itemCategoria,
+            descricao: itemDescricao,
+            data: itemData,
+            quantidade: qty,
+            valorUnitario: valUnit,
+            valorTotal: qty * valUnit
+        }
+
+        setItensPrestacao([...itensPrestacao, newItem])
+        
+        // Reset item fields
+        setItemCategoria("")
+        setItemDescricao("")
+        setItemData("")
+        setItemQuantidade("1")
+        setItemValorUnitario("")
+        
+        toast.success("Item adicionado!")
+    }
+
+    const handleRemovePrestacaoItem = (idx: number) => {
+        setItensPrestacao(itensPrestacao.filter((_, i) => i !== idx))
+        toast.success("Item removido.")
+    }
+
+    const totalComprovadoItens = itensPrestacao.reduce((acc, item) => acc + item.valorTotal, 0)
+
+    const handlePrestarContasSubmit = async () => {
+        if (!selectedDespesa) return
+
+        if (itensPrestacao.length === 0) {
+            toast.error("É necessário adicionar pelo menos um item comprovado.")
             return
         }
 
@@ -125,8 +204,10 @@ export default function MinhasDespesasPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    valorComprovado: valor,
-                    anexos: anexosPrestacao
+                    valorComprovado: totalComprovadoItens,
+                    anexos: anexosPrestacao,
+                    itens: itensPrestacao,
+                    observacao: `Prestação de contas detalhada por item. Total comprovado: R$ ${totalComprovadoItens.toFixed(2)}`
                 })
             })
 
@@ -202,12 +283,20 @@ export default function MinhasDespesasPage() {
                     </p>
                 </div>
                 {!loading && (
-                    <Link href="/dashboard/despesas/nova" className="w-full lg:w-auto">
-                        <Button className="w-full lg:w-auto h-14 px-8 bg-slate-900 hover:bg-primary shadow-xl hover:shadow-primary/20 text-white transition-all duration-500 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] group">
-                            <Plus className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform" />
-                            Nova Solicitação
-                        </Button>
-                    </Link>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                        <Link href="/dashboard/despesas/politicas" className="w-full sm:w-auto">
+                            <Button variant="outline" className="w-full sm:w-auto h-14 px-6 border-slate-200 hover:bg-slate-50 text-slate-700 transition-all rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] flex items-center justify-center gap-2">
+                                <Settings className="h-4 w-4 text-slate-500" />
+                                {userRole === "ADMIN" ? "Gerenciar Políticas" : "Ver Políticas"}
+                            </Button>
+                        </Link>
+                        <Link href="/dashboard/despesas/nova" className="w-full sm:w-auto">
+                            <Button className="w-full sm:w-auto h-14 px-8 bg-slate-900 hover:bg-primary shadow-xl hover:shadow-primary/20 text-white transition-all duration-500 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] group flex items-center justify-center">
+                                <Plus className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform" />
+                                Nova Solicitação
+                            </Button>
+                        </Link>
+                    </div>
                 )}
             </div>
 
@@ -254,7 +343,7 @@ export default function MinhasDespesasPage() {
                     <div className="grid gap-6">
                         {filteredDespesas.map((item) => (
                             <Card key={item.id} className="glass-card hover:scale-[1.005] transition-all duration-300 shadow-lg border-none bg-white">
-                                <CardContent className="p-8">
+                                <CardContent className="p-5 sm:p-8">
                                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                                         <div className="flex items-start sm:items-center gap-6">
                                             <div className={`h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 border ${
@@ -301,25 +390,28 @@ export default function MinhasDespesasPage() {
                                             </div>
                                         </div>
                                         
-                                        <div className="w-full lg:w-auto flex items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 pt-4 lg:pt-0">
-                                            {getStatusBadge(item.status)}
+                                        <div className="w-full lg:w-auto flex flex-col sm:flex-row sm:items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 pt-4 lg:pt-0">
+                                            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest sm:hidden">Status:</span>
+                                                {getStatusBadge(item.status)}
+                                            </div>
                                             
                                             {item.status === 'RASCUNHO' && (
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-2 w-full sm:w-auto">
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
                                                         onClick={() => handleDeletarDespesa(item.id)}
-                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 font-bold uppercase tracking-widest text-[10px] h-10 px-3 rounded-xl active:scale-95 transition-all"
+                                                        className="flex-1 sm:flex-none text-red-500 hover:text-red-700 hover:bg-red-50 font-bold uppercase tracking-widest text-[10px] h-10 px-3 rounded-xl active:scale-95 transition-all"
                                                     >
                                                         Excluir
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         onClick={() => handleEnviarParaAprovacao(item.id)}
-                                                        className="bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
+                                                        className="flex-1 sm:flex-none bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
                                                     >
-                                                        Enviar para Aprovação
+                                                        Enviar
                                                     </Button>
                                                 </div>
                                             )}
@@ -328,7 +420,7 @@ export default function MinhasDespesasPage() {
                                                 <Button
                                                     size="sm"
                                                     onClick={() => openPrestacaoModal(item)}
-                                                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
+                                                    className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
                                                 >
                                                     Prestar Contas
                                                 </Button>
@@ -361,38 +453,172 @@ export default function MinhasDespesasPage() {
                         
                         <div className="p-6 space-y-6 overflow-y-auto flex-1">
                             <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 text-xs font-semibold text-orange-800 space-y-1">
-                                <p>⚠️ **Valor Recebido Adiantado: R$ {Number(selectedDespesa.valorSolicitado).toFixed(2)}**</p>
-                                <p>Por favor, informe a soma exata de todas as notas fiscais anexadas. O sistema calculará o reembolso complementar ou a devolução necessária automaticamente.</p>
+                                <p>💵 **Valor Recebido Adiantado: R$ {Number(selectedDespesa.valorSolicitado).toFixed(2)}**</p>
+                                <p>Preencha os itens realmente gastos e anexe as notas fiscais correspondentes. O sistema calculará o saldo credor ou devedor automaticamente.</p>
                             </div>
 
-                            {/* Valor Comprovado */}
-                            <div className="space-y-2">
-                                <Label htmlFor="valorComprovado" className="font-bold text-slate-700">Valor Real Gasto (R$) *</Label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">R$</span>
-                                    <Input
-                                        id="valorComprovado"
-                                        type="number"
-                                        step="0.01"
-                                        placeholder="0,00"
-                                        value={valorComprovado}
-                                        onChange={(e) => setValorComprovado(e.target.value)}
-                                        className="pl-12 h-12 rounded-xl border-slate-200 font-bold"
-                                    />
+                            {/* Itemização da Prestação */}
+                            <div className="space-y-4">
+                                <p className="text-xs font-black uppercase tracking-wider text-slate-800">Lançamento de Gastos Reais</p>
+                                
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {/* Categoria */}
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Categoria *</Label>
+                                            <select
+                                                value={itemCategoria}
+                                                onChange={(e) => setItemCategoria(e.target.value)}
+                                                className="w-full h-10 border border-slate-200 rounded-lg px-2 bg-white font-semibold text-xs focus:ring-primary focus:border-primary"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                {categorias.map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Data */}
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Data do Evento *</Label>
+                                            <Input
+                                                type="date"
+                                                value={itemData}
+                                                onChange={(e) => setItemData(e.target.value)}
+                                                className="h-10 rounded-lg bg-white border-slate-200 text-xs"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {/* Quantidade */}
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Qtd. *</Label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                value={itemQuantidade}
+                                                onChange={(e) => setItemQuantidade(e.target.value)}
+                                                className="h-10 rounded-lg bg-white border-slate-200 text-xs font-bold"
+                                            />
+                                        </div>
+
+                                        {/* Valor Unitario */}
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Valor Unit. *</Label>
+                                            <div className="relative">
+                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="0,00"
+                                                    value={itemValorUnitario}
+                                                    onChange={(e) => setItemValorUnitario(e.target.value)}
+                                                    className="pl-7 h-10 rounded-lg bg-white border-slate-200 text-xs font-bold"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Descrição do Item */}
+                                        <div className="col-span-2 sm:col-span-1 space-y-1">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Descrição/Justificativa *</Label>
+                                            <Input
+                                                placeholder="Hotel ou Almoço"
+                                                value={itemDescricao}
+                                                onChange={(e) => setItemDescricao(e.target.value)}
+                                                className="h-10 rounded-lg bg-white border-slate-200 text-xs font-medium"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end pt-1">
+                                        <Button
+                                            type="button"
+                                            onClick={handleAddPrestacaoItem}
+                                            className="h-9 px-4 bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[9px] rounded-lg flex items-center gap-1.5 transition-all"
+                                        >
+                                            <Plus className="h-3.5 w-3.5" /> Adicionar Gasto
+                                        </Button>
+                                    </div>
                                 </div>
+
+                                {/* Lista de gastos inseridos */}
+                                {itensPrestacao.length > 0 ? (
+                                    <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm text-xs">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="border-b bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                                                        <th className="py-2 px-3">Categoria</th>
+                                                        <th className="py-2 px-3">Data</th>
+                                                        <th className="py-2 px-3">Justificativa</th>
+                                                        <th className="py-2 px-3 text-center">Qtd.</th>
+                                                        <th className="py-2 px-3 text-right">Total</th>
+                                                        <th className="py-2 px-3 text-center">Excluir</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {itensPrestacao.map((item, idx) => (
+                                                        <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50 font-semibold text-slate-600">
+                                                            <td className="py-2.5 px-3 font-bold text-slate-900">{item.categoria}</td>
+                                                            <td className="py-2.5 px-3">{new Date(item.data + "T00:00:00").toLocaleDateString('pt-BR')}</td>
+                                                            <td className="py-2.5 px-3 max-w-[120px] truncate">{item.descricao}</td>
+                                                            <td className="py-2.5 px-3 text-center">{item.quantidade}</td>
+                                                            <td className="py-2.5 px-3 text-right font-bold text-slate-800">R$ {Number(item.valorTotal).toFixed(2)}</td>
+                                                            <td className="py-2.5 px-3 text-center">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemovePrestacaoItem(idx)}
+                                                                    className="text-red-500 hover:text-red-700 font-bold p-1"
+                                                                >
+                                                                    &times;
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <div className="bg-slate-50 p-3.5 border-t flex flex-col gap-1 text-xs font-bold text-slate-600 uppercase tracking-wide">
+                                            <div className="flex justify-between items-center">
+                                                <span>Total Comprovado:</span>
+                                                <span className="text-sm text-slate-900 font-black">R$ {totalComprovadoItens.toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center pt-1 border-t border-dashed">
+                                                <span>Saldo Restante:</span>
+                                                {Number(selectedDespesa.valorSolicitado) - totalComprovadoItens === 0 ? (
+                                                    <span className="text-green-600 font-black">Zerado</span>
+                                                ) : Number(selectedDespesa.valorSolicitado) - totalComprovadoItens > 0 ? (
+                                                    <span className="text-amber-600 font-black">Devolver R$ {(Number(selectedDespesa.valorSolicitado) - totalComprovadoItens).toFixed(2)}</span>
+                                                ) : (
+                                                    <span className="text-rose-600 font-black">Reembolsar R$ {Math.abs(Number(selectedDespesa.valorSolicitado) - totalComprovadoItens).toFixed(2)}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="border-dashed border-2 border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/50">
+                                        <Receipt className="h-7 w-7 text-slate-300 mb-1" />
+                                        <p className="text-[11px] font-bold text-slate-400 text-center">Nenhum gasto comprovado adicionado.</p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Comprovantes */}
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <Label className="font-bold text-slate-700">Comprovantes & Recibos *</Label>
+                            <div className="space-y-3 pt-2 border-t border-dashed">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                    <div className="space-y-0.5">
+                                        <Label className="font-bold text-slate-700 text-xs">Comprovantes & Notas Fiscais *</Label>
+                                        <p className="text-[10px] text-slate-400">Anexe fotos/PDFs das notas e recibos correspondentes.</p>
+                                    </div>
                                     <Button
                                         type="button"
                                         variant="outline"
                                         size="sm"
                                         disabled={uploadingComprovante}
                                         onClick={handleFileSimulate}
-                                        className="h-10 px-4 rounded-lg font-bold uppercase tracking-wider text-[9px] gap-1.5"
+                                        className="w-full sm:w-auto h-10 px-4 rounded-lg font-bold uppercase tracking-wider text-[9px] gap-1.5"
                                     >
                                         {uploadingComprovante ? (
                                             <Loader2 className="h-3 w-3 animate-spin" />
@@ -406,19 +632,60 @@ export default function MinhasDespesasPage() {
                                 {anexosPrestacao.length > 0 ? (
                                     <div className="grid gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
                                         {anexosPrestacao.map((file, idx) => (
-                                            <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-slate-100 text-xs">
+                                            <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-slate-100 text-xs">
                                                 <div className="flex items-center gap-2">
                                                     <FileText className="h-4 w-4 text-emerald-500" />
                                                     <span className="font-bold text-slate-800 truncate max-w-[200px]">{file.nomeOriginal}</span>
                                                 </div>
-                                                <button
-                                                    onClick={() => setAnexosPrestacao(anexosPrestacao.filter((_, i) => i !== idx))}
-                                                    className="text-red-500 hover:text-red-700 font-bold"
-                                                >
-                                                    Remover
-                                                </button>
+                                                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
+                                                    <div className="relative w-32 shrink-0">
+                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">R$</span>
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            placeholder="Valor"
+                                                            value={file.valor || ""}
+                                                            onChange={(e) => {
+                                                                const updated = [...anexosPrestacao]
+                                                                updated[idx].valor = parseFloat(e.target.value) || 0
+                                                                setAnexosPrestacao(updated)
+                                                            }}
+                                                            className="pl-6 h-8 text-[11px] font-bold rounded-lg bg-slate-50 focus:bg-white"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setAnexosPrestacao(anexosPrestacao.filter((_, i) => i !== idx))}
+                                                        className="text-red-500 hover:text-red-700 font-bold hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
+                                                    >
+                                                        Remover
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
+
+                                        <div className="border-t border-slate-200/60 pt-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 text-[11px]">
+                                            <div className="font-bold text-slate-700 uppercase tracking-wider">
+                                                Soma das Evidências Anexadas: <span className="text-slate-900 font-black text-xs ml-1">R$ {anexosPrestacao.reduce((acc, f) => acc + (f.valor || 0), 0).toFixed(2)}</span>
+                                            </div>
+                                            
+                                            {(() => {
+                                                const totalEvid = anexosPrestacao.reduce((acc, f) => acc + (f.valor || 0), 0)
+                                                const diff = Math.abs(totalEvid - totalComprovadoItens)
+                                                if (diff < 0.01) {
+                                                    return (
+                                                        <span className="bg-green-100 text-green-800 font-bold px-2 py-1 rounded-md border border-green-200 text-[9px] uppercase tracking-wider">
+                                                            ✅ Bate com os itens!
+                                                        </span>
+                                                    )
+                                                } else {
+                                                    return (
+                                                        <span className="bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded-md border border-amber-200 text-[9px] uppercase tracking-wider">
+                                                            ⚠️ Divergência: R$ {diff.toFixed(2)}
+                                                        </span>
+                                                    )
+                                                }
+                                            })()}
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="border-dashed border-2 border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/50">
@@ -429,12 +696,12 @@ export default function MinhasDespesasPage() {
                             </div>
                         </div>
 
-                        <div className="bg-slate-50 p-6 border-t border-slate-100 flex justify-end gap-3">
+                        <div className="bg-slate-50 p-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-3 w-full sm:w-auto">
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => setPrestacaoModalOpen(false)}
-                                className="h-12 px-6 rounded-xl font-bold uppercase tracking-wider text-[10px]"
+                                className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold uppercase tracking-wider text-[10px]"
                             >
                                 Cancelar
                             </Button>
@@ -442,7 +709,7 @@ export default function MinhasDespesasPage() {
                                 type="button"
                                 disabled={submittingPrestacao || uploadingComprovante}
                                 onClick={handlePrestarContasSubmit}
-                                className="h-12 px-8 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-1.5"
+                                className="w-full sm:w-auto h-12 px-8 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-1.5"
                             >
                                 {submittingPrestacao ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />

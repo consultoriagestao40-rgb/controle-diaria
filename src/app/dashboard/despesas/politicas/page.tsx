@@ -26,6 +26,7 @@ export default function PoliticasConfigPage() {
     const [loading, setLoading] = useState(true)
     const [savingAuditoria, setSavingAuditoria] = useState(false)
     const [savingLimite, setSavingLimite] = useState<string | null>(null)
+    const [userRole, setUserRole] = useState("")
 
     // Valores para cadastrar novas políticas
     const [novaCategoria, setNovaCategoria] = useState("")
@@ -34,6 +35,14 @@ export default function PoliticasConfigPage() {
 
     useEffect(() => {
         fetchConfig()
+        fetch("/api/auth/session")
+            .then(res => res.json())
+            .then(session => {
+                if (session?.user?.role) {
+                    setUserRole(session.user.role)
+                }
+            })
+            .catch(() => {})
     }, [])
 
     const fetchConfig = async () => {
@@ -86,7 +95,7 @@ export default function PoliticasConfigPage() {
             })
 
             if (!res.ok) throw new Error()
-            toast.success(`Limite de "${categoria}" atualizado com sucesso!`)
+            toast.success(`Limite de "${categoria}" updated successfully!`)
             fetchConfig()
         } catch {
             toast.error("Erro ao salvar limite da categoria")
@@ -145,69 +154,33 @@ export default function PoliticasConfigPage() {
         )
     }
 
+    const isAdmin = userRole === "ADMIN"
+
     return (
         <div className="space-y-10 pb-32 max-w-5xl mx-auto pt-4 relative">
             {/* Header */}
             <div className="space-y-1">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
-                    Configuração de <span className="text-primary italic">Políticas de Despesas</span>
+                    {isAdmin ? "Configuração de " : "Políticas de "}
+                    <span className="text-primary italic">Despesas Corporativas</span>
                 </h1>
                 <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">
-                    Gerencie limites corporativos e regras da IA de auditoria
+                    {isAdmin ? "Gerencie limites corporativos e regras da IA de auditoria" : "Consulte as diretrizes e limites máximos permitidos"}
                 </p>
             </div>
 
             <div className="grid gap-8 md:grid-cols-2">
-                {/* 1. Palavras Proibidas (IA Audit) */}
-                <Card className="glass-card shadow-xl border-none bg-white rounded-3xl overflow-hidden">
-                    <CardHeader className="bg-slate-50 border-b p-8">
-                        <CardTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
-                            <ShieldAlert className="h-5 w-5 text-red-500" />
-                            Palavras Proibidas (IA Audit)
-                        </CardTitle>
-                        <CardDescription className="text-slate-400 text-xs pt-1">
-                            A Inteligência Artificial varrerá notas fiscais, PDFs e descrições buscando esses termos. Separe os termos por vírgula.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-8 space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="palavras" className="font-bold text-slate-700">Palavras/Termos Banidos</Label>
-                            <textarea
-                                id="palavras"
-                                rows={6}
-                                value={palavrasProibidas}
-                                onChange={(e) => setPalavrasProibidas(e.target.value)}
-                                placeholder="ex: cerveja, chopp, energetico, preservativo, motel, cigarro, doce, sobremesa"
-                                className="w-full rounded-2xl border-slate-200 focus:border-red-500 focus:ring-red-100 font-medium text-slate-700 p-4 transition-colors"
-                            />
-                        </div>
-
-                        <div className="flex justify-end pt-2">
-                            <Button
-                                disabled={savingAuditoria}
-                                onClick={handleSaveAuditoria}
-                                className="h-12 px-6 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-2 active:scale-95 transition-all shadow-md"
-                            >
-                                {savingAuditoria ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Save className="h-4 w-4" />
-                                )}
-                                Salvar Regras de Auditoria
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* 2. Categorias e Limites Monetários */}
-                <Card className="glass-card shadow-xl border-none bg-white rounded-3xl overflow-hidden">
+                {/* 1. Categorias e Limites Monetários */}
+                <Card className="glass-card shadow-xl border-none bg-white rounded-3xl overflow-hidden col-span-2 md:col-span-1">
                     <CardHeader className="bg-slate-50 border-b p-8">
                         <CardTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
                             <BadgeDollarSign className="h-5 w-5 text-emerald-500" />
                             Limites de Despesas Permitidos
                         </CardTitle>
                         <CardDescription className="text-slate-400 text-xs pt-1">
-                            Estabeleça limites máximos tolerados por categoria. Despesas criadas acima do valor estipulado gerarão alertas.
+                            {isAdmin 
+                                ? "Estabeleça limites máximos tolerados por categoria. Despesas criadas acima do valor estipulado gerarão alertas." 
+                                : "Valores máximos tolerados para reembolso ou adiantamento por tipo de despesa."}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-8 space-y-6">
@@ -221,89 +194,162 @@ export default function PoliticasConfigPage() {
                                             <p className="text-xs font-black text-slate-900 tracking-wide">{pol.categoria}</p>
                                             <p className="text-[10px] text-slate-400 font-semibold">{pol.descricao}</p>
                                         </div>
-                                        <div className="flex items-center gap-2 w-32 shrink-0">
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                value={pol.limiteValor}
-                                                onChange={(e) => {
-                                                    const updated = politicas.map(p => 
-                                                        p.categoria === pol.categoria ? { ...p, limiteValor: parseFloat(e.target.value) || 0 } : p
-                                                    )
-                                                    setPoliticas(updated)
-                                                }}
-                                                className="h-10 text-right font-bold rounded-lg"
-                                            />
-                                        </div>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            disabled={savingLimite === pol.categoria}
-                                            onClick={() => handleSaveLimite(pol.categoria, pol.limiteValor, pol.descricao)}
-                                            className="h-10 w-10 p-0 rounded-lg"
-                                        >
-                                            {savingLimite === pol.categoria ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <Check className="h-4 w-4 text-emerald-600" />
-                                            )}
-                                        </Button>
+                                        {isAdmin ? (
+                                            <>
+                                                <div className="flex items-center gap-2 w-28 shrink-0">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={pol.limiteValor}
+                                                        onChange={(e) => {
+                                                            const updated = politicas.map(p => 
+                                                                p.categoria === pol.categoria ? { ...p, limiteValor: parseFloat(e.target.value) || 0 } : p
+                                                            )
+                                                            setPoliticas(updated)
+                                                        }}
+                                                        className="h-10 text-right font-bold rounded-lg"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    disabled={savingLimite === pol.categoria}
+                                                    onClick={() => handleSaveLimite(pol.categoria, pol.limiteValor, pol.descricao)}
+                                                    className="h-10 w-10 p-0 rounded-lg shrink-0"
+                                                >
+                                                    {savingLimite === pol.categoria ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Check className="h-4 w-4 text-emerald-600" />
+                                                    )}
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <span className="text-xs font-black text-slate-800 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100 shrink-0">
+                                                R$ {Number(pol.limiteValor).toFixed(2)}
+                                            </span>
+                                        )}
                                     </div>
                                 ))}
                             </div>
                         )}
 
-                        {/* Adicionar nova política */}
-                        <div className="border-t pt-6 space-y-4">
-                            <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Nova Categoria de Limite</h4>
-                            <div className="grid grid-cols-2 gap-4">
+                        {isAdmin && (
+                            <div className="border-t pt-6 space-y-4">
+                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Nova Categoria de Limite</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="catName" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Identificador (sem acentos/espaços)</Label>
+                                        <Input
+                                            id="catName"
+                                            placeholder="ex: HOSPEDAGEM, REFEICAO"
+                                            value={novaCategoria}
+                                            onChange={(e) => setNovaCategoria(e.target.value)}
+                                            className="h-10 rounded-lg mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="catLimit" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valor Limite Máximo (R$)</Label>
+                                        <Input
+                                            id="catLimit"
+                                            type="number"
+                                            placeholder="0,00"
+                                            value={novoLimite}
+                                            onChange={(e) => setNovoLimite(e.target.value)}
+                                            className="h-10 rounded-lg mt-1 font-bold"
+                                        />
+                                    </div>
+                                </div>
                                 <div>
-                                    <Label htmlFor="catName" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Identificador (sem acentos/espaços)</Label>
+                                    <Label htmlFor="catDesc" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descrição Amigável</Label>
                                     <Input
-                                        id="catName"
-                                        placeholder="ex: HOSPEDAGEM, REFEICAO"
-                                        value={novaCategoria}
-                                        onChange={(e) => setNovaCategoria(e.target.value)}
+                                        id="catDesc"
+                                        placeholder="ex: Hospedagem diária permitida"
+                                        value={novaDescricao}
+                                        onChange={(e) => setNovaDescricao(e.target.value)}
                                         className="h-10 rounded-lg mt-1"
                                     />
                                 </div>
-                                <div>
-                                    <Label htmlFor="catLimit" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valor Limite Máximo (R$)</Label>
-                                    <Input
-                                        id="catLimit"
-                                        type="number"
-                                        placeholder="0,00"
-                                        value={novoLimite}
-                                        onChange={(e) => setNovoLimite(e.target.value)}
-                                        className="h-10 rounded-lg mt-1 font-bold"
-                                    />
+                                <div className="flex justify-end">
+                                    <Button
+                                        disabled={savingLimite === "NOVA"}
+                                        onClick={handleCreateLimite}
+                                        className="h-10 px-4 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white font-bold uppercase tracking-wider text-[9px] gap-1.5 active:scale-95 transition-all"
+                                    >
+                                        {savingLimite === "NOVA" ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                            <Plus className="h-3.5 w-3.5" />
+                                        )}
+                                        Cadastrar Categoria
+                                    </Button>
                                 </div>
                             </div>
-                            <div>
-                                <Label htmlFor="catDesc" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descrição Amigável</Label>
-                                <Input
-                                    id="catDesc"
-                                    placeholder="ex: Hospedagem diária permitida"
-                                    value={novaDescricao}
-                                    onChange={(e) => setNovaDescricao(e.target.value)}
-                                    className="h-10 rounded-lg mt-1"
-                                />
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* 2. Palavras Proibidas (IA Audit) */}
+                <Card className="glass-card shadow-xl border-none bg-white rounded-3xl overflow-hidden col-span-2 md:col-span-1">
+                    <CardHeader className="bg-slate-50 border-b p-8">
+                        <CardTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
+                            <ShieldAlert className="h-5 w-5 text-red-500" />
+                            Diretrizes de Auditoria (IA Audit)
+                        </CardTitle>
+                        <CardDescription className="text-slate-400 text-xs pt-1">
+                            {isAdmin 
+                                ? "A Inteligência Artificial varrerá notas fiscais, PDFs e descrições buscando esses termos. Separe os termos por vírgula." 
+                                : "A IA audita automaticamente os comprovantes e descrições para garantir conformidade."}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-8 space-y-6">
+                        {isAdmin ? (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="palavras" className="font-bold text-slate-700">Palavras/Termos Banidos</Label>
+                                    <textarea
+                                        id="palavras"
+                                        rows={6}
+                                        value={palavrasProibidas}
+                                        onChange={(e) => setPalavrasProibidas(e.target.value)}
+                                        placeholder="ex: cerveja, chopp, energetico, preservativo, motel, cigarro, doce, sobremesa"
+                                        className="w-full rounded-2xl border-slate-200 focus:border-red-500 focus:ring-red-100 font-medium text-slate-700 p-4 transition-colors"
+                                    />
+                                </div>
+
+                                <div className="flex justify-end pt-2">
+                                    <Button
+                                        disabled={savingAuditoria}
+                                        onClick={handleSaveAuditoria}
+                                        className="h-12 px-6 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-2 active:scale-95 transition-all shadow-md"
+                                    >
+                                        {savingAuditoria ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Save className="h-4 w-4" />
+                                        )}
+                                        Salvar Regras de Auditoria
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="bg-red-50/50 p-6 rounded-2xl border border-red-100 space-y-3">
+                                    <p className="text-xs font-bold text-red-800 uppercase tracking-wide">⚠️ Regras de Conformidade Automática</p>
+                                    <p className="text-xs text-red-700 leading-relaxed font-semibold">
+                                        Não é permitido o reembolso ou adiantamento para despesas que incluam termos restritos pela empresa, tais como bebidas alcoólicas, cigarros, entretenimento adulto ou despesas pessoais que fujam da finalidade corporativa.
+                                    </p>
+                                </div>
+                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-2 text-xs text-slate-500 font-semibold leading-relaxed">
+                                    <p className="font-bold text-slate-700">💡 Instruções Importantes:</p>
+                                    <ul className="list-disc pl-4 space-y-1.5">
+                                        <li>Lançamentos devem ser realizados **por item** (ex: cada almoço individualizado, diárias de hospedagem, etc.) com suas respectivas datas.</li>
+                                        <li>Os valores digitados devem corresponder **exatamente** aos comprovantes anexados.</li>
+                                        <li>Justifique detalhadamente a finalidade corporativa da despesa na descrição de cada item.</li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div className="flex justify-end">
-                                <Button
-                                    disabled={savingLimite === "NOVA"}
-                                    onClick={handleCreateLimite}
-                                    className="h-10 px-4 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white font-bold uppercase tracking-wider text-[9px] gap-1.5 active:scale-95 transition-all"
-                                >
-                                    {savingLimite === "NOVA" ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                        <Plus className="h-3.5 w-3.5" />
-                                    )}
-                                    Cadastrar Categoria
-                                </Button>
-                            </div>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

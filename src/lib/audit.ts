@@ -13,13 +13,20 @@ interface AuditResult {
 export async function runExpenseAudit(
     descricao: string,
     valorSolicitado: number,
-    anexos: Array<{ nomeOriginal: string }> = []
+    anexos: Array<{ nomeOriginal: string }> = [],
+    itens: Array<{ categoria: string, descricao: string, valorTotal: number }> = []
 ): Promise<AuditResult> {
     try {
         const detectados: string[] = []
-        const textoParaVerificar = descricao.toLowerCase()
+        
+        // 1. Concatenar descrição geral e dados de todos os itens para varredura de termos proibidos
+        const textoParaVerificar = (
+            descricao + 
+            " " + 
+            itens.map(i => `${i.categoria} ${i.descricao}`).join(" ")
+        ).toLowerCase()
 
-        // 1. Busca a lista de palavras proibidas ativas
+        // 2. Busca a lista de palavras proibidas ativas
         let config = await prisma.configuracaoAuditoria.findFirst({
             where: { ativo: true }
         })
@@ -37,14 +44,14 @@ export async function runExpenseAudit(
             .map(t => t.trim().toLowerCase())
             .filter(t => t.length > 0)
 
-        // 2. Varrer termos proibidos na descrição
+        // 3. Varrer termos proibidos na descrição consolidada
         for (const termo of termosProibidos) {
             if (textoParaVerificar.includes(termo)) {
-                detectados.push(`"${termo}" (descrição)`)
+                detectados.push(`"${termo}" (descrição/itens)`)
             }
         }
 
-        // 3. Varrer termos proibidos nos nomes de anexos
+        // 4. Varrer termos proibidos nos nomes de anexos
         for (const anexo of anexos) {
             const nomeAnexo = anexo.nomeOriginal.toLowerCase()
             for (const termo of termosProibidos) {
@@ -54,17 +61,30 @@ export async function runExpenseAudit(
             }
         }
 
-        // 4. Verificar limites de políticas de despesas
+        // 5. Verificar limites de políticas de despesas
         const politicas = await prisma.politicaDespesa.findMany({
             where: { ativo: true }
         })
 
+        // A. Validar limites por itens individuais
+        for (const item of itens) {
+            const pol = politicas.find(p => p.categoria.toUpperCase() === item.categoria.toUpperCase())
+            if (pol) {
+                const limite = Number(pol.limiteValor)
+                if (item.valorTotal > limite) {
+                    detectados.push(
+                        `item "${pol.descricao}" excede o limite permitido (valor do item: R$ ${Number(item.valorTotal).toFixed(2)}, limite máximo: R$ ${limite.toFixed(2)})`
+                    )
+                }
+            }
+        }
+
+        // B. Verificação de Fallback (descrição genérica + valor total)
         for (const pol of politicas) {
-            const categoriaChave = pol.categoria.toLowerCase() // ex: "refeicao" ou "hospedagem"
+            const categoriaChave = pol.categoria.toLowerCase()
             const limite = Number(pol.limiteValor)
 
-            // Se o texto contiver a palavra-chave e o valor superar o limite
-            if (textoParaVerificar.includes(categoriaChave) && valorSolicitado > limite) {
+            if (textoParaVerificar.includes(categoriaChave) && valorSolicitado > limite && itens.length === 0) {
                 detectados.push(`limite de "${pol.descricao}" excedido (solicitado: R$ ${valorSolicitado.toFixed(2)}, máximo permitido: R$ ${limite.toFixed(2)})`)
             }
         }

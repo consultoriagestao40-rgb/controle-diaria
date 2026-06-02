@@ -273,6 +273,7 @@ model Despesa {
   // Relacionamentos modulares
   anexos                Anexo[]           @relation("AnexosDespesa")
   historico             HistoricoDespesa[]
+  itens                 ItemDespesa[]
 }
 
 model HistoricoDespesa {
@@ -304,4 +305,18 @@ model ConfiguracaoAuditoria {
   palavrasProibidas String   // CSV: "cerveja,energetico,preservativo,chiclete,bala,doce,bebida"
   ativo            Boolean  @default(true)
   updatedAt        DateTime @updatedAt
+}
+
+model ItemDespesa {
+  id            String   @id @default(uuid())
+  despesaId     String
+  despesa       Despesa  @relation(fields: [despesaId], references: [id], onDelete: Cascade)
+  
+  categoria     String   // ex: REFEICAO, HOSPEDAGEM, TRANSPORTE
+  descricao     String   // Descrição/Justificativa do item
+  data          DateTime // Data do evento/ocorrência
+  quantidade    Int      @default(1)
+  valorUnitario Decimal
+  valorTotal    Decimal
+  createdAt     DateTime @default(now())
 }

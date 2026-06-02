@@ -29,6 +29,7 @@ export async function GET(
                     select: { id: true, nome: true, email: true }
                 },
                 anexos: true,
+                itens: true,
                 historico: {
                     include: {
                         usuario: { select: { nome: true, role: true } }
