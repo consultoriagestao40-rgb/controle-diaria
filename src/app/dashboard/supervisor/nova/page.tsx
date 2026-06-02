@@ -147,15 +147,15 @@ export default function NovaDiariaPage() {
 
             <div className="flex items-center gap-4 relative z-10">
                 <Link href="/dashboard/supervisor">
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl bg-white/50 border-white hover:bg-white transition-all">
+                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl bg-white/50 border-white hover:bg-white transition-all shrink-0 cursor-pointer">
                         <ArrowLeft className="h-6 w-6 text-slate-600" />
                     </Button>
                 </Link>
-                <div>
-                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 uppercase">
-                        Novo <span className="text-primary italic text-4xl">Lançamento</span>
+                <div className="space-y-1">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-2 gap-y-1 leading-none uppercase">
+                        Novo <span className="text-primary italic">Lançamento</span>
                     </h1>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Protocolo de registro de plantão</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Protocolo de registro de plantão</p>
                 </div>
             </div>
 
@@ -201,7 +201,7 @@ export default function NovaDiariaPage() {
                                                             </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+                                                    <PopoverContent className="w-auto max-w-[92vw] p-0 rounded-2xl border-none shadow-2xl" align="start">
                                                         <Calendar
                                                             mode="single"
                                                             selected={field.value}
@@ -246,7 +246,7 @@ export default function NovaDiariaPage() {
                                                             </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
-                                                    <PopoverContent className="w-[300px] p-0 rounded-2xl border-none shadow-2xl">
+                                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[92vw] p-0 rounded-2xl border-none shadow-2xl" align="start">
                                                         <Command className="rounded-2xl">
                                                             <CommandInput placeholder="Buscar posto..." />
                                                             <CommandList>
@@ -311,7 +311,7 @@ export default function NovaDiariaPage() {
                                                             </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
-                                                    <PopoverContent className="w-[300px] p-0 rounded-2xl border-none shadow-2xl">
+                                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[92vw] p-0 rounded-2xl border-none shadow-2xl" align="start">
                                                         <Command className="rounded-2xl">
                                                             <CommandInput placeholder="Buscar diarista..." />
                                                             <CommandList>
@@ -366,7 +366,7 @@ export default function NovaDiariaPage() {
                                                             </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
-                                                    <PopoverContent className="w-[300px] p-0 rounded-2xl border-none shadow-2xl">
+                                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[92vw] p-0 rounded-2xl border-none shadow-2xl" align="start">
                                                         <Command className="rounded-2xl">
                                                             <CommandInput placeholder="Buscar colaborador..." />
                                                             <CommandList>
@@ -491,7 +491,7 @@ export default function NovaDiariaPage() {
                                                 <FormControl>
                                                     <div className="relative">
                                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
-                                                        <Input type="number" step="0.01" {...field} className="h-12 pl-10 bg-slate-50/50 border-slate-200 rounded-xl focus:bg-white focus:border-primary/20 transition-all font-black text-lg text-slate-900 tracking-tighter" />
+                                                        <Input type="number" step="0.01" inputMode="decimal" {...field} className="h-12 pl-10 bg-slate-50/50 border-slate-200 rounded-xl focus:bg-white focus:border-primary/20 transition-all font-black text-lg text-slate-900 tracking-tighter" />
                                                     </div>
                                                 </FormControl>
                                                 <FormMessage />

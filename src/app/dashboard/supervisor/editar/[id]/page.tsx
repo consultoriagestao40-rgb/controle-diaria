@@ -293,7 +293,7 @@ function EditarDiariaForm({ id }: { id: string }) {
                             <FormField control={form.control} name="valor" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Valor (R$)</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" inputMode="decimal" {...field} /></FormControl>
                                 </FormItem>
                             )}
                             />

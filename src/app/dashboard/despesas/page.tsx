@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Wallet, Plus, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileUp, CheckCircle, FileText, Settings, Trash2 } from "lucide-react"
+import { Wallet, Plus, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileUp, CheckCircle, FileText, Settings, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -525,17 +525,30 @@ export default function MinhasDespesasPage() {
 
             {/* Modal de Prestação de Contas (Radix Dialog com Responsividade Extrema) */}
             <Dialog open={prestacaoModalOpen} onOpenChange={(val) => !val && setPrestacaoModalOpen(false)}>
-                <DialogContent className="fixed bottom-0! sm:bottom-auto! top-auto! sm:top-1/2! left-0! sm:left-1/2! translate-x-0! sm:-translate-x-1/2! translate-y-0! sm:-translate-y-1/2! w-full sm:max-w-xl h-[92dvh] sm:h-auto sm:max-h-[90vh] flex flex-col gap-0 rounded-t-[2rem] rounded-b-none sm:rounded-3xl p-0 bg-white border border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
-                    <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-4 mb-1 sm:hidden flex-none" />
-                    <DialogHeader className="p-5 pt-2 sm:p-8 pb-4 border-b border-slate-100 flex-none">
-                        <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-                            <FileText className="h-6 w-6 text-orange-500" />
-                            Prestação de Contas
-                        </DialogTitle>
-                        <DialogDescription className="text-slate-400 text-xs sm:text-sm font-medium pt-0.5">
-                            Adiantamento ID: {selectedDespesa?.id.slice(0, 6)}
-                        </DialogDescription>
-                    </DialogHeader>
+                <DialogContent showCloseButton={false} className="fixed bottom-0! sm:bottom-auto! top-0! sm:top-1/2! left-0! sm:left-1/2! translate-x-0! sm:-translate-x-1/2! translate-y-0! sm:-translate-y-1/2! w-full sm:max-w-xl h-full! sm:h-auto sm:max-h-[90vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
+                    <div className="p-5 pt-4 sm:p-8 pb-4 border-b border-slate-100 flex-none flex flex-col gap-3">
+                        <div className="flex items-center">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setPrestacaoModalOpen(false)}
+                                className="h-10 w-10 text-slate-600 rounded-xl bg-slate-100 hover:bg-slate-200 cursor-pointer active:scale-95 transition-all shrink-0"
+                            >
+                                <X className="h-5 w-5 stroke-[2.5]" />
+                            </Button>
+                        </div>
+                        
+                        <div className="space-y-1 mt-1">
+                            <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+                                <FileText className="h-6 w-6 text-orange-500 shrink-0" />
+                                Prestação de Contas
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-400 text-xs sm:text-sm font-medium pt-0.5">
+                                Adiantamento ID: {selectedDespesa?.id.slice(0, 6)}
+                            </DialogDescription>
+                        </div>
+                    </div>
                     
                     <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6">
                         {selectedDespesa && (

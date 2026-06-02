@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Receipt, Plus, Loader2, ArrowRight, FileUp, CheckCircle, Trash2 } from "lucide-react"
+import { Receipt, Plus, Loader2, ArrowRight, FileUp, CheckCircle, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -165,17 +165,30 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user }: ReembolsoMo
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="fixed bottom-0! sm:bottom-auto! top-auto! sm:top-1/2! left-0! sm:left-1/2! translate-x-0! sm:-translate-x-1/2! translate-y-0! sm:-translate-y-1/2! w-full sm:max-w-4xl h-[92dvh] sm:h-[80vh] flex flex-col gap-0 rounded-t-[2rem] rounded-b-none sm:rounded-3xl p-0 bg-white border border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
-                <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-4 mb-1 sm:hidden flex-none" />
-                <DialogHeader className="p-5 pt-2 sm:p-8 pb-4 border-b border-slate-100 flex-none">
-                    <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-                        <Receipt className="h-6 w-6 text-indigo-500" />
-                        Nova Solicitação de Reembolso
-                    </DialogTitle>
-                    <DialogDescription className="text-slate-400 text-xs sm:text-sm font-medium">
-                        Use essa modalidade se você já efetuou o gasto com recursos próprios e necessita do reembolso da empresa.
-                    </DialogDescription>
-                </DialogHeader>
+            <DialogContent showCloseButton={false} className="fixed bottom-0! sm:bottom-auto! top-0! sm:top-1/2! left-0! sm:left-1/2! translate-x-0! sm:-translate-x-1/2! translate-y-0! sm:-translate-y-1/2! w-full sm:max-w-4xl h-full! sm:h-[80vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
+                <div className="p-5 pt-4 sm:p-8 pb-4 border-b border-slate-100 flex-none flex flex-col gap-3">
+                    <div className="flex items-center">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={onClose}
+                            className="h-10 w-10 text-slate-600 rounded-xl bg-slate-100 hover:bg-slate-200 cursor-pointer active:scale-95 transition-all shrink-0"
+                        >
+                            <X className="h-5 w-5 stroke-[2.5]" />
+                        </Button>
+                    </div>
+                    
+                    <div className="space-y-1 mt-1">
+                        <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+                            <Receipt className="h-6 w-6 text-indigo-500 shrink-0" />
+                            Nova Solicitação de Reembolso
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 text-xs sm:text-sm font-medium">
+                            Use essa modalidade se você já efetuou o gasto com recursos próprios e necessita do reembolso da empresa.
+                        </DialogDescription>
+                    </div>
+                </div>
 
                 <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6">
                     {/* Descrição */}
