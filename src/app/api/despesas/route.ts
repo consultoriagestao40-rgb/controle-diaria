@@ -120,8 +120,11 @@ export async function POST(req: Request) {
         // Rodar auditoria de políticas e termos proibidos (incluindo itens)
         const auditResult = await runExpenseAudit(descricao, valor, anexos || [], itemsToCreate)
  
-        // Define status inicial: RASCUNHO ou AGUARDANDO_APROVACAO
-        const statusInicial = enviarParaAprovacao ? 'AGUARDANDO_APROVACAO' : 'RASCUNHO'
+        // Define status inicial com base na política se enviado para aprovação
+        let statusInicial: any = 'RASCUNHO'
+        if (enviarParaAprovacao) {
+            statusInicial = auditResult.hasProhibitedItems ? 'AGUARDANDO_APROVACAO' : 'APROVADO'
+        }
  
         const despesa = await prisma.$transaction(async (tx) => {
             const novaDespesa = await tx.despesa.create({
@@ -152,7 +155,9 @@ export async function POST(req: Request) {
                     paraStatus: statusInicial,
                     usuarioId: user.id,
                     observacao: enviarParaAprovacao 
-                        ? "Despesa criada e enviada diretamente para aprovação." 
+                        ? (statusInicial === 'APROVADO' 
+                            ? "Despesa criada e aprovada automaticamente por estar dentro da política e encaminhada ao financeiro." 
+                            : "Despesa criada e enviada para aprovação do gestor por violar políticas.") 
                         : "Despesa salva em rascunho."
                 }
             })

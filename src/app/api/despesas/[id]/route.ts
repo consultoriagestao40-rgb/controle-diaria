@@ -86,9 +86,9 @@ export async function PATCH(
             return new NextResponse("Forbidden", { status: 403 })
         }
 
-        if (despesa.status !== 'RASCUNHO' && despesa.status !== 'AGUARDANDO_APROVACAO') {
+        if (despesa.status !== 'RASCUNHO' && despesa.status !== 'AGUARDANDO_APROVACAO' && despesa.status !== 'REPROVADO') {
             return new NextResponse(
-                JSON.stringify({ error: "Só é possível editar despesas em estado RASCUNHO ou AGUARDANDO_APROVACAO." }),
+                JSON.stringify({ error: "Só é possível editar despesas em estado RASCUNHO, AGUARDANDO_APROVACAO ou REPROVADO." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
@@ -114,12 +114,22 @@ export async function PATCH(
 
         // Rodar auditoria ao atualizar ou enviar para aprovação
         const existingAnexos = await prisma.anexo.findMany({ where: { despesaId: id } })
-        const auditResult = await runExpenseAudit(descricao || despesa.descricao, valor, existingAnexos)
+        const existingItens = await prisma.itemDespesa.findMany({ where: { despesaId: id } })
+        const auditResult = await runExpenseAudit(
+            descricao || despesa.descricao,
+            valor,
+            existingAnexos,
+            existingItens.map(i => ({
+                categoria: i.categoria,
+                descricao: i.descricao,
+                valorTotal: Number(i.valorTotal)
+            }))
+        )
         updateData.alertaAuditoria = auditResult.alertMessage
 
-        let novoStatus = despesa.status
-        if (enviarParaAprovacao && despesa.status === 'RASCUNHO') {
-            novoStatus = 'AGUARDANDO_APROVACAO'
+        let novoStatus = despesa.status as any
+        if (enviarParaAprovacao && (despesa.status === 'RASCUNHO' || despesa.status === 'REPROVADO')) {
+            novoStatus = auditResult.hasProhibitedItems ? 'AGUARDANDO_APROVACAO' : 'APROVADO'
             updateData.status = novoStatus
         }
 
@@ -137,7 +147,9 @@ export async function PATCH(
                         deStatus: despesa.status,
                         paraStatus: novoStatus,
                         usuarioId: user.id,
-                        observacao: "Despesa enviada para aprovação."
+                        observacao: novoStatus === 'APROVADO'
+                            ? "Despesa aprovada automaticamente por estar dentro da política e encaminhada ao financeiro."
+                            : "Despesa enviada para aprovação do gestor."
                     }
                 })
             }
@@ -179,9 +191,9 @@ export async function DELETE(
             return new NextResponse("Forbidden", { status: 403 })
         }
 
-        if (despesa.status !== 'RASCUNHO') {
+        if (despesa.status !== 'RASCUNHO' && despesa.status !== 'REPROVADO') {
             return new NextResponse(
-                JSON.stringify({ error: "Só é possível excluir despesas em estado de RASCUNHO." }),
+                JSON.stringify({ error: "Só é possível excluir despesas em estado de RASCUNHO ou REPROVADO." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }

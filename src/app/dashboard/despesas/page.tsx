@@ -408,7 +408,7 @@ export default function MinhasDespesasPage() {
                                                 {getStatusBadge(item.status)}
                                             </div>
                                             
-                                            {item.status === 'RASCUNHO' && (
+                                            {(item.status === 'RASCUNHO' || item.status === 'REPROVADO') && (
                                                 <div className="flex gap-2 w-full sm:w-auto">
                                                     <Button
                                                         size="sm"
