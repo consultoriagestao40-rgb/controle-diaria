@@ -124,7 +124,7 @@ export default function ApproverDashboard() {
         <div className="space-y-8 pb-32">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
                 <div className="space-y-1">
-                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-3">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
                         Controle de <span className="text-primary italic">Aprovação</span>
                     </h1>
                     <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">Análise e validação de plantões</p>

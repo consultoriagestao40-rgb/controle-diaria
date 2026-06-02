@@ -13,9 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Controle de Diárias",
-  description: "Sistema de Gestão de Diárias e Coberturas",
+  title: "ReembolsaFácil",
+  description: "Sistema de Gestão de Diárias, Reembolsos e Adiantamentos",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  }
 };
 
 export const viewport = {

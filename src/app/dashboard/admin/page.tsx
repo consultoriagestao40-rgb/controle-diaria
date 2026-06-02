@@ -43,7 +43,7 @@ export default function AdminPage() {
         <div className="space-y-10 pb-32">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
                 <div className="space-y-1">
-                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-3 uppercase">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 uppercase leading-tight">
                         Central de <span className="text-primary italic">Controle</span>
                     </h1>
                     <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">Administração de módulos e diretrizes</p>
@@ -69,11 +69,11 @@ export default function AdminPage() {
                 </div>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
                 {cards.map((card) => (
                     <Link key={card.href} href={card.href} className="group">
                         <Card className="glass-card h-full border-none group-hover:scale-[1.03] transition-all duration-500 premium-shadow cursor-pointer overflow-hidden p-0">
-                            <CardContent className="p-8 space-y-6">
+                            <CardContent className="p-6 sm:p-8 space-y-4 sm:space-y-6">
                                 <div className={`h-16 w-16 rounded-2xl bg-white/50 flex items-center justify-center ${card.color} border border-white shadow-inner group-hover:cyber-glow transition-all duration-500`}>
                                     <card.icon className="h-8 w-8" />
                                 </div>

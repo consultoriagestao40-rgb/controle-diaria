@@ -119,7 +119,7 @@ export default function RelatoriosDespesasPage() {
         <div className="space-y-10 pb-32 max-w-6xl mx-auto pt-4 relative">
             {/* Header */}
             <div className="space-y-1">
-                <h1 className="text-4xl font-black tracking-tighter text-slate-900 flex items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
                     Relatórios e <span className="text-primary italic">Consultas de Despesas</span>
                 </h1>
                 <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">
