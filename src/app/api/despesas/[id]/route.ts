@@ -170,7 +170,7 @@ export async function PATCH(
     }
 }
 
-// DELETE: Remover despesa (só em RASCUNHO)
+// DELETE: Remover despesa
 export async function DELETE(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -193,11 +193,14 @@ export async function DELETE(
             )
         }
 
-        if (despesa.solicitanteId !== user.id && user.role !== 'ADMIN') {
+        const isMasterOrN2 = user.role === 'ADMIN' || user.role === 'APROVADOR_N2'
+
+        if (despesa.solicitanteId !== user.id && !isMasterOrN2) {
             return new NextResponse("Forbidden", { status: 403 })
         }
 
-        if (despesa.status !== 'RASCUNHO' && despesa.status !== 'REPROVADO') {
+        // Common users can only delete drafts or rejected expenses. Master/N2 can delete any expense in any state.
+        if (!isMasterOrN2 && despesa.status !== 'RASCUNHO' && despesa.status !== 'REPROVADO') {
             return new NextResponse(
                 JSON.stringify({ error: "Só é possível excluir despesas em estado de RASCUNHO ou REPROVADO." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
@@ -212,6 +215,11 @@ export async function DELETE(
             
             // Remove anexos associados
             await tx.anexo.deleteMany({
+                where: { despesaId: id }
+            })
+
+            // Remove itens detalhados associados
+            await tx.itemDespesa.deleteMany({
                 where: { despesaId: id }
             })
 

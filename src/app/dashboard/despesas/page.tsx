@@ -1052,28 +1052,29 @@ export default function MinhasDespesasPage() {
                                 </Button>
                                 
                                 <div className="flex gap-2 w-full sm:w-auto justify-end">
+                                    {(detailDespesa.status === 'RASCUNHO' || detailDespesa.status === 'REPROVADO' || userRole === 'ADMIN' || userRole === 'APROVADOR_N2') && (
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => {
+                                                handleDeletarDespesa(detailDespesa.id)
+                                                setDetailDespesa(null)
+                                            }}
+                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl active:scale-95 transition-all"
+                                        >
+                                            Excluir
+                                        </Button>
+                                    )}
+
                                     {(detailDespesa.status === 'RASCUNHO' || detailDespesa.status === 'REPROVADO') && (
-                                        <>
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    handleDeletarDespesa(detailDespesa.id)
-                                                    setDetailDespesa(null)
-                                                }}
-                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl active:scale-95 transition-all"
-                                            >
-                                                Excluir
-                                            </Button>
-                                            <Button
-                                                onClick={() => {
-                                                    handleEnviarParaAprovacao(detailDespesa.id)
-                                                    setDetailDespesa(null)
-                                                }}
-                                                className="bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
-                                            >
-                                                Enviar
-                                            </Button>
-                                        </>
+                                        <Button
+                                            onClick={() => {
+                                                handleEnviarParaAprovacao(detailDespesa.id)
+                                                setDetailDespesa(null)
+                                            }}
+                                            className="bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
+                                        >
+                                            Enviar
+                                        </Button>
                                     )}
 
                                     {(detailDespesa.status === 'AGUARDANDO_PRESTACAO' || (detailDespesa.tipo === 'ADIANTAMENTO' && detailDespesa.status === 'APROVADO')) && (
