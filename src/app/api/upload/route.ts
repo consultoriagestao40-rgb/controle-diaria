@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { writeFile, mkdir } from "fs/promises"
-import { join } from "path"
 
 export async function POST(req: NextRequest) {
     try {
@@ -20,20 +18,10 @@ export async function POST(req: NextRequest) {
 
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
-
-        // Ensure public/uploads exists
-        const uploadDir = join(process.cwd(), "public", "uploads")
-        try {
-            await mkdir(uploadDir, { recursive: true })
-        } catch {}
-
-        const filename = `doc-${Date.now()}-${file.name.replace(/\s/g, '_')}`
-        const filepath = join(uploadDir, filename)
-
-        await writeFile(filepath, buffer)
+        const base64Data = `data:${file.type};base64,${buffer.toString("base64")}`
         
         return NextResponse.json({
-            url: `/uploads/${filename}`,
+            url: base64Data,
             nomeOriginal: file.name,
             tamanho: file.size,
             tipo: file.type

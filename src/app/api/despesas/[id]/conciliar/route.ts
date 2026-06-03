@@ -13,7 +13,7 @@ export async function PATCH(
     const user = session.user as any
     const { id } = await params
 
-    const allowedRoles = ['FINANCEIRO', 'ADMIN']
+    const allowedRoles = ['FINANCEIRO', 'ADMIN', 'APROVADOR_N2']
     if (!allowedRoles.includes(user.role)) {
         return new NextResponse("Forbidden", { status: 403 })
     }

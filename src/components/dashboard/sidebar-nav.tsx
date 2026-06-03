@@ -78,13 +78,13 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                 despesasItems.push({ label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare })
             }
             
-            if (["ADMIN", "FINANCEIRO"].includes(role)) {
+            if (["ADMIN", "FINANCEIRO", "APROVADOR_N2"].includes(role)) {
                 despesasItems.push({ label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign })
             }
             
             despesasItems.push({ label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings })
             
-            if (["ADMIN", "FINANCEIRO", "RH"].includes(role)) {
+            if (["ADMIN", "FINANCEIRO", "RH", "APROVADOR_N2"].includes(role)) {
                 despesasItems.push({ label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart })
             }
             
@@ -126,7 +126,7 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                 coberturasItems.push(
                     { label: "Aprovações", href: "/dashboard/aprovador", icon: CheckSquare }
                 )
-            } else if (["APROVADOR_N1", "APROVADOR_N2"].includes(role)) {
+            } else if (role === "APROVADOR_N1") {
                 coberturasItems.push(
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
@@ -134,8 +134,19 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                     { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
                     { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare }
                 )
+            } else if (role === "APROVADOR_N2") {
+                coberturasItems.push(
+                    { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
+                    { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart },
+                    { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText },
+                    { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
+                    { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
+                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign }
+                )
             } else if (role === "FINANCEIRO") {
                 coberturasItems.push(
+                    { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText },
+                    { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
                     { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
                     { label: "Coberturas", href: "/dashboard/admin/coberturas", icon: FileText },
                     { label: "Relatórios", href: "/dashboard/admin/relatorios", icon: BarChart }

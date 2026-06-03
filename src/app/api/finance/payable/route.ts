@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
     const user = session.user as any
 
-    if (user.role !== 'FINANCEIRO' && user.role !== 'ADMIN') {
+    if (user.role !== 'FINANCEIRO' && user.role !== 'ADMIN' && user.role !== 'APROVADOR_N2') {
         return new NextResponse("Forbidden", { status: 403 })
     }
 
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
     const user = session.user as any
 
-    if (user.role !== 'FINANCEIRO' && user.role !== 'ADMIN') {
+    if (user.role !== 'FINANCEIRO' && user.role !== 'ADMIN' && user.role !== 'APROVADOR_N2') {
         return new NextResponse("Forbidden", { status: 403 })
     }
 
@@ -87,17 +87,11 @@ export async function POST(req: Request) {
         if (file && acao === 'PAGO') {
             const bytes = await file.arrayBuffer()
             const buffer = Buffer.from(bytes)
-
-            // Ensure directory exists (basic check, assume public/uploads exists or create)
-            const uploadDir = join(process.cwd(), "public", "uploads")
-            const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`
-            const filepath = join(uploadDir, filename)
-
-            await writeFile(filepath, buffer)
+            const base64Data = `data:${file.type};base64,${buffer.toString("base64")}`
 
             anexoData = {
                 create: {
-                    url: `/uploads/${filename}`,
+                    url: base64Data,
                     nomeOriginal: file.name,
                     tamanho: file.size,
                     tipo: file.type,
