@@ -24,6 +24,9 @@ interface Despesa {
     anexos: any[]
     alertaAuditoria: string | null
     itens?: any[]
+    aprovador?: { nome: string; email: string } | null
+    dataAprovacao?: string | null
+    justificativaAprovacao?: string | null
 }
 
 export default function FinanceiroDespesasPage() {
