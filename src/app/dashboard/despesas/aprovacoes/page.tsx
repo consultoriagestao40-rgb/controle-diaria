@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog"
+import { handleOpenAnexo } from "@/lib/utils"
 
 interface Despesa {
     id: string
@@ -454,16 +455,14 @@ export default function AprovacoesDespesasPage() {
                                     {detailItem.anexos && detailItem.anexos.length > 0 ? (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                             {detailItem.anexos.map((anexo: any, idx: number) => (
-                                                <a
+                                                <button
                                                     key={idx}
-                                                    href={anexo.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-1.5 bg-white border px-3 py-2.5 rounded-xl text-xs font-semibold text-primary hover:bg-slate-50 transition-all shadow-xs"
+                                                    onClick={() => handleOpenAnexo(anexo)}
+                                                    className="flex items-center gap-1.5 bg-white border px-3 py-2.5 rounded-xl text-xs font-semibold text-primary hover:bg-slate-50 transition-all shadow-xs w-full text-left cursor-pointer"
                                                 >
                                                     <FileText className="h-3.5 w-3.5 text-slate-400" />
-                                                    <span className="truncate">{anexo.nomeOriginal}</span>
-                                                </a>
+                                                    <span className="truncate flex-1">{anexo.nomeOriginal}</span>
+                                                </button>
                                             ))}
                                         </div>
                                     ) : (
