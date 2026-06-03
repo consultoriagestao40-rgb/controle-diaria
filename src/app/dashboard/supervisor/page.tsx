@@ -101,7 +101,7 @@ export default function SupervisorDashboard() {
             </div>
 
             {/* Fintech Card (Resumo Financeiro) */}
-            <div className="bg-slate-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden mx-1">
+            <div className="bg-slate-950 text-white rounded-none sm:rounded-3xl p-6 shadow-xl relative overflow-hidden -mx-4 sm:mx-0">
                 <div className="absolute top-[-30%] right-[-10%] w-[180px] h-[180px] bg-primary/25 rounded-full blur-[40px] pointer-events-none" />
                 
                 <div className="space-y-1 relative z-10">
