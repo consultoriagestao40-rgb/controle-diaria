@@ -14,29 +14,17 @@ export default async function DashboardPage() {
         redirect("/login")
     }
 
-    const user = session.user as any
-    const role = user.role
-    const acessoDespesas = user.acessoDespesas !== false
-    const acessoCoberturas = user.acessoCoberturas !== false
+    const dbUser = await prisma.user.findUnique({
+        where: { id: (session.user as any).id }
+    })
 
-    if (!acessoDespesas && !acessoCoberturas) {
-        return (
-            <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6 text-center text-white">
-                <ShieldAlert className="h-16 w-16 text-rose-500 mb-6 animate-bounce" />
-                <h1 className="text-2xl font-black tracking-tight mb-2">Sem Acesso Liberado</h1>
-                <p className="text-slate-400 max-w-md text-sm font-medium">
-                    Olá, <span className="text-white font-bold">{session.user?.name}</span>. Você não possui acesso ativo a nenhuma das áreas do sistema. Entre em contato com o administrador para liberar seu acesso.
-                </p>
-                <Link 
-                    href="/api/auth/signout" 
-                    className="mt-8 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 active:scale-95"
-                >
-                    <LogOut className="h-4 w-4" />
-                    Sair do Sistema
-                </Link>
-            </div>
-        )
+    if (!dbUser) {
+        redirect("/login")
     }
+
+    const role = dbUser.role
+    const acessoDespesas = dbUser.acessoDespesas !== false
+    const acessoCoberturas = dbUser.acessoCoberturas !== false
 
     // Buscar logo personalizado
     const config = await prisma.configuracaoAuditoria.findFirst({
@@ -47,7 +35,7 @@ export default async function DashboardPage() {
     return (
         <Suspense fallback={null}>
             <DashboardPortal 
-                user={{ name: session.user?.name, role }}
+                user={{ name: dbUser.nome, role, avatarUrl: dbUser.avatarUrl }}
                 logoUrl={logoUrl}
                 acessoDespesas={acessoDespesas}
                 acessoCoberturas={acessoCoberturas}

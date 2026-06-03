@@ -1,9 +1,11 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
+import { ProfileDialog } from "./profile-dialog"
 import {
     Menu,
     LogOut,
@@ -21,7 +23,7 @@ import {
 import { cn } from "@/lib/utils"
 
 interface MobileNavProps {
-    user: { name?: string | null, role?: string }
+    user: { name?: string | null, role?: string, avatarUrl?: string | null }
     logoUrl?: string
     acessoDespesas?: boolean
     acessoCoberturas?: boolean
@@ -41,6 +43,13 @@ interface NavSection {
 export function MobileNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas = true }: MobileNavProps) {
     const pathname = usePathname()
     const role = user.role || ""
+    const [isProfileOpen, setIsProfileOpen] = useState(false)
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null)
+
+    // Sync avatarUrl when props change
+    useEffect(() => {
+        setAvatarUrl(user.avatarUrl || null)
+    }, [user.avatarUrl])
 
     const getNavSections = (): NavSection[] => {
         const sections: NavSection[] = []
@@ -245,15 +254,25 @@ export function MobileNav({ user, logoUrl, acessoDespesas = true, acessoCobertur
                     
                     {/* User Profile / Logout */}
                     <div className="border-t border-white/5 p-4 bg-slate-950/20">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-400">
-                                <UserIcon className="h-6 w-6" />
-                            </div>
-                            <div className="overflow-hidden">
-                                <p className="text-sm font-semibold truncate text-white">{user.name}</p>
-                                <p className="text-xs text-slate-400 truncate uppercase tracking-wider font-bold">{user.role}</p>
-                            </div>
-                        </div>
+                        <SheetClose asChild>
+                            <button 
+                                onClick={() => setIsProfileOpen(true)}
+                                className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/5 transition-all active:scale-[0.98] cursor-pointer"
+                                title="Editar Perfil"
+                            >
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-400 overflow-hidden border border-white/5 relative group/avatar">
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt={user.name || "Perfil"} className="h-full w-full object-cover" />
+                                    ) : (
+                                        <UserIcon className="h-6 w-6" />
+                                    )}
+                                </div>
+                                <div className="overflow-hidden flex-1 min-w-0 text-white">
+                                    <p className="text-sm font-semibold truncate">{user.name}</p>
+                                    <p className="text-xs text-slate-400 truncate uppercase tracking-wider font-bold">{user.role}</p>
+                                </div>
+                            </button>
+                        </SheetClose>
                         <SheetClose asChild>
                             <Link href="/api/auth/signout">
                                 <Button variant="ghost" className="mt-4 w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10">
@@ -265,6 +284,14 @@ export function MobileNav({ user, logoUrl, acessoDespesas = true, acessoCobertur
                     </div>
                 </div>
             </SheetContent>
+
+            {/* Profile Dialog */}
+            <ProfileDialog 
+                isOpen={isProfileOpen} 
+                onOpenChange={setIsProfileOpen} 
+                user={user}
+                onSuccess={(newUrl) => setAvatarUrl(newUrl)}
+            />
         </Sheet>
     )
 }

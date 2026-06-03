@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { ProfileDialog } from "./profile-dialog"
 import {
     LogOut,
     ChevronLeft,
@@ -22,7 +23,7 @@ import {
 import { cn } from "@/lib/utils"
 
 interface SidebarNavProps {
-    user: { name?: string | null, role?: string }
+    user: { name?: string | null, role?: string, avatarUrl?: string | null }
     logoUrl?: string
     acessoDespesas?: boolean
     acessoCoberturas?: boolean
@@ -43,6 +44,13 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
     const [isCollapsed, setIsCollapsed] = useState(false)
     const pathname = usePathname()
     const role = user.role || ""
+    const [isProfileOpen, setIsProfileOpen] = useState(false)
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null)
+
+    // Sync avatarUrl when props change
+    useEffect(() => {
+        setAvatarUrl(user.avatarUrl || null)
+    }, [user.avatarUrl])
 
     const getNavSections = (): NavSection[] => {
         const sections: NavSection[] = []
@@ -273,17 +281,28 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
 
             {/* Footer / User Info */}
             <div className="border-t border-white/5 p-4">
-                <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-400">
-                        <UserIcon className="h-6 w-6" />
+                <button 
+                    onClick={() => setIsProfileOpen(true)}
+                    className={cn(
+                        "flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/5 transition-all active:scale-[0.98] cursor-pointer",
+                        isCollapsed && "justify-center"
+                    )}
+                    title="Editar Perfil"
+                >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-400 overflow-hidden border border-white/5 relative group/avatar">
+                        {avatarUrl ? (
+                            <img src={avatarUrl} alt={user.name || "Perfil"} className="h-full w-full object-cover" />
+                        ) : (
+                            <UserIcon className="h-6 w-6" />
+                        )}
                     </div>
                     {!isCollapsed && (
-                        <div className="overflow-hidden transition-all duration-300 text-white">
+                        <div className="overflow-hidden transition-all duration-300 text-white flex-1 min-w-0">
                             <p className="text-sm font-semibold truncate">{user.name}</p>
                             <p className="text-xs text-slate-400 truncate uppercase tracking-wider font-bold">{user.role}</p>
                         </div>
                     )}
-                </div>
+                </button>
 
                 <Button
                     variant="ghost"
@@ -299,6 +318,14 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                     </Link>
                 </Button>
             </div>
+
+            {/* Profile Dialog */}
+            <ProfileDialog 
+                isOpen={isProfileOpen} 
+                onOpenChange={setIsProfileOpen} 
+                user={user}
+                onSuccess={(newUrl) => setAvatarUrl(newUrl)}
+            />
         </aside>
     )
 }

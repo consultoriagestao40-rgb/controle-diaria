@@ -17,9 +17,17 @@ export default async function DashboardLayout({
         redirect("/login")
     }
  
-    const role = (session.user as any).role
-    const acessoDespesas = (session.user as any).acessoDespesas !== false
-    const acessoCoberturas = (session.user as any).acessoCoberturas !== false
+    const dbUser = await prisma.user.findUnique({
+        where: { id: (session.user as any).id }
+    })
+
+    if (!dbUser) {
+        redirect("/login")
+    }
+
+    const role = dbUser.role
+    const acessoDespesas = dbUser.acessoDespesas !== false
+    const acessoCoberturas = dbUser.acessoCoberturas !== false
 
     // Buscar logo personalizado da empresa no banco
     const config = await prisma.configuracaoAuditoria.findFirst({
@@ -31,7 +39,7 @@ export default async function DashboardLayout({
         <div className="flex h-screen flex-col md:flex-row bg-[#F8FAFC] overflow-hidden">
             {/* Sidebar for Desktop (Client Component) */}
             <SidebarNav 
-                user={{ name: session.user?.name, role: role }} 
+                user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl }} 
                 logoUrl={logoUrl} 
                 acessoDespesas={acessoDespesas}
                 acessoCoberturas={acessoCoberturas}
@@ -41,7 +49,7 @@ export default async function DashboardLayout({
             <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden relative">
                 {/* Mobile Navigation Header (Client Component wrapper) */}
                 <MobileHeader 
-                    user={{ name: session.user?.name, role: role }} 
+                    user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl }} 
                     logoUrl={logoUrl} 
                     acessoDespesas={acessoDespesas}
                     acessoCoberturas={acessoCoberturas}

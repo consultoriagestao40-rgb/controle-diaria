@@ -19,7 +19,10 @@ import {
     Trash2,
     FileUp,
     CheckCircle,
-    ArrowRight
+    ArrowRight,
+    Camera,
+    User as UserIcon,
+    Settings
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,9 +41,10 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"
 import { ReembolsoModal } from "./reembolso-modal"
 import { AdiantamentoModal } from "./adiantamento-modal"
+import { ProfileDialog } from "./profile-dialog"
 
 interface DashboardPortalProps {
-    user: { name?: string | null, role?: string }
+    user: { name?: string | null, role?: string, avatarUrl?: string | null }
     logoUrl?: string
     acessoDespesas?: boolean
     acessoCoberturas?: boolean
@@ -54,6 +58,15 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
     const [isAdiantamentoOpen, setIsAdiantamentoOpen] = useState(false)
     const router = useRouter()
     const searchParams = useSearchParams()
+
+    // Profile & Avatar State
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null)
+    const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+    // Sync state when prop changes (e.g. after router.refresh())
+    useEffect(() => {
+        setAvatarUrl(user.avatarUrl || null)
+    }, [user.avatarUrl])
 
     useEffect(() => {
         fetchMetrics()
@@ -121,16 +134,32 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
             <div className="relative -mt-4 -mx-4 md:mt-0 md:mx-0 rounded-none md:rounded-3xl bg-slate-900 text-white p-6 sm:p-8 overflow-hidden shadow-2xl border-b md:border border-white/5">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -z-10" />
                 <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl -z-10" />
-                
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <div className="h-16 w-16 rounded-full bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-300 text-xl font-black shadow-lg">
-                            {initials}
-                        </div>
+                        <button 
+                            onClick={() => setIsProfileOpen(true)}
+                            className="h-16 w-16 rounded-full bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-300 text-xl font-black shadow-lg overflow-hidden cursor-pointer hover:scale-105 active:scale-95 transition-all group/avatar relative shrink-0"
+                            title="Alterar foto de perfil"
+                        >
+                            {avatarUrl ? (
+                                <img src={avatarUrl} alt={user.name || "Perfil"} className="h-full w-full object-cover" />
+                            ) : (
+                                <span>{initials}</span>
+                            )}
+                            <div className="absolute inset-0 bg-black/45 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                                <Camera className="h-4 w-4 text-white" />
+                            </div>
+                        </button>
                         <div className="space-y-1">
                             <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
                                 Olá, {user.name?.split(" ")[0]}
-                                <ArrowUpRight className="h-5 w-5 text-indigo-400 shrink-0" />
+                                <button 
+                                    onClick={() => setIsProfileOpen(true)}
+                                    className="h-7 w-7 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white/80 hover:text-white transition-all cursor-pointer border border-white/5"
+                                    title="Editar Perfil"
+                                >
+                                    <Settings className="h-3.5 w-3.5" />
+                                </button>
                             </h1>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
                                 {user.role === 'ADMIN' ? 'Administrador do Sistema' : `Colaborador (${user.role})`}
@@ -354,6 +383,14 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
                 onClose={handleCloseAdiantamento} 
                 onSuccess={handleSuccess}
                 user={user}
+            />
+
+            {/* Profile Edit Modal */}
+            <ProfileDialog 
+                isOpen={isProfileOpen} 
+                onOpenChange={setIsProfileOpen} 
+                user={user}
+                onSuccess={(newUrl) => setAvatarUrl(newUrl)}
             />
         </div>
     )

@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
                     role: user.role,
                     acessoDespesas: user.acessoDespesas,
                     acessoCoberturas: user.acessoCoberturas,
+                    avatarUrl: user.avatarUrl,
                 }
             },
         }),
@@ -47,6 +48,7 @@ export const authOptions: NextAuthOptions = {
                 token.id = user.id
                 token.acessoDespesas = (user as any).acessoDespesas
                 token.acessoCoberturas = (user as any).acessoCoberturas
+                token.avatarUrl = (user as any).avatarUrl
             }
             return token
         },
@@ -56,6 +58,7 @@ export const authOptions: NextAuthOptions = {
                 (session.user as any).id = token.id;
                 (session.user as any).acessoDespesas = token.acessoDespesas;
                 (session.user as any).acessoCoberturas = token.acessoCoberturas;
+                (session.user as any).avatarUrl = token.avatarUrl;
             }
             return session
         },

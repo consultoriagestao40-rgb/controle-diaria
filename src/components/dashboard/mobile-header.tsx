@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { MobileNav } from "./mobile-nav"
 
 interface MobileHeaderProps {
-    user: { name?: string | null, role?: string }
+    user: { name?: string | null, role?: string, avatarUrl?: string | null }
     logoUrl: string
     acessoDespesas?: boolean
     acessoCoberturas?: boolean
