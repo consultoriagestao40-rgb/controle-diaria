@@ -617,13 +617,18 @@ export default function ApproverDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="text-right shrink-0 ml-3 space-y-0.5">
+                                <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
                                     <p className="text-xs font-black text-slate-900 tracking-tight">
                                         {formatCurrency(item.valor)}
                                     </p>
-                                    <p className={`text-[8px] font-black uppercase tracking-widest ${getStatusTextColorClass(item.status)}`}>
+                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${
+                                        item.status === 'PENDENTE' ? 'bg-yellow-50 border-yellow-100 text-yellow-600' :
+                                        item.status === 'APROVADO_N1' ? 'bg-blue-50 border-blue-100 text-primary' :
+                                        item.status === 'APROVADO' ? 'bg-green-50 border-green-100 text-green-600' :
+                                        'bg-red-50 border-red-100 text-red-600'
+                                    }`}>
                                         {getStatusTextLabel(item.status)}
-                                    </p>
+                                    </span>
                                 </div>
                             </div>
                         ))}
