@@ -212,6 +212,8 @@
 
 /* Date & Time input mobile alignment & style resets */
 input[type="date"], input[type="time"] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
   min-height: 3rem !important; /* Forces h-12 height reset */
   width: 100% !important;
   max-width: 100% !important;
@@ -222,9 +224,9 @@ input[type="date"], input[type="time"] {
 
 input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value {
   min-height: 1.5em !important;
-  display: inline-flex !important;
-  align-items: center !important;
+  display: block !important;
   text-align: left !important;
   margin: 0 !important;
   padding: 0 !important;
+  width: 100% !important;
 }
