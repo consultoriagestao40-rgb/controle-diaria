@@ -214,6 +214,10 @@
 input[type="date"], input[type="time"] {
   min-height: 3rem !important; /* Forces h-12 height reset */
   width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  display: block !important;
 }
 
 input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value {

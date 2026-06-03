@@ -411,7 +411,7 @@ export default function NovaDiariaPage() {
                                             control={form.control}
                                             name="horaInicio"
                                             render={({ field }) => (
-                                                <FormItem>
+                                                <FormItem className="min-w-0">
                                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Início</FormLabel>
                                                     <FormControl>
                                                         <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-3 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
@@ -425,7 +425,7 @@ export default function NovaDiariaPage() {
                                             control={form.control}
                                             name="horaFim"
                                             render={({ field }) => (
-                                                <FormItem>
+                                                <FormItem className="min-w-0">
                                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Término</FormLabel>
                                                     <FormControl>
                                                         <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-3 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
