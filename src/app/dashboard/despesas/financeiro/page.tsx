@@ -440,6 +440,28 @@ export default function FinanceiroDespesasPage() {
                                     </div>
                                 </div>
 
+                                {/* Validação e Aprovação */}
+                                {selectedDespesa.aprovador && (
+                                    <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-xs space-y-3">
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-slate-100">
+                                            <CheckCircle className="h-3.5 w-3.5 text-slate-400" />
+                                            Validação e Aprovação
+                                        </h4>
+                                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Aprovador</span>
+                                            <span className="font-bold text-slate-700 text-xs block">{selectedDespesa.aprovador.nome}</span>
+                                            {selectedDespesa.dataAprovacao && (
+                                                <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
+                                                    Aprovado em: {new Date(selectedDespesa.dataAprovacao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
+                                            {selectedDespesa.justificativaAprovacao && (
+                                                <p className="text-[10px] text-slate-500 italic mt-1 leading-tight">"{selectedDespesa.justificativaAprovacao}"</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Resumo de Saldos para Prestação de Contas */}
                                 {(selectedDespesa.status === 'AGUARDANDO_PRESTACAO' || selectedDespesa.status === 'AGUARDANDO_CONCILIACAO') && (
                                     <div className="space-y-2">

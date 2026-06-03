@@ -991,6 +991,11 @@ export default function FinanceDashboard() {
                                         <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Aprovação N1</span>
                                             <span className="font-bold text-slate-700 text-xs block">{detailItem.aprovadorN1.nome}</span>
+                                            {detailItem.dataAprovacaoN1 && (
+                                                <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
+                                                    {new Date(detailItem.dataAprovacaoN1).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
                                             {detailItem.justificativaAprovacaoN1 && (
                                                 <p className="text-[10px] text-slate-500 italic mt-1 leading-tight">"{detailItem.justificativaAprovacaoN1}"</p>
                                             )}
@@ -1000,6 +1005,11 @@ export default function FinanceDashboard() {
                                         <div className="p-3 rounded-xl bg-primary/[0.02] border border-primary/10">
                                             <span className="text-[9px] font-black text-primary uppercase tracking-wider block mb-1">Aprovação N2</span>
                                             <span className="font-bold text-slate-700 text-xs block">{detailItem.aprovador.nome}</span>
+                                            {detailItem.dataAprovacao && (
+                                                <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
+                                                    {new Date(detailItem.dataAprovacao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
                                             {detailItem.justificativaAprovacaoN2 && (
                                                 <p className="text-[10px] text-slate-500 italic mt-1 leading-tight">"{detailItem.justificativaAprovacaoN2}"</p>
                                             )}
