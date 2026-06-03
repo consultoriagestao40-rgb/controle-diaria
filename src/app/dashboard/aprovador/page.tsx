@@ -975,11 +975,8 @@ export default function ApproverDashboard() {
                                                 <input
                                                     type="checkbox"
                                                     checked={isSelected}
-                                                    onChange={(e) => {
-                                                        e.stopPropagation() // Prevent row click trigger
-                                                        toggleItemSelection(item.id)
-                                                    }}
-                                                    className="h-4.5 w-4.5 rounded border-slate-300 text-primary focus:ring-primary/25 accent-primary cursor-pointer shrink-0"
+                                                    readOnly
+                                                    className="h-4.5 w-4.5 rounded border-slate-300 text-primary focus:ring-primary/25 accent-primary pointer-events-none shrink-0"
                                                 />
                                                 <div className="min-w-0 space-y-0.5">
                                                     <span className="text-xs font-bold text-slate-800 block">
