@@ -15,7 +15,7 @@ export async function PUT(
     try {
         const { id } = await params
         const body = await req.json()
-        const { nome, email, password, postosIds, ativo, role, acessoDespesas, acessoCoberturas, centroCustoId } = body
+        const { nome, email, password, postosIds, ativo, role, acessoDespesas, acessoCoberturas, centroCustoId, cargo } = body
 
         // Prepare update data
         const data: any = {
@@ -25,6 +25,7 @@ export async function PUT(
             role
         }
 
+        if (cargo !== undefined) data.cargo = cargo || null
         if (acessoDespesas !== undefined) data.acessoDespesas = acessoDespesas
         if (acessoCoberturas !== undefined) data.acessoCoberturas = acessoCoberturas
         if (centroCustoId !== undefined) data.centroCustoId = centroCustoId || null

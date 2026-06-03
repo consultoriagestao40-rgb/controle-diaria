@@ -37,6 +37,7 @@ export const authOptions: NextAuthOptions = {
                     acessoDespesas: user.acessoDespesas,
                     acessoCoberturas: user.acessoCoberturas,
                     avatarUrl: user.avatarUrl,
+                    cargo: user.cargo,
                 }
             },
         }),
@@ -49,6 +50,7 @@ export const authOptions: NextAuthOptions = {
                 token.acessoDespesas = (user as any).acessoDespesas
                 token.acessoCoberturas = (user as any).acessoCoberturas
                 token.avatarUrl = (user as any).avatarUrl
+                token.cargo = (user as any).cargo
             }
             return token
         },
@@ -59,6 +61,7 @@ export const authOptions: NextAuthOptions = {
                 (session.user as any).acessoDespesas = token.acessoDespesas;
                 (session.user as any).acessoCoberturas = token.acessoCoberturas;
                 (session.user as any).avatarUrl = token.avatarUrl;
+                (session.user as any).cargo = token.cargo;
             }
             return session
         },

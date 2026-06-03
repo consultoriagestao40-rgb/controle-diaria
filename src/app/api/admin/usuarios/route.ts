@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json()
-        const { nome, email, password, postosIds, ativo, role, acessoDespesas, acessoCoberturas, centroCustoId } = body
+        const { nome, email, password, postosIds, ativo, role, acessoDespesas, acessoCoberturas, centroCustoId, cargo } = body
 
         if (!nome || !email || !password || !role) {
             return new NextResponse("Missing fields", { status: 400 })
@@ -53,6 +53,7 @@ export async function POST(req: Request) {
                 acessoDespesas: acessoDespesas !== undefined ? acessoDespesas : true,
                 acessoCoberturas: acessoCoberturas !== undefined ? acessoCoberturas : true,
                 centroCustoId: centroCustoId || null,
+                cargo: cargo || null,
                 postosAutorizados: {
                     connect: postosIds?.map((id: string) => ({ id })) || []
                 }

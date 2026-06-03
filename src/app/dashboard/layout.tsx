@@ -39,7 +39,7 @@ export default async function DashboardLayout({
         <div className="flex h-screen flex-col md:flex-row bg-[#F8FAFC] overflow-hidden">
             {/* Sidebar for Desktop (Client Component) */}
             <SidebarNav 
-                user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl }} 
+                user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl, cargo: dbUser.cargo }} 
                 logoUrl={logoUrl} 
                 acessoDespesas={acessoDespesas}
                 acessoCoberturas={acessoCoberturas}
@@ -49,7 +49,7 @@ export default async function DashboardLayout({
             <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden relative">
                 {/* Mobile Navigation Header (Client Component wrapper) */}
                 <MobileHeader 
-                    user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl }} 
+                    user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl, cargo: dbUser.cargo }} 
                     logoUrl={logoUrl} 
                     acessoDespesas={acessoDespesas}
                     acessoCoberturas={acessoCoberturas}

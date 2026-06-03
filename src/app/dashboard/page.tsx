@@ -35,7 +35,7 @@ export default async function DashboardPage() {
     return (
         <Suspense fallback={null}>
             <DashboardPortal 
-                user={{ name: dbUser.nome, role, avatarUrl: dbUser.avatarUrl }}
+                user={{ name: dbUser.nome, role, avatarUrl: dbUser.avatarUrl, cargo: dbUser.cargo }}
                 logoUrl={logoUrl}
                 acessoDespesas={acessoDespesas}
                 acessoCoberturas={acessoCoberturas}

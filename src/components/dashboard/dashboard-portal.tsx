@@ -44,7 +44,7 @@ import { AdiantamentoModal } from "./adiantamento-modal"
 import { ProfileDialog } from "./profile-dialog"
 
 interface DashboardPortalProps {
-    user: { name?: string | null, role?: string, avatarUrl?: string | null }
+    user: { name?: string | null, role?: string, avatarUrl?: string | null, cargo?: string | null }
     logoUrl?: string
     acessoDespesas?: boolean
     acessoCoberturas?: boolean
@@ -162,15 +162,9 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
                                 </button>
                             </h1>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-                                {user.role === 'ADMIN' ? 'Administrador do Sistema' : `Colaborador (${user.role})`}
+                                {user.cargo || (user.role === 'ADMIN' ? 'Administrador' : user.role === 'APROVADOR_N1' ? 'Aprovador N1' : user.role === 'APROVADOR_N2' ? 'Aprovador N2' : user.role === 'APROVADOR' ? 'Aprovador N2' : user.role === 'SUPERVISOR' ? 'Supervisor' : user.role === 'FINANCEIRO' ? 'Financeiro' : user.role === 'ENCARREGADO' ? 'Encarregado' : user.role === 'RH' ? 'Recursos Humanos' : user.role)}
                             </p>
                         </div>
-                    </div>
-                    
-                    <div className="flex gap-2 shrink-0">
-                        <Badge variant="outline" className="border-indigo-500/30 bg-indigo-500/10 text-indigo-300 font-bold px-3 py-1 text-[10px] uppercase tracking-wider rounded-xl">
-                            Conta Verificada
-                        </Badge>
                     </div>
                 </div>
             </div>

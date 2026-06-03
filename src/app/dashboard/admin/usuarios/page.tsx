@@ -36,6 +36,7 @@ interface User {
     postosAutorizados: Posto[]
     centroCustoId?: string | null
     centroCusto?: { id: string, nome: string } | null
+    cargo?: string | null
 }
 
 export default function UsuariosPage() {
@@ -58,7 +59,8 @@ export default function UsuariosPage() {
         acessoDespesas: true,
         acessoCoberturas: true,
         postosIds: [] as string[],
-        centroCustoId: "none"
+        centroCustoId: "none",
+        cargo: ""
     })
 
     const [saving, setSaving] = useState(false)
@@ -126,7 +128,7 @@ export default function UsuariosPage() {
 
     const openNew = () => {
         setEditingId(null)
-        setFormData({ nome: "", email: "", password: "", role: "SUPERVISOR", ativo: true, acessoDespesas: true, acessoCoberturas: true, postosIds: [], centroCustoId: "none" })
+        setFormData({ nome: "", email: "", password: "", role: "SUPERVISOR", ativo: true, acessoDespesas: true, acessoCoberturas: true, postosIds: [], centroCustoId: "none", cargo: "" })
         setIsDialogOpen(true)
     }
 
@@ -141,7 +143,8 @@ export default function UsuariosPage() {
             acessoDespesas: u.acessoDespesas !== undefined ? u.acessoDespesas : true,
             acessoCoberturas: u.acessoCoberturas !== undefined ? u.acessoCoberturas : true,
             postosIds: u.postosAutorizados.map(p => p.id),
-            centroCustoId: u.centroCustoId || "none"
+            centroCustoId: u.centroCustoId || "none",
+            cargo: u.cargo || ""
         })
         setIsDialogOpen(true)
     }
@@ -223,6 +226,7 @@ export default function UsuariosPage() {
                                 <TableRow>
                                     <TableHead>Nome</TableHead>
                                     <TableHead>Email</TableHead>
+                                    <TableHead>Cargo</TableHead>
                                     <TableHead>Perfil</TableHead>
                                     <TableHead>Módulos</TableHead>
                                     <TableHead>Detalhes</TableHead>
@@ -242,6 +246,13 @@ export default function UsuariosPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell>{u.email}</TableCell>
+                                        <TableCell>
+                                            {u.cargo ? (
+                                                <span className="font-medium text-slate-700 text-sm">{u.cargo}</span>
+                                            ) : (
+                                                <span className="text-slate-400 italic text-xs">Não definido</span>
+                                            )}
+                                        </TableCell>
                                         <TableCell>{getRoleBadge(u.role)}</TableCell>
                                         <TableCell>
                                             <div className="flex gap-1.5 flex-wrap">
@@ -309,6 +320,16 @@ export default function UsuariosPage() {
                                 <Label htmlFor="email">E-mail (Login)</Label>
                                 <Input id="email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
                             </div>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="cargo">Cargo dentro da Organização</Label>
+                            <Input
+                                id="cargo"
+                                placeholder="Ex: Diretor Geral, Supervisor Operacional"
+                                value={formData.cargo}
+                                onChange={e => setFormData({ ...formData, cargo: e.target.value })}
+                            />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
