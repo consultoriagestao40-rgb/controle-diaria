@@ -372,7 +372,7 @@ export default function AprovacoesDespesasPage() {
 
             {/* Modal de Detalhes da Despesa */}
             <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-                <DialogContent showCloseButton={false} className="max-w-xl rounded-3xl border-none shadow-2xl p-0 overflow-hidden bg-slate-50">
+                <DialogContent showCloseButton={false} className="max-w-2xl rounded-3xl border-none shadow-2xl p-0 overflow-hidden bg-slate-50">
                     {detailItem && (
                         <div className="flex flex-col max-h-[90vh] bg-slate-50 w-full h-full">
                             {/* Header */}
@@ -469,35 +469,37 @@ export default function AprovacoesDespesasPage() {
                             </div>
 
                             {/* Footer Actions */}
-                            <div className="bg-white p-5 border-t border-slate-100 flex gap-3 justify-end shrink-0">
+                            <div className="bg-white p-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 w-full">
                                 <Button
                                     variant="outline"
                                     onClick={() => setDetailItem(null)}
-                                    className="h-10 px-5 rounded-xl font-bold uppercase tracking-wider text-[10px]"
+                                    className="w-full sm:w-auto order-last sm:order-first h-10 px-5 rounded-xl font-bold uppercase tracking-wider text-[10px] text-slate-500 hover:bg-slate-100 border-slate-200"
                                 >
                                     Fechar
                                 </Button>
-                                <Button
-                                    onClick={() => {
-                                        openDecisionModal(detailItem, "REPROVAR")
-                                        setDetailItem(null)
-                                    }}
-                                    variant="outline"
-                                    className="h-10 px-6 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold uppercase tracking-wider text-[10px] gap-1.5"
-                                >
-                                    <XCircle className="h-4 w-4" />
-                                    Reprovar
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        openDecisionModal(detailItem, "APROVAR")
-                                        setDetailItem(null)
-                                    }}
-                                    className="h-10 px-6 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-1.5 shadow-sm"
-                                >
-                                    <CheckCircle className="h-4 w-4" />
-                                    Aprovar
-                                </Button>
+                                <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+                                    <Button
+                                        onClick={() => {
+                                            openDecisionModal(detailItem, "REPROVAR")
+                                            setDetailItem(null)
+                                        }}
+                                        variant="outline"
+                                        className="h-10 px-6 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold uppercase tracking-wider text-[10px] gap-1.5 w-full sm:w-auto cursor-pointer"
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                        <span>Reprovar</span>
+                                    </Button>
+                                    <Button
+                                        onClick={() => {
+                                            openDecisionModal(detailItem, "APROVAR")
+                                            setDetailItem(null)
+                                        }}
+                                        className="h-10 px-6 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-1.5 shadow-sm w-full sm:w-auto cursor-pointer"
+                                    >
+                                        <CheckCircle className="h-4 w-4" />
+                                        <span>Aprovar</span>
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     )}
