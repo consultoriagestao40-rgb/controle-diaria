@@ -358,27 +358,38 @@ export default function MinhasDespesasPage() {
                     </p>
                 </div>
                 {!loading && (
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto px-4 lg:px-0">
-                        <Link href="/dashboard/despesas/politicas" className="w-full sm:w-auto">
-                            <Button variant="outline" className="w-full sm:w-auto h-14 px-6 border-slate-200 hover:bg-slate-50 text-slate-700 transition-all rounded-2xl font-black uppercase tracking-wider text-[11px] flex items-center justify-center gap-2">
-                                <Settings className="h-4 w-4 text-slate-500" />
-                                {userRole === "ADMIN" ? "Gerenciar Políticas" : "Ver Políticas"}
-                            </Button>
+                    <div className="flex flex-row items-center gap-4 sm:gap-6 overflow-x-auto py-2 scrollbar-none shrink-0 w-full lg:w-auto px-4 lg:px-0 justify-start lg:justify-end">
+                        {/* Políticas / Gerenciar */}
+                        <Link href="/dashboard/despesas/politicas" className="flex flex-col items-center gap-2 group shrink-0 text-center select-none">
+                            <div className="h-14 w-14 rounded-full bg-slate-100 lg:bg-white hover:bg-emerald-50 border border-slate-200/60 hover:border-emerald-200 flex items-center justify-center text-slate-700 hover:text-emerald-600 shadow-md group-active:scale-95 transition-all duration-300">
+                                <Receipt className="h-5 w-5 text-indigo-500" />
+                            </div>
+                            <span className="text-[9px] font-black text-slate-500 group-hover:text-slate-900 transition-colors uppercase tracking-wider w-16 text-center leading-tight">
+                                {userRole === "ADMIN" ? "Gerenciar" : "Políticas"}
+                            </span>
                         </Link>
-                        <Button 
+
+                        {/* Novo Reembolso */}
+                        <button
                             onClick={() => setIsReembolsoOpen(true)}
-                            className="w-full sm:w-auto h-14 px-6 bg-white hover:bg-indigo-50 border border-slate-200/60 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 shadow-md transition-all rounded-2xl font-black uppercase tracking-wider text-[11px] flex items-center justify-center gap-2 cursor-pointer"
+                            className="flex flex-col items-center gap-2 group shrink-0 cursor-pointer text-center select-none"
                         >
-                            <Receipt className="h-4 w-4 text-indigo-500" />
-                            Novo Reembolso
-                        </Button>
-                        <Button 
+                            <div className="h-14 w-14 rounded-full bg-slate-100 lg:bg-white hover:bg-emerald-50 border border-slate-200/60 hover:border-emerald-200 flex items-center justify-center text-slate-700 hover:text-emerald-600 shadow-md group-active:scale-95 transition-all duration-300">
+                                <Wallet className="h-5 w-5 text-emerald-500" />
+                            </div>
+                            <span className="text-[9px] font-black text-slate-500 group-hover:text-slate-900 transition-colors uppercase tracking-wider w-16 text-center leading-tight">Reembolso</span>
+                        </button>
+
+                        {/* Novo Adiantamento */}
+                        <button
                             onClick={() => setIsAdiantamentoOpen(true)}
-                            className="w-full sm:w-auto h-14 px-6 bg-slate-900 hover:bg-indigo-600 shadow-xl hover:shadow-indigo-500/20 text-white transition-all duration-300 rounded-2xl font-black uppercase tracking-wider text-[11px] flex items-center justify-center gap-2 cursor-pointer"
+                            className="flex flex-col items-center gap-2 group shrink-0 cursor-pointer text-center select-none"
                         >
-                            <DollarSign className="h-4 w-4 text-cyan-400" />
-                            Novo Adiantamento
-                        </Button>
+                            <div className="h-14 w-14 rounded-full bg-slate-100 lg:bg-white hover:bg-emerald-50 border border-slate-200/60 hover:border-emerald-200 flex items-center justify-center text-slate-700 hover:text-emerald-600 shadow-md group-active:scale-95 transition-all duration-300">
+                                <DollarSign className="h-5 w-5 text-amber-500" />
+                            </div>
+                            <span className="text-[9px] font-black text-slate-500 group-hover:text-slate-900 transition-colors uppercase tracking-wider w-20 text-center leading-tight">Adiantamento</span>
+                        </button>
                     </div>
                 )}
             </div>
@@ -452,18 +463,9 @@ export default function MinhasDespesasPage() {
                                                 </div>
                                             </td>
                                             <td className="py-4.5 px-6">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 border ${
-                                                        item.tipo === "REEMBOLSO"
-                                                            ? "bg-emerald-50 text-emerald-500 border-emerald-100"
-                                                            : "bg-amber-50 text-amber-500 border-amber-100"
-                                                    }`}>
-                                                        {item.tipo === "REEMBOLSO" ? <Wallet className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
-                                                    </div>
-                                                    <span className="font-bold text-slate-900">
-                                                        {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
-                                                    </span>
-                                                </div>
+                                                <span className="font-bold text-slate-900">
+                                                    {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
+                                                </span>
                                             </td>
                                             <td className="py-4.5 px-6 max-w-xs truncate">
                                                 <span className="text-slate-600 font-medium">{item.descricao}</span>
@@ -490,21 +492,11 @@ export default function MinhasDespesasPage() {
                                     onClick={() => setDetailDespesa(item)}
                                     className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== filteredDespesas.length - 1 ? 'border-b border-slate-100/80' : ''}`}
                                 >
-                                    <div className="flex items-center gap-3.5 min-w-0">
-                                        <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 border ${
-                                            item.tipo === "REEMBOLSO" 
-                                                ? "bg-emerald-50 text-emerald-500 border-emerald-100" 
-                                                : "bg-amber-50 text-amber-500 border-amber-100"
-                                        }`}>
-                                            {item.tipo === "REEMBOLSO" ? <Wallet className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
-                                        </div>
-                                        
-                                        <div className="min-w-0 space-y-0.5">
-                                            <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
-                                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
-                                                {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
-                                            </p>
-                                        </div>
+                                    <div className="min-w-0 space-y-1">
+                                        <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
+                                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
+                                            {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
+                                        </p>
                                     </div>
 
                                     <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
