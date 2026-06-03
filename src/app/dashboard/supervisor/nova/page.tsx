@@ -406,12 +406,12 @@ export default function NovaDiariaPage() {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex gap-4">
                                         <FormField
                                             control={form.control}
                                             name="horaInicio"
                                             render={({ field }) => (
-                                                <FormItem className="min-w-0">
+                                                <FormItem className="flex-1 min-w-0">
                                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Início</FormLabel>
                                                     <FormControl>
                                                         <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-3 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
@@ -425,7 +425,7 @@ export default function NovaDiariaPage() {
                                             control={form.control}
                                             name="horaFim"
                                             render={({ field }) => (
-                                                <FormItem className="min-w-0">
+                                                <FormItem className="flex-1 min-w-0">
                                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Término</FormLabel>
                                                     <FormControl>
                                                         <Input type="time" {...field} className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-3 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-sm font-semibold text-slate-700" />
@@ -436,12 +436,12 @@ export default function NovaDiariaPage() {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex gap-4">
                                         <FormField
                                             control={form.control}
                                             name="motivoId"
                                             render={({ field }) => (
-                                                <FormItem>
+                                                <FormItem className="flex-1 min-w-0">
                                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Motivo *</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                         <FormControl>
@@ -464,7 +464,7 @@ export default function NovaDiariaPage() {
                                             control={form.control}
                                             name="cargaHorariaId"
                                             render={({ field }) => (
-                                                <FormItem>
+                                                <FormItem className="flex-1 min-w-0">
                                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Carga *</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                         <FormControl>
