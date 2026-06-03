@@ -42,6 +42,13 @@ interface Item {
     justificativaAprovacaoN1?: string
 }
 
+const formatDateToBr = (dateStr: string) => {
+    if (!dateStr) return ""
+    const [year, month, day] = dateStr.split("-")
+    if (!year || !month || !day) return dateStr
+    return `${day}/${month}/${year}`
+}
+
 export default function ApproverDashboard() {
     const [items, setItems] = useState<Item[]>([])
     const [loading, setLoading] = useState(true)
@@ -364,23 +371,39 @@ export default function ApproverDashboard() {
                         {/* Data Início */}
                         <div className="space-y-1 md:space-y-1.5">
                             <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Período (Início)</label>
-                            <Input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="h-10 md:h-12 bg-white border border-slate-200 hover:border-slate-300 shadow-xs rounded-xl px-2.5 md:px-4 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all font-semibold text-xs md:text-sm text-slate-700 w-full md:w-44"
-                            />
+                            <div className="relative w-full md:w-44 group">
+                                <div className="absolute inset-0 bg-white border border-slate-200 group-hover:border-slate-300 shadow-xs rounded-xl px-3 md:px-4 flex items-center justify-between pointer-events-none transition-all font-semibold text-xs md:text-sm text-slate-700 group-focus-within:ring-2 group-focus-within:ring-primary/10 group-focus-within:border-primary">
+                                    <span className={startDate ? "text-slate-700" : "text-slate-300 font-medium"}>
+                                        {formatDateToBr(startDate) || "dd/mm/aaaa"}
+                                    </span>
+                                    <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                </div>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="h-10 md:h-12 w-full opacity-0 cursor-pointer block"
+                                />
+                            </div>
                         </div>
 
                         {/* Data Fim */}
                         <div className="space-y-1 md:space-y-1.5">
                             <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Período (Término)</label>
-                            <Input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="h-10 md:h-12 bg-white border border-slate-200 hover:border-slate-300 shadow-xs rounded-xl px-2.5 md:px-4 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all font-semibold text-xs md:text-sm text-slate-700 w-full md:w-44"
-                            />
+                            <div className="relative w-full md:w-44 group">
+                                <div className="absolute inset-0 bg-white border border-slate-200 group-hover:border-slate-300 shadow-xs rounded-xl px-3 md:px-4 flex items-center justify-between pointer-events-none transition-all font-semibold text-xs md:text-sm text-slate-700 group-focus-within:ring-2 group-focus-within:ring-primary/10 group-focus-within:border-primary">
+                                    <span className={endDate ? "text-slate-700" : "text-slate-300 font-medium"}>
+                                        {formatDateToBr(endDate) || "dd/mm/aaaa"}
+                                    </span>
+                                    <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                </div>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="h-10 md:h-12 w-full opacity-0 cursor-pointer block"
+                                />
+                            </div>
                         </div>
                     </div>
 
