@@ -118,7 +118,7 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
     return (
         <div className="space-y-8 max-w-6xl mx-auto pb-16">
             {/* Header Banner - Estilo App Financeiro (Predominante Indigo/Slate) */}
-            <div className="relative rounded-3xl bg-slate-900 text-white p-6 sm:p-8 overflow-hidden shadow-2xl border border-white/5">
+            <div className="relative -mt-4 -mx-4 md:mt-0 md:mx-0 rounded-none md:rounded-3xl bg-slate-900 text-white p-6 sm:p-8 overflow-hidden shadow-2xl border-b md:border border-white/5">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -z-10" />
                 <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl -z-10" />
                 
