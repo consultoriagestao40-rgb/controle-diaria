@@ -43,47 +43,33 @@ export default function RelatoriosPage() {
         end: new Date()
     })
 
-    const [startInput, setStartInput] = useState("")
-    const [endInput, setEndInput] = useState("")
-
-    const maskDate = (value: string) => {
-        return value
-            .replace(/\D/g, "")
-            .replace(/(\d{2})(\d)/, "$1/$2")
-            .replace(/(\d{2})(\d)/, "$1/$2")
-            .substring(0, 10)
-    }
-
-    const parseDate = (val: string): Date | undefined => {
-        const parts = val.split('/')
-        if (parts.length === 3) {
-            const day = parseInt(parts[0], 10)
-            const month = parseInt(parts[1], 10) - 1
-            const year = parseInt(parts[2], 10)
-            if (day > 0 && day <= 31 && month >= 0 && month < 12 && year >= 1900 && year <= 2100) {
-                return new Date(year, month, day)
-            }
-        }
-        return undefined
-    }
-
-    const formatDateForInput = (date: Date | undefined): string => {
-        if (!date) return ""
+    const formatDateToBr = (date: Date | undefined): string => {
+        if (!date) return "dd/mm/aaaa"
         const day = String(date.getDate()).padStart(2, '0')
         const month = String(date.getMonth() + 1).padStart(2, '0')
         const year = date.getFullYear()
         return `${day}/${month}/${year}`
     }
 
-    // Initialize inputs when state loads
-    useEffect(() => {
-        if (dateRange.start && !startInput) {
-            setStartInput(formatDateForInput(dateRange.start))
+    const formatDateToIso = (date: Date | undefined): string => {
+        if (!date) return ""
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+    }
+
+    const parseFromIso = (isoStr: string): Date | undefined => {
+        if (!isoStr) return undefined
+        const parts = isoStr.split('-')
+        if (parts.length === 3) {
+            const year = parseInt(parts[0], 10)
+            const month = parseInt(parts[1], 10) - 1
+            const day = parseInt(parts[2], 10)
+            return new Date(year, month, day)
         }
-        if (dateRange.end && !endInput) {
-            setEndInput(formatDateForInput(dateRange.end))
-        }
-    }, [dateRange.start, dateRange.end])
+        return undefined
+    }
 
     const [filters, setFilters] = useState({
         diaristaId: "all",
@@ -187,50 +173,57 @@ export default function RelatoriosPage() {
                 </div>
 
                 {/* Date Filter Bar */}
-                <div className="flex flex-col gap-3 p-3 bg-white rounded-2xl border shadow-sm w-full sm:w-[280px]">
-                    <div className="grid grid-cols-2 gap-3 w-full">
-                        <div className="flex flex-col gap-1.5 w-full">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 p-3 bg-white rounded-2xl border shadow-sm w-full sm:w-auto">
+                    <div className="grid grid-cols-2 gap-3 w-full sm:w-auto">
+                        {/* Data Início */}
+                        <div className="flex flex-col gap-1.5 w-full sm:w-[140px] relative group">
                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Início</Label>
-                            <Input
-                                type="text"
-                                placeholder="dd/mm/aaaa"
-                                className="h-10 text-center font-semibold text-sm border-slate-200 rounded-xl w-full bg-slate-50"
-                                maxLength={10}
-                                value={startInput}
-                                onChange={(e) => {
-                                    const masked = maskDate(e.target.value)
-                                    setStartInput(masked)
-                                    const parsed = parseDate(masked)
-                                    if (parsed) {
-                                        setDateRange(prev => ({ ...prev, start: parsed }))
-                                    }
-                                }}
-                            />
+                            <div className="relative w-full">
+                                <div className="absolute inset-0 bg-slate-50 border border-slate-200 group-hover:border-slate-300 shadow-sm rounded-xl px-3 flex items-center justify-between pointer-events-none transition-all font-semibold text-sm text-slate-700 h-10">
+                                    <span>{formatDateToBr(dateRange.start)}</span>
+                                    <CalendarIcon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                </div>
+                                <input
+                                    type="date"
+                                    value={formatDateToIso(dateRange.start)}
+                                    onChange={(e) => {
+                                        const parsed = parseFromIso(e.target.value)
+                                        if (parsed) {
+                                            setDateRange(prev => ({ ...prev, start: parsed }))
+                                        }
+                                    }}
+                                    className="h-10 w-full opacity-0 cursor-pointer block"
+                                />
+                            </div>
                         </div>
-                        <div className="flex flex-col gap-1.5 w-full">
+
+                        {/* Data Fim */}
+                        <div className="flex flex-col gap-1.5 w-full sm:w-[140px] relative group">
                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fim</Label>
-                            <Input
-                                type="text"
-                                placeholder="dd/mm/aaaa"
-                                className="h-10 text-center font-semibold text-sm border-slate-200 rounded-xl w-full bg-slate-50"
-                                maxLength={10}
-                                value={endInput}
-                                onChange={(e) => {
-                                    const masked = maskDate(e.target.value)
-                                    setEndInput(masked)
-                                    const parsed = parseDate(masked)
-                                    if (parsed) {
-                                        setDateRange(prev => ({ ...prev, end: parsed }))
-                                    }
-                                }}
-                            />
+                            <div className="relative w-full">
+                                <div className="absolute inset-0 bg-slate-50 border border-slate-200 group-hover:border-slate-300 shadow-sm rounded-xl px-3 flex items-center justify-between pointer-events-none transition-all font-semibold text-sm text-slate-700 h-10">
+                                    <span>{formatDateToBr(dateRange.end)}</span>
+                                    <CalendarIcon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                </div>
+                                <input
+                                    type="date"
+                                    value={formatDateToIso(dateRange.end)}
+                                    onChange={(e) => {
+                                        const parsed = parseFromIso(e.target.value)
+                                        if (parsed) {
+                                            setDateRange(prev => ({ ...prev, end: parsed }))
+                                        }
+                                    }}
+                                    className="h-10 w-full opacity-0 cursor-pointer block"
+                                />
+                            </div>
                         </div>
                     </div>
                     <Button 
                         size="sm" 
                         onClick={handleFilterApply} 
                         disabled={loadingStats}
-                        className="h-10 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-wider text-[10px] rounded-xl cursor-pointer"
+                        className="h-10 w-full sm:w-auto px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-wider text-[10px] rounded-xl shrink-0 cursor-pointer"
                     >
                         {loadingStats ? <Loader2 className="h-4 w-4 animate-spin" /> : "Atualizar"}
                     </Button>
