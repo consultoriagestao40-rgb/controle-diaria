@@ -347,12 +347,16 @@ export default function FinanceDashboard() {
     return (
         <div className="space-y-4 md:space-y-6 pb-24 md:pb-32 px-1 md:px-0">
             {/* Header section */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 md:gap-6">
-                <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
-                        Controle de <span className="text-primary italic">Pagamentos</span>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 md:gap-6 w-full">
+                <div className="relative -mt-8 -mx-4 lg:mt-0 lg:mx-0 p-6 lg:p-0 bg-slate-950 lg:bg-transparent text-white lg:text-slate-900 border-b lg:border-none border-emerald-500/20 overflow-hidden shadow-lg lg:shadow-none lg:space-y-1 lg:block flex flex-col justify-center w-[calc(100%+2rem)] lg:w-auto">
+                    {/* Glows for App View */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
+                    
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight text-white lg:text-slate-900">
+                        Controle de <span className="text-emerald-400 lg:text-primary italic">Pagamentos</span>
                     </h1>
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">Gestão financeira de diárias e coberturas</p>
+                    <p className="text-emerald-500/60 lg:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-1 lg:mt-0">Gestão financeira de diárias e coberturas</p>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
