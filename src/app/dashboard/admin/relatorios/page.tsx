@@ -187,44 +187,51 @@ export default function RelatoriosPage() {
                 </div>
 
                 {/* Date Filter Bar */}
-                <div className="flex items-end gap-2 p-2 bg-white rounded-lg border shadow-sm">
-                    <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Início</Label>
-                        <Input
-                            type="text"
-                            placeholder="dd/mm/aaaa"
-                            className="h-8 w-[110px] text-sm text-center"
-                            maxLength={10}
-                            value={startInput}
-                            onChange={(e) => {
-                                const masked = maskDate(e.target.value)
-                                setStartInput(masked)
-                                const parsed = parseDate(masked)
-                                if (parsed) {
-                                    setDateRange(prev => ({ ...prev, start: parsed }))
-                                }
-                            }}
-                        />
+                <div className="flex flex-col gap-3 p-3 bg-white rounded-2xl border shadow-sm w-full sm:w-[280px]">
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        <div className="flex flex-col gap-1.5 w-full">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Início</Label>
+                            <Input
+                                type="text"
+                                placeholder="dd/mm/aaaa"
+                                className="h-10 text-center font-semibold text-sm border-slate-200 rounded-xl w-full bg-slate-50"
+                                maxLength={10}
+                                value={startInput}
+                                onChange={(e) => {
+                                    const masked = maskDate(e.target.value)
+                                    setStartInput(masked)
+                                    const parsed = parseDate(masked)
+                                    if (parsed) {
+                                        setDateRange(prev => ({ ...prev, start: parsed }))
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5 w-full">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fim</Label>
+                            <Input
+                                type="text"
+                                placeholder="dd/mm/aaaa"
+                                className="h-10 text-center font-semibold text-sm border-slate-200 rounded-xl w-full bg-slate-50"
+                                maxLength={10}
+                                value={endInput}
+                                onChange={(e) => {
+                                    const masked = maskDate(e.target.value)
+                                    setEndInput(masked)
+                                    const parsed = parseDate(masked)
+                                    if (parsed) {
+                                        setDateRange(prev => ({ ...prev, end: parsed }))
+                                    }
+                                }}
+                            />
+                        </div>
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Fim</Label>
-                        <Input
-                            type="text"
-                            placeholder="dd/mm/aaaa"
-                            className="h-8 w-[110px] text-sm text-center"
-                            maxLength={10}
-                            value={endInput}
-                            onChange={(e) => {
-                                const masked = maskDate(e.target.value)
-                                setEndInput(masked)
-                                const parsed = parseDate(masked)
-                                if (parsed) {
-                                    setDateRange(prev => ({ ...prev, end: parsed }))
-                                }
-                            }}
-                        />
-                    </div>
-                    <Button size="sm" onClick={handleFilterApply} disabled={loadingStats}>
+                    <Button 
+                        size="sm" 
+                        onClick={handleFilterApply} 
+                        disabled={loadingStats}
+                        className="h-10 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-wider text-[10px] rounded-xl cursor-pointer"
+                    >
                         {loadingStats ? <Loader2 className="h-4 w-4 animate-spin" /> : "Atualizar"}
                     </Button>
                 </div>
