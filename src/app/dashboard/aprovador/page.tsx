@@ -393,13 +393,13 @@ export default function ApproverDashboard() {
 
             {/* Detail Modal */}
             <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-                <DialogContent className="max-w-2xl rounded-3xl border-none shadow-2xl">
-                    <DialogHeader>
+                <DialogContent className="max-w-2xl rounded-3xl border-none shadow-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
+                    <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100/60 shrink-0 text-left">
                         <DialogTitle className="font-black text-xl text-slate-900 tracking-tight">Detalhes do Lançamento</DialogTitle>
                         <DialogDescription className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[9px] mt-0.5">Informações completas do plantão sob análise</DialogDescription>
                     </DialogHeader>
                     {detailItem && (
-                        <div className="space-y-4 py-2">
+                        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-none">
                             {/* Date Banner */}
                             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 flex items-center justify-between">
                                 <div className="space-y-0.5">
@@ -411,54 +411,47 @@ export default function ApproverDashboard() {
                                 <Calendar className="h-6 w-6 text-primary/40 shrink-0" />
                             </div>
 
-                            {/* Info Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            {/* Premium Transaction Receipt */}
+                            <div className="bg-slate-50/40 rounded-2xl border border-slate-100/80 divide-y divide-slate-100/50 overflow-hidden">
                                 {/* Posto */}
-                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Posto de Trabalho</span>
-                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.posto.nome}</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-1 sm:gap-4 text-sm">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Posto de Trabalho</span>
+                                    <span className="font-bold text-slate-800 sm:text-right">{detailItem.posto.nome}</span>
                                 </div>
-
                                 {/* Empresa */}
-                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Empresa (Grupo)</span>
-                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.empresa?.nome || '-'}</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-1 sm:gap-4 text-sm">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Empresa (Grupo)</span>
+                                    <span className="font-bold text-slate-800 sm:text-right">{detailItem.empresa?.nome || '-'}</span>
                                 </div>
-
                                 {/* Diarista */}
-                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Quem Cobriu (Diarista)</span>
-                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.diarista.nome}</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-1 sm:gap-4 text-sm">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Quem Cobriu (Diarista)</span>
+                                    <span className="font-bold text-slate-800 sm:text-right">{detailItem.diarista.nome}</span>
                                 </div>
-
                                 {/* Quem Faltou */}
-                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Quem Faltou</span>
-                                    <span className="font-bold text-purple-700 text-sm block truncate">{detailItem.reserva?.nome || 'N/A'}</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-1 sm:gap-4 text-sm">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Quem Faltou</span>
+                                    <span className="font-bold text-purple-700 sm:text-right">{detailItem.reserva?.nome || 'N/A'}</span>
                                 </div>
-
                                 {/* Motivo */}
-                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Motivo</span>
-                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.motivo.descricao}</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-1 sm:gap-4 text-sm">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Motivo</span>
+                                    <span className="font-bold text-slate-800 sm:text-right">{detailItem.motivo.descricao}</span>
                                 </div>
-
                                 {/* Carga Horária */}
-                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Carga Horária</span>
-                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.cargaHoraria?.descricao || '-'}</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-1 sm:gap-4 text-sm">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Carga Horária</span>
+                                    <span className="font-bold text-slate-800 sm:text-right">{detailItem.cargaHoraria?.descricao || '-'}</span>
                                 </div>
-
-                                {/* Valor */}
-                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Valor</span>
-                                    <span className="font-black text-green-600 text-sm block">{formatCurrency(detailItem.valor)}</span>
-                                </div>
-
                                 {/* Forma de Pagamento */}
-                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Forma de Pagamento</span>
-                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.meioPagamentoSolicitado?.descricao || '-'}</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-1 sm:gap-4 text-sm">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Forma de Pagamento</span>
+                                    <span className="font-bold text-slate-800 sm:text-right">{detailItem.meioPagamentoSolicitado?.descricao || '-'}</span>
+                                </div>
+                                {/* Valor */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-1 sm:gap-4 text-sm bg-primary/[0.01]">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Valor do Lançamento</span>
+                                    <span className="font-black text-green-600 text-base sm:text-right">{formatCurrency(detailItem.valor)}</span>
                                 </div>
                             </div>
 
@@ -489,7 +482,7 @@ export default function ApproverDashboard() {
                             </div>
                         </div>
                     )}
-                    <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-between w-full mt-4">
+                    <DialogFooter className="px-6 py-4 border-t border-slate-100/60 bg-slate-50/50 shrink-0 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between w-full">
                         <Button variant="ghost" onClick={() => setDetailItem(null)} className="w-full sm:w-auto">
                             Fechar
                         </Button>
