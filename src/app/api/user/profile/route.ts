@@ -43,32 +43,41 @@ export async function POST(req: NextRequest) {
         }
 
         const userId = (session.user as any).id
-        const formData = await req.formData()
-        const file = formData.get("file") as File | null
-        const name = formData.get("name") as string | null
+        
+        let name: string | null = null
+        let avatarUrl: string | null = null
+        
+        const contentType = req.headers.get("content-type") || ""
+        if (contentType.includes("application/json")) {
+            const body = await req.json()
+            name = body.name || null
+            avatarUrl = body.avatarUrl || null
+        } else {
+            const formData = await req.formData()
+            name = formData.get("name") as string | null
+            const file = formData.get("file") as File | null
 
-        let avatarUrl = undefined
+            if (file) {
+                const bytes = await file.arrayBuffer()
+                const buffer = Buffer.from(bytes)
 
-        if (file) {
-            const bytes = await file.arrayBuffer()
-            const buffer = Buffer.from(bytes)
+                // Ensure public/uploads exists
+                const uploadDir = join(process.cwd(), "public", "uploads")
+                try {
+                    await mkdir(uploadDir, { recursive: true })
+                } catch {}
 
-            // Ensure public/uploads exists
-            const uploadDir = join(process.cwd(), "public", "uploads")
-            try {
-                await mkdir(uploadDir, { recursive: true })
-            } catch {}
+                const filename = `avatar-${userId}-${Date.now()}-${file.name.replace(/\s/g, '_')}`
+                const filepath = join(uploadDir, filename)
 
-            const filename = `avatar-${userId}-${Date.now()}-${file.name.replace(/\s/g, '_')}`
-            const filepath = join(uploadDir, filename)
-
-            await writeFile(filepath, buffer)
-            avatarUrl = `/uploads/${filename}`
+                await writeFile(filepath, buffer)
+                avatarUrl = `/uploads/${filename}`
+            }
         }
 
         const updateData: any = {}
         if (name !== null) updateData.nome = name
-        if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl
+        if (avatarUrl !== null) updateData.avatarUrl = avatarUrl
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },

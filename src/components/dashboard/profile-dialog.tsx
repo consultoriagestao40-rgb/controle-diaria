@@ -28,24 +28,66 @@ export function ProfileDialog({ isOpen, onOpenChange, user, onSuccess }: Profile
         const file = e.target.files?.[0]
         if (!file) return
 
-        // Basic validation: image files only, max 5MB
+        // Basic validation: image files only
         if (!file.type.startsWith("image/")) {
             toast.error("Por favor, selecione uma imagem válida.")
-            return
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error("A imagem deve ter no máximo 5MB.")
             return
         }
 
         setUploading(true)
         try {
-            const formData = new FormData()
-            formData.append("file", file)
+            // Compress and convert to base64
+            const base64Image = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target?.result as string;
+                    img.onload = () => {
+                        const canvas = document.createElement("canvas");
+                        const MAX_WIDTH = 256;
+                        const MAX_HEIGHT = 256;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext("2d");
+                        if (!ctx) {
+                            reject(new Error("Canvas context not available"));
+                            return;
+                        }
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Convert to base64 jpeg with quality 0.75 for super compact size
+                        const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+                        resolve(dataUrl);
+                    };
+                    img.onerror = (err) => reject(err);
+                };
+                reader.onerror = (err) => reject(err);
+            });
 
             const res = await fetch("/api/user/profile", {
                 method: "POST",
-                body: formData
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    avatarUrl: base64Image
+                })
             })
 
             if (!res.ok) throw new Error()
@@ -59,8 +101,9 @@ export function ProfileDialog({ isOpen, onOpenChange, user, onSuccess }: Profile
             }
             
             router.refresh()
-        } catch {
-            toast.error("Erro ao fazer upload da imagem")
+        } catch (error) {
+            console.error("Upload error:", error)
+            toast.error("Erro ao processar e salvar a imagem")
         } finally {
             setUploading(false)
         }
