@@ -91,20 +91,41 @@ export default function NovaDespesaPage() {
 
     const totalDespesa = itens.reduce((acc, item) => acc + item.valorTotal, 0)
 
-    // Simulador de Upload de Comprovantes
-    const handleFileSimulate = () => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
         setUploading(true)
-        setTimeout(() => {
-            const mockFile = {
-                url: `/mock/comprovante_${Math.floor(Math.random() * 1000)}.pdf`,
-                nomeOriginal: `nota_fiscal_${Date.now().toString().slice(-4)}.pdf`,
-                tamanho: 1024 * Math.floor(Math.random() * 500 + 100),
-                tipo: "application/pdf"
+        try {
+            const formData = new FormData()
+            formData.append("file", file)
+
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                body: formData
+            })
+
+            if (!res.ok) {
+                throw new Error("Erro ao enviar arquivo")
             }
-            setAnexos([...anexos, mockFile])
-            setUploading(false)
+
+            const data = await res.json()
+            setAnexos([...anexos, {
+                url: data.url,
+                nomeOriginal: data.nomeOriginal,
+                tamanho: data.tamanho,
+                tipo: data.tipo,
+                valor: 0
+            }])
             toast.success("Comprovante anexado com sucesso!")
-        }, 1500)
+        } catch (error: any) {
+            toast.error(error.message || "Erro no upload do arquivo")
+        } finally {
+            setUploading(false)
+            if (e.target) {
+                e.target.value = ""
+            }
+        }
     }
 
     const handleSubmit = async (enviarParaAprovacao: boolean) => {
@@ -492,20 +513,29 @@ export default function NovaDespesaPage() {
                                     </Label>
                                     <p className="text-xs text-slate-400">Anexe PDFs ou Imagens legíveis comprovando os gastos.</p>
                                 </div>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={uploading}
-                                    onClick={handleFileSimulate}
-                                    className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold uppercase tracking-widest text-[10px] gap-2 hover:bg-slate-50 transition-all active:scale-95"
-                                >
-                                    {uploading ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <FileUp className="h-4 w-4 text-primary" />
-                                    )}
-                                    Anexar Nota/Recibo
-                                </Button>
+                                <div className="relative w-full sm:w-auto">
+                                    <input
+                                        type="file"
+                                        id="nova-file-upload"
+                                        className="hidden"
+                                        onChange={handleFileUpload}
+                                        disabled={uploading}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={uploading}
+                                        onClick={() => document.getElementById("nova-file-upload")?.click()}
+                                        className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold uppercase tracking-widest text-[10px] gap-2 hover:bg-slate-50 transition-all active:scale-95"
+                                    >
+                                        {uploading ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <FileUp className="h-4 w-4 text-primary" />
+                                        )}
+                                        Anexar Nota/Recibo
+                                    </Button>
+                                </div>
                             </div>
 
                              {anexos.length > 0 ? (

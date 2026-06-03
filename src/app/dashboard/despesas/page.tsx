@@ -161,20 +161,40 @@ export default function MinhasDespesasPage() {
         return <Badge variant="outline" className={`${map[status] || 'bg-gray-100'} border-0 px-3 py-1 font-bold rounded-lg`}>{labels[status] || status}</Badge>
     }
 
-    // Simulador de upload na prestação de contas
-    const handleFileSimulate = () => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
         setUploadingComprovante(true)
-        setTimeout(() => {
-            const mockFile = {
-                url: `/mock/comprovante_${Math.floor(Math.random() * 1000)}.pdf`,
-                nomeOriginal: `recibo_prestacao_${Date.now().toString().slice(-4)}.pdf`,
-                tamanho: 1024 * Math.floor(Math.random() * 400 + 100),
-                tipo: "application/pdf"
+        try {
+            const formData = new FormData()
+            formData.append("file", file)
+
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                body: formData
+            })
+
+            if (!res.ok) {
+                throw new Error("Erro ao enviar arquivo")
             }
-            setAnexosPrestacao([...anexosPrestacao, mockFile])
-            setUploadingComprovante(false)
+
+            const data = await res.json()
+            setAnexosPrestacao([...anexosPrestacao, {
+                url: data.url,
+                nomeOriginal: data.nomeOriginal,
+                tamanho: data.tamanho,
+                tipo: data.tipo
+            }])
             toast.success("Comprovante fiscal anexado!")
-        }, 1200)
+        } catch (error: any) {
+            toast.error(error.message || "Erro no upload do arquivo")
+        } finally {
+            setUploadingComprovante(false)
+            if (e.target) {
+                e.target.value = ""
+            }
+        }
     }
 
     const openPrestacaoModal = (despesa: Despesa) => {
@@ -745,21 +765,30 @@ export default function MinhasDespesasPage() {
                                     <Label className="font-bold text-slate-700 text-xs">Comprovantes & Notas Fiscais *</Label>
                                     <p className="text-[10px] text-slate-400">Anexe fotos/PDFs das notas e recibos correspondentes.</p>
                                 </div>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={uploadingComprovante}
-                                    onClick={handleFileSimulate}
-                                    className="w-full sm:w-auto h-12 px-4 rounded-xl font-bold text-xs gap-1.5 cursor-pointer border-slate-200"
-                                >
-                                    {uploadingComprovante ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                        <FileUp className="h-3.5 w-3.5 text-indigo-500" />
-                                    )}
-                                    Anexar Recibo
-                                </Button>
+                                <div className="relative w-full sm:w-auto">
+                                    <input
+                                        type="file"
+                                        id="prestacao-file-upload"
+                                        className="hidden"
+                                        onChange={handleFileUpload}
+                                        disabled={uploadingComprovante}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={uploadingComprovante}
+                                        onClick={() => document.getElementById("prestacao-file-upload")?.click()}
+                                        className="w-full sm:w-auto h-12 px-4 rounded-xl font-bold text-xs gap-1.5 cursor-pointer border-slate-200"
+                                    >
+                                        {uploadingComprovante ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                            <FileUp className="h-3.5 w-3.5 text-indigo-500" />
+                                        )}
+                                        Anexar Recibo
+                                    </Button>
+                                </div>
                             </div>
 
                             {anexosPrestacao.length > 0 ? (
