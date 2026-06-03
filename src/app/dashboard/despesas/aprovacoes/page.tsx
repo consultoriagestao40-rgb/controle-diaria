@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileText, CheckCircle, XCircle, Clock } from "lucide-react"
+import { CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileText, CheckCircle, XCircle, Clock, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog"
 
 interface Despesa {
     id: string
@@ -372,22 +372,27 @@ export default function AprovacoesDespesasPage() {
 
             {/* Modal de Detalhes da Despesa */}
             <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-                <DialogContent className="max-w-xl rounded-3xl border-none shadow-2xl p-0 overflow-hidden bg-slate-50/50">
+                <DialogContent showCloseButton={false} className="max-w-xl rounded-3xl border-none shadow-2xl p-0 overflow-hidden bg-slate-50">
                     {detailItem && (
-                        <div className="flex flex-col max-h-[90vh]">
+                        <div className="flex flex-col max-h-[90vh] bg-slate-50 w-full h-full">
                             {/* Header */}
-                            <div className="bg-white p-6 border-b border-slate-100 flex flex-col gap-2 shrink-0">
+                            <div className="bg-white p-6 border-b border-slate-100 flex flex-col gap-2 shrink-0 relative">
                                 <div className="flex items-center justify-between">
-                                    <Badge className={`border-0 font-bold px-3 py-1 rounded-lg ${
-                                        detailItem.tipo === "REEMBOLSO"
-                                            ? "bg-rose-100 text-rose-800"
-                                            : "bg-emerald-100 text-emerald-800"
-                                    }`}>
-                                        {detailItem.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
-                                    </Badge>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                        ID: {detailItem.id.slice(0, 8)}
-                                    </span>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Badge className={`border-0 font-bold px-3 py-1 rounded-lg ${
+                                            detailItem.tipo === "REEMBOLSO"
+                                                ? "bg-rose-100 text-rose-800"
+                                                : "bg-emerald-100 text-emerald-800"
+                                        }`}>
+                                            {detailItem.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
+                                        </Badge>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            ID: {detailItem.id.slice(0, 8)}
+                                        </span>
+                                    </div>
+                                    <DialogClose className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 hover:bg-slate-100 transition-all cursor-pointer shrink-0">
+                                        <X className="h-5 w-5" />
+                                    </DialogClose>
                                 </div>
                                 <div className="space-y-1">
                                     <h3 className="text-3xl font-black text-slate-900 tracking-tight">
@@ -400,7 +405,7 @@ export default function AprovacoesDespesasPage() {
                             </div>
 
                             {/* Scrollable Content */}
-                            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-sm text-slate-700">
+                            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-sm text-slate-700 bg-slate-50">
                                 {/* Alertas de Auditoria */}
                                 {detailItem.alertaAuditoria && (
                                     <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-xs font-bold flex items-start gap-2">
