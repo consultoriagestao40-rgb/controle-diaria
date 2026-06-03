@@ -370,6 +370,7 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
                 onClose={handleCloseReembolso} 
                 onSuccess={handleSuccess}
                 user={user}
+                logoUrl={logoUrl}
             />
 
             <AdiantamentoModal 
@@ -377,6 +378,7 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
                 onClose={handleCloseAdiantamento} 
                 onSuccess={handleSuccess}
                 user={user}
+                logoUrl={logoUrl}
             />
 
             {/* Profile Edit Modal */}

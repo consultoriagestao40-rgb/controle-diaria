@@ -74,6 +74,7 @@ export default function MinhasDespesasPage() {
     const [isReembolsoOpen, setIsReembolsoOpen] = useState(false)
     const [isAdiantamentoOpen, setIsAdiantamentoOpen] = useState(false)
     const [user, setUser] = useState<any>(null)
+    const [logoUrl, setLogoUrl] = useState<string>("/logo.png")
 
     // Itemização da prestação de contas
     const [itensPrestacao, setItensPrestacao] = useState<any[]>([])
@@ -97,6 +98,9 @@ export default function MinhasDespesasPage() {
                     setCategorias(data.politicas.map((p: any) => p.categoria))
                 } else {
                     setCategorias(["REFEICAO", "HOSPEDAGEM", "TRANSPORTE", "OUTROS"])
+                }
+                if (data.auditoria?.logoPersonalizado) {
+                    setLogoUrl(data.auditoria.logoPersonalizado)
                 }
             })
             .catch(() => {
@@ -1066,6 +1070,7 @@ export default function MinhasDespesasPage() {
                 onClose={() => setIsReembolsoOpen(false)}
                 onSuccess={fetchDespesas}
                 user={user}
+                logoUrl={logoUrl}
             />
 
             <AdiantamentoModal
@@ -1073,6 +1078,7 @@ export default function MinhasDespesasPage() {
                 onClose={() => setIsAdiantamentoOpen(false)}
                 onSuccess={fetchDespesas}
                 user={user}
+                logoUrl={logoUrl}
             />
         </div>
     )

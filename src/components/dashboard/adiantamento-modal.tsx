@@ -1,22 +1,24 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DollarSign, Loader2, ArrowRight, X } from "lucide-react"
+import { DollarSign, Loader2, ArrowRight, X, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+import { MobileNav } from "./mobile-nav"
 
 export interface AdiantamentoModalProps {
     isOpen: boolean
     onClose: () => void
     onSuccess: () => void
     user: any
+    logoUrl?: string
 }
 
-export function AdiantamentoModal({ isOpen, onClose, onSuccess, user }: AdiantamentoModalProps) {
+export function AdiantamentoModal({ isOpen, onClose, onSuccess, user, logoUrl }: AdiantamentoModalProps) {
     const [descricao, setDescricao] = useState("")
     const [valorAdiantamento, setValorAdiantamento] = useState("")
     const [dataAdiantamento, setDataAdiantamento] = useState("")
@@ -94,8 +96,41 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user }: Adiantam
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
             <DialogContent showCloseButton={false} className="fixed inset-0! sm:inset-auto! top-0! left-0! translate-x-0! translate-y-0! sm:top-1/2! sm:left-1/2! sm:-translate-x-1/2! sm:-translate-y-1/2! w-full! max-w-full! sm:max-w-xl! h-full! sm:h-auto! sm:max-h-[90vh] flex flex-col gap-0 rounded-none! sm:rounded-3xl! p-0 bg-white border-none! sm:border sm:border-slate-200 overflow-hidden shadow-2xl transition-all duration-300">
-                <div className="p-5 pt-4 sm:p-8 pb-4 border-b border-slate-100 flex-none flex flex-col gap-3">
-                    <div className="flex items-center">
+                <div className="relative p-5 pt-4 sm:p-8 pb-4 bg-slate-950 sm:bg-white text-white sm:text-slate-900 border-b border-emerald-500/20 sm:border-slate-100 flex-none flex flex-col gap-3 overflow-hidden">
+                    {/* Glows for App View */}
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -z-10 sm:hidden" />
+                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl -z-10 sm:hidden" />
+
+                    {/* Top control bar on mobile: Back button and Menu button */}
+                    <div className="flex sm:hidden items-center justify-between w-full z-10">
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={onClose}
+                                className="h-10 w-10 text-white rounded-xl bg-white/10 border border-white/5 hover:bg-white/20 active:scale-95 transition-all shrink-0 cursor-pointer"
+                            >
+                                <ChevronLeft className="h-5 w-5 stroke-[2.5]" />
+                            </Button>
+                            {logoUrl && (
+                                <img
+                                    src={logoUrl}
+                                    alt="Logo"
+                                    className="h-8 w-auto object-contain rounded-lg ml-1"
+                                />
+                            )}
+                        </div>
+                        {user && (
+                            <MobileNav 
+                                user={user} 
+                                logoUrl={logoUrl || undefined}
+                            />
+                        )}
+                    </div>
+
+                    {/* Desktop control bar (hidden on mobile) */}
+                    <div className="hidden sm:flex items-center">
                         <Button
                             type="button"
                             variant="ghost"
@@ -107,12 +142,12 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user }: Adiantam
                         </Button>
                     </div>
                     
-                    <div className="space-y-1 mt-1">
-                        <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-                            <DollarSign className="h-6 w-6 text-indigo-500 shrink-0" />
+                    <div className="space-y-1 mt-1 sm:mt-0 z-10">
+                        <DialogTitle className="text-xl sm:text-2xl font-black flex items-center gap-2 text-white sm:text-slate-900">
+                            <DollarSign className="h-6 w-6 text-emerald-400 sm:text-indigo-500 shrink-0" />
                             Nova Solicitação de Adiantamento
                         </DialogTitle>
-                        <DialogDescription className="text-slate-400 text-xs sm:text-sm font-medium">
+                        <DialogDescription className="text-emerald-500/60 sm:text-slate-400 text-xs sm:text-sm font-medium">
                             Use essa modalidade para prever um gasto corporativo e receber o valor adiantado (sujeito a prestação de contas posterior).
                         </DialogDescription>
                     </div>
