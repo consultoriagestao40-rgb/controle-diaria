@@ -166,7 +166,7 @@ export function MobileNav({ user, logoUrl, acessoDespesas = true, acessoCobertur
     return (
         <Sheet>
             <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="text-white hover:text-white/80 hover:bg-white/10 rounded-xl active:scale-95 cursor-pointer">
                     <Menu className="h-6 w-6" />
                 </Button>
             </SheetTrigger>

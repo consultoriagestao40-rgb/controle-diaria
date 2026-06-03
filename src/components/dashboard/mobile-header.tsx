@@ -20,14 +20,14 @@ export function MobileHeader({ user, logoUrl, acessoDespesas = true, acessoCober
     const canGoBack = pathname !== "/dashboard" && pathname !== "/"
 
     return (
-        <header className="flex h-20 items-center justify-between border-b bg-white/80 backdrop-blur-md px-4 sm:px-6 md:hidden flex-none z-30">
+        <header className="flex h-20 items-center justify-between border-b border-white/5 bg-sidebar px-4 sm:px-6 md:hidden flex-none z-30">
             <div className="flex items-center gap-2">
                 {canGoBack && (
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => router.back()}
-                        className="h-10 w-10 text-slate-600 hover:text-slate-900 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all shrink-0 cursor-pointer"
+                        className="h-10 w-10 text-white/80 hover:text-white rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all shrink-0 cursor-pointer border border-white/5"
                     >
                         <ChevronLeft className="h-6 w-6 stroke-[2.5]" />
                     </Button>
