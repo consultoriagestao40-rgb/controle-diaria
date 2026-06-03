@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Wallet, Plus, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileUp, CheckCircle, FileText, Settings, Trash2, X } from "lucide-react"
+import { Wallet, Plus, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileUp, CheckCircle, FileText, Settings, Trash2, X, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,7 +16,8 @@ import {
     DialogDescription, 
     DialogFooter, 
     DialogHeader, 
-    DialogTitle 
+    DialogTitle,
+    DialogClose
 } from "@/components/ui/dialog"
 import { ReembolsoModal } from "@/components/dashboard/reembolso-modal"
 import { AdiantamentoModal } from "@/components/dashboard/adiantamento-modal"
@@ -82,6 +83,7 @@ export default function MinhasDespesasPage() {
     const [itemData, setItemData] = useState("")
     const [itemQuantidade, setItemQuantidade] = useState("1")
     const [itemValorUnitario, setItemValorUnitario] = useState("")
+    const [detailDespesa, setDetailDespesa] = useState<Despesa | null>(null)
 
     useEffect(() => {
         fetchDespesas()
@@ -421,109 +423,102 @@ export default function MinhasDespesasPage() {
                         </Link>
                     </Card>
                 ) : (
-                    <div className="grid gap-6">
-                        {filteredDespesas.map((item) => (
-                            <Card key={item.id} className="glass-card hover:scale-[1.005] transition-all duration-300 shadow-lg border-none bg-white">
-                                <CardContent className="p-5 sm:p-8">
-                                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                                        <div className="flex items-start sm:items-center gap-6">
-                                            <div className={`h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 border ${
-                                                item.tipo === "REEMBOLSO"
-                                                    ? "bg-rose-50 text-rose-500 border-rose-100"
-                                                    : "bg-emerald-50 text-emerald-500 border-emerald-100"
-                                            }`}>
-                                                {item.tipo === "REEMBOLSO" ? (
-                                                    <Receipt className="h-8 w-8" />
-                                                ) : (
-                                                    <DollarSign className="h-8 w-8" />
-                                                )}
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <span className="text-lg font-black text-slate-900 tracking-tight leading-none">
+                    <>
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        <th className="py-4.5 px-6">Data</th>
+                                        <th className="py-4.5 px-6">Tipo</th>
+                                        <th className="py-4.5 px-6">Descrição</th>
+                                        <th className="py-4.5 px-6">Status</th>
+                                        <th className="py-4.5 px-6 text-right">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100/60">
+                                    {filteredDespesas.map(item => (
+                                        <tr
+                                            key={item.id}
+                                            onClick={() => setDetailDespesa(item)}
+                                            className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
+                                        >
+                                            <td className="py-4.5 px-6">
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+                                                    <span className="font-semibold text-slate-700">
+                                                        {formatDate(item.createdAt)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4.5 px-6">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 border ${
+                                                        item.tipo === "REEMBOLSO"
+                                                            ? "bg-emerald-50 text-emerald-500 border-emerald-100"
+                                                            : "bg-amber-50 text-amber-500 border-amber-100"
+                                                    }`}>
+                                                        {item.tipo === "REEMBOLSO" ? <Wallet className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                                                    </div>
+                                                    <span className="font-bold text-slate-900">
                                                         {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
                                                     </span>
-                                                    <div className="hidden sm:block h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" />
-                                                    <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
-                                                        <span>{formatDate(item.createdAt)}</span>
-                                                        <span>•</span>
-                                                        <span>ID: {item.id.slice(0, 6)}</span>
-                                                    </div>
                                                 </div>
-                                                <p className="text-slate-600 text-sm font-semibold pt-1">{item.descricao}</p>
-                                                
-                                                {/* Valores adicionais de prestação */}
-                                                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs font-bold pt-2">
-                                                    <span className="text-slate-700">Solicitado: <span className="text-slate-900">{formatCurrency(item.valorSolicitado)}</span></span>
-                                                    {item.valorComprovado !== null && (
-                                                        <>
-                                                            <div className="hidden sm:block h-3 w-[1px] bg-slate-200" />
-                                                            <span className="text-indigo-600">Gasto Real: <span>{formatCurrency(item.valorComprovado)}</span></span>
-                                                        </>
-                                                    )}
-                                                    {item.saldoFinal !== null && (
-                                                        <>
-                                                            <div className="hidden sm:block h-3 w-[1px] bg-slate-200" />
-                                                            <span className={item.saldoFinal === 0 ? "text-green-600" : item.saldoFinal > 0 ? "text-amber-600" : "text-rose-600"}>
-                                                                Saldo: {item.saldoFinal === 0 ? "Zerado" : item.saldoFinal > 0 ? `Devolver ${formatCurrency(item.saldoFinal)}` : `Receber ${formatCurrency(Math.abs(item.saldoFinal))}`}
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </div>
+                                            </td>
+                                            <td className="py-4.5 px-6 max-w-xs truncate">
+                                                <span className="text-slate-600 font-medium">{item.descricao}</span>
+                                            </td>
+                                            <td className="py-4.5 px-6">
+                                                {getStatusBadge(item.status)}
+                                            </td>
+                                            <td className="py-4.5 px-6 text-right">
+                                                <span className="font-black text-slate-900 tracking-tight text-base">
+                                                    {formatCurrency(item.valorSolicitado)}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
 
-                                                {item.justificativaReprovacao && (item.status === 'AGUARDANDO_PRESTACAO' || item.status === 'REPROVADO') && (
-                                                    <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-xs font-bold mt-4 flex items-start gap-2 max-w-xl">
-                                                        <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
-                                                        <div>
-                                                            <p className="uppercase tracking-wider text-[9px] font-black text-red-500">Motivo da Devolução/Rejeição:</p>
-                                                            <p className="font-semibold pt-0.5">{item.justificativaReprovacao}</p>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
+                        {/* Mobile Extrato List View */}
+                        <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
+                            {filteredDespesas.map((item, idx) => (
+                                <div
+                                    key={item.id}
+                                    onClick={() => setDetailDespesa(item)}
+                                    className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== filteredDespesas.length - 1 ? 'border-b border-slate-100/80' : ''}`}
+                                >
+                                    <div className="flex items-center gap-3.5 min-w-0">
+                                        <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 border ${
+                                            item.tipo === "REEMBOLSO" 
+                                                ? "bg-emerald-50 text-emerald-500 border-emerald-100" 
+                                                : "bg-amber-50 text-amber-500 border-amber-100"
+                                        }`}>
+                                            {item.tipo === "REEMBOLSO" ? <Wallet className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
                                         </div>
                                         
-                                        <div className="w-full lg:w-auto flex flex-col sm:flex-row sm:items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 pt-4 lg:pt-0">
-                                            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest sm:hidden">Status:</span>
-                                                {getStatusBadge(item.status)}
-                                            </div>
-                                            
-                                            {(item.status === 'RASCUNHO' || item.status === 'REPROVADO') && (
-                                                <div className="flex gap-2 w-full sm:w-auto">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => handleDeletarDespesa(item.id)}
-                                                        className="flex-1 sm:flex-none text-red-500 hover:text-red-700 hover:bg-red-50 font-bold uppercase tracking-widest text-[10px] h-10 px-3 rounded-xl active:scale-95 transition-all"
-                                                    >
-                                                        Excluir
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => handleEnviarParaAprovacao(item.id)}
-                                                        className="flex-1 sm:flex-none bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
-                                                    >
-                                                        Enviar
-                                                    </Button>
-                                                </div>
-                                            )}
-
-                                            {(item.status === 'AGUARDANDO_PRESTACAO' || (item.tipo === 'ADIANTAMENTO' && item.status === 'APROVADO')) && (
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => openPrestacaoModal(item)}
-                                                    className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
-                                                >
-                                                    Prestar Contas
-                                                </Button>
-                                            )}
+                                        <div className="min-w-0 space-y-0.5">
+                                            <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
+                                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
+                                                {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
+                                            </p>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+
+                                    <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
+                                        <p className="text-xs font-black text-slate-900 tracking-tight">
+                                            {formatCurrency(item.valorSolicitado)}
+                                        </p>
+                                        <div className="scale-75 origin-right">
+                                            {getStatusBadge(item.status)}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 )}
             </div>
 
@@ -867,6 +862,188 @@ export default function MinhasDespesasPage() {
                 </DialogContent>
             </Dialog>
             
+            {/* Modal de Detalhes da Despesa */}
+            <Dialog open={!!detailDespesa} onOpenChange={(open) => !open && setDetailDespesa(null)}>
+                <DialogContent showCloseButton={false} className="max-w-2xl rounded-3xl border-none shadow-2xl p-0 overflow-hidden bg-slate-50">
+                    {detailDespesa && (
+                        <div className="flex flex-col max-h-[90vh] bg-slate-50 w-full h-full">
+                            {/* Header */}
+                            <div className="bg-white p-6 border-b border-slate-100 flex flex-col gap-2 shrink-0 relative">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Badge className={`border-0 font-bold px-3 py-1 rounded-lg ${
+                                            detailDespesa.tipo === "REEMBOLSO"
+                                                ? "bg-emerald-100 text-emerald-800"
+                                                : "bg-amber-100 text-amber-800"
+                                        }`}>
+                                            {detailDespesa.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
+                                        </Badge>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            ID: {detailDespesa.id.slice(0, 8)}
+                                        </span>
+                                    </div>
+                                    <DialogClose className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 hover:bg-slate-100 transition-all cursor-pointer shrink-0">
+                                        <X className="h-5 w-5" />
+                                    </DialogClose>
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">
+                                        {formatCurrency(detailDespesa.valorSolicitado)}
+                                    </h3>
+                                    <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold pt-0.5">
+                                        <span>Criado em: {formatDate(detailDespesa.createdAt)}</span>
+                                        <span>•</span>
+                                        <span>Status:</span>
+                                        {getStatusBadge(detailDespesa.status)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Scrollable Content */}
+                            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-sm text-slate-700 bg-slate-50">
+                                {/* Motivo da Devolução/Rejeição */}
+                                {detailDespesa.justificativaReprovacao && (detailDespesa.status === 'AGUARDANDO_PRESTACAO' || detailDespesa.status === 'REPROVADO') && (
+                                    <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-xs font-bold flex items-start gap-2">
+                                        <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
+                                        <div>
+                                            <p className="uppercase tracking-wider text-[9px] font-black text-red-500">Motivo da Devolução/Rejeição:</p>
+                                            <p className="font-semibold pt-0.5">{detailDespesa.justificativaReprovacao}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Valores adicionais de prestação */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-100 space-y-3">
+                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Resumo Financeiro</Label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-bold">
+                                        <div className="space-y-0.5">
+                                            <span className="text-slate-400 uppercase tracking-wider text-[9px]">Valor Solicitado</span>
+                                            <p className="text-slate-900 text-sm font-black">{formatCurrency(detailDespesa.valorSolicitado)}</p>
+                                        </div>
+                                        {detailDespesa.valorComprovado !== null && (
+                                            <div className="space-y-0.5">
+                                                <span className="text-slate-400 uppercase tracking-wider text-[9px]">Gasto Real</span>
+                                                <p className="text-indigo-600 text-sm font-black">{formatCurrency(detailDespesa.valorComprovado)}</p>
+                                            </div>
+                                        )}
+                                        {detailDespesa.saldoFinal !== null && (
+                                            <div className="space-y-0.5">
+                                                <span className="text-slate-400 uppercase tracking-wider text-[9px]">Saldo de Prestação</span>
+                                                <p className={`text-sm font-black ${detailDespesa.saldoFinal === 0 ? "text-green-600" : detailDespesa.saldoFinal > 0 ? "text-amber-600" : "text-rose-600"}`}>
+                                                    {detailDespesa.saldoFinal === 0 ? "Zerado" : detailDespesa.saldoFinal > 0 ? `Devolver ${formatCurrency(detailDespesa.saldoFinal)}` : `Receber ${formatCurrency(Math.abs(detailDespesa.saldoFinal))}`}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Descrição / Finalidade */}
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Finalidade / Descrição</Label>
+                                    <div className="bg-white p-4 rounded-xl border border-slate-100 text-sm text-slate-600 font-semibold italic">
+                                        "{detailDespesa.descricao}"
+                                    </div>
+                                </div>
+
+                                {/* Itens da Despesa (se houver) */}
+                                {detailDespesa.itens && detailDespesa.itens.length > 0 && (
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Itens Lançados ({detailDespesa.itens.length})</Label>
+                                        <div className="border rounded-xl overflow-hidden bg-white shadow-xs divide-y">
+                                            {detailDespesa.itens.map((item: any) => (
+                                                <div key={item.id} className="p-3 flex justify-between items-center text-xs">
+                                                    <div className="space-y-1">
+                                                        <div className="font-bold text-slate-900">{item.descricao}</div>
+                                                        <div className="text-slate-400 font-medium">
+                                                            {item.categoria} &bull; {item.quantidade}x R$ {Number(item.valorUnitario).toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                    <div className="font-black text-slate-900 shrink-0">
+                                                        R$ {Number(item.valorTotal).toFixed(2)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Documentos / Comprovantes */}
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Comprovantes ({detailDespesa.anexos?.length || 0})</Label>
+                                    {detailDespesa.anexos && detailDespesa.anexos.length > 0 ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {detailDespesa.anexos.map((anexo: any, idx: number) => (
+                                                <a
+                                                    key={idx}
+                                                    href={anexo.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1.5 bg-white border px-3 py-2.5 rounded-xl text-xs font-semibold text-primary hover:bg-slate-50 transition-all shadow-xs"
+                                                >
+                                                    <FileText className="h-3.5 w-3.5 text-slate-400" />
+                                                    <span className="truncate">{anexo.nomeOriginal}</span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-slate-400 italic text-xs">Nenhum comprovante anexado.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Footer Actions */}
+                            <div className="bg-white p-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 w-full">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setDetailDespesa(null)}
+                                    className="w-full sm:w-auto order-last sm:order-first h-10 px-5 rounded-xl font-bold uppercase tracking-wider text-[10px] text-slate-500 hover:bg-slate-100 border-slate-200"
+                                >
+                                    Fechar
+                                </Button>
+                                
+                                <div className="flex gap-2 w-full sm:w-auto justify-end">
+                                    {(detailDespesa.status === 'RASCUNHO' || detailDespesa.status === 'REPROVADO') && (
+                                        <>
+                                            <Button
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    handleDeletarDespesa(detailDespesa.id)
+                                                    setDetailDespesa(null)
+                                                }}
+                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl active:scale-95 transition-all"
+                                            >
+                                                Excluir
+                                            </Button>
+                                            <Button
+                                                onClick={() => {
+                                                    handleEnviarParaAprovacao(detailDespesa.id)
+                                                    setDetailDespesa(null)
+                                                }}
+                                                className="bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
+                                            >
+                                                Enviar
+                                            </Button>
+                                        </>
+                                    )}
+
+                                    {(detailDespesa.status === 'AGUARDANDO_PRESTACAO' || (detailDespesa.tipo === 'ADIANTAMENTO' && detailDespesa.status === 'APROVADO')) && (
+                                        <Button
+                                            onClick={() => {
+                                                openPrestacaoModal(detailDespesa)
+                                                setDetailDespesa(null)
+                                            }}
+                                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-md active:scale-95 transition-all"
+                                        >
+                                            Prestar Contas
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
             <ReembolsoModal
                 isOpen={isReembolsoOpen}
                 onClose={() => setIsReembolsoOpen(false)}
