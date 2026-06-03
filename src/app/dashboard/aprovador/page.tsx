@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label"
 interface Item {
     id: string
     data: string
+    status: string
     posto: { nome: string }
     diarista: { nome: string }
     motivo: { descricao: string }
