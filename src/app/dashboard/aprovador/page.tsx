@@ -393,83 +393,99 @@ export default function ApproverDashboard() {
 
             {/* Detail Modal */}
             <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-                <DialogContent className="max-w-xl rounded-2xl border-none shadow-2xl">
+                <DialogContent className="max-w-2xl rounded-3xl border-none shadow-2xl">
                     <DialogHeader>
-                        <DialogTitle className="font-bold text-slate-900">Detalhes do Lançamento</DialogTitle>
-                        <DialogDescription className="text-slate-500 font-medium">Informações completas da cobertura lançada.</DialogDescription>
+                        <DialogTitle className="font-black text-xl text-slate-900 tracking-tight">Detalhes do Lançamento</DialogTitle>
+                        <DialogDescription className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[9px] mt-0.5">Informações completas do plantão sob análise</DialogDescription>
                     </DialogHeader>
                     {detailItem && (
-                        <div className="grid gap-4 py-2">
-                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                <span className="text-sm font-medium text-slate-500">Data do Plantão</span>
-                                <span className="font-bold text-slate-800">{format(new Date(detailItem.data), "PPP", { locale: ptBR })}</span>
+                        <div className="space-y-4 py-2">
+                            {/* Date Banner */}
+                            <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest block">Data do Plantão</span>
+                                    <span className="text-base font-black text-primary tracking-tight">
+                                        {format(new Date(detailItem.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                    </span>
+                                </div>
+                                <Calendar className="h-6 w-6 text-primary/40 shrink-0" />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Posto</Label>
-                                    <div className="font-medium p-2 border rounded-md bg-white text-sm text-slate-700">{detailItem.posto.nome}</div>
+                            {/* Info Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                {/* Posto */}
+                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Posto de Trabalho</span>
+                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.posto.nome}</span>
                                 </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Empresa (Grupo)</Label>
-                                    <div className="font-medium p-2 border rounded-md bg-white text-sm text-slate-700">{detailItem.empresa?.nome || '-'}</div>
+
+                                {/* Empresa */}
+                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Empresa (Grupo)</span>
+                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.empresa?.nome || '-'}</span>
+                                </div>
+
+                                {/* Diarista */}
+                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Quem Cobriu (Diarista)</span>
+                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.diarista.nome}</span>
+                                </div>
+
+                                {/* Quem Faltou */}
+                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Quem Faltou</span>
+                                    <span className="font-bold text-purple-700 text-sm block truncate">{detailItem.reserva?.nome || 'N/A'}</span>
+                                </div>
+
+                                {/* Motivo */}
+                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Motivo</span>
+                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.motivo.descricao}</span>
+                                </div>
+
+                                {/* Carga Horária */}
+                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Carga Horária</span>
+                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.cargaHoraria?.descricao || '-'}</span>
+                                </div>
+
+                                {/* Valor */}
+                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Valor</span>
+                                    <span className="font-black text-green-600 text-sm block">{formatCurrency(detailItem.valor)}</span>
+                                </div>
+
+                                {/* Forma de Pagamento */}
+                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Forma de Pagamento</span>
+                                    <span className="font-bold text-slate-800 text-sm block truncate">{detailItem.meioPagamentoSolicitado?.descricao || '-'}</span>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Diarista (Executante)</Label>
-                                    <div className="font-medium p-2 border rounded-md bg-white text-sm text-slate-700">{detailItem.diarista.nome}</div>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Quem Faltou</Label>
-                                    <div className="font-medium p-2 border rounded-md bg-white text-sm text-slate-700">{detailItem.reserva?.nome || 'N/A'}</div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Motivo</Label>
-                                    <div className="font-medium p-2 border rounded-md bg-white text-sm text-slate-700">{detailItem.motivo.descricao}</div>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Carga Horária</Label>
-                                    <div className="font-medium p-2 border rounded-md bg-white text-sm text-slate-700">{detailItem.cargaHoraria?.descricao || '-'}</div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Valor (R$)</Label>
-                                    <div className="font-bold p-2 border rounded-md bg-white text-sm text-green-700">{formatCurrency(detailItem.valor)}</div>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Forma Pagamento</Label>
-                                    <div className="font-medium p-2 border rounded-md bg-white text-sm text-slate-700">{detailItem.meioPagamentoSolicitado?.descricao || '-'}</div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-1">
-                                <Label className="text-xs font-semibold text-slate-500 ml-1">Observação</Label>
-                                <div className="p-3 border rounded-md bg-slate-50 text-sm italic min-h-[60px] text-slate-600">
-                                    {detailItem.observacao || "Sem observações."}
-                                </div>
-                            </div>
-
-                            {detailItem.justificativaAprovacaoN1 && (
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Parecer Aprovador N1 ({detailItem.aprovadorN1?.nome || 'N/A'})</Label>
-                                    <div className="p-3 border rounded-md bg-blue-50 text-blue-800 border-blue-100 text-sm italic min-h-[40px]">
-                                        "{detailItem.justificativaAprovacaoN1}"
-                                    </div>
+                            {/* Observação */}
+                            {detailItem.observacao && (
+                                <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Observação do Supervisor</span>
+                                    <p className="text-sm text-slate-600 italic block">"{detailItem.observacao}"</p>
                                 </div>
                             )}
 
-                            <div className="pt-2 border-t mt-2">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Solicitado por:</span>
-                                    <span className="font-bold text-slate-800">{detailItem.supervisor.nome}</span>
+                            {/* Parecer N1 */}
+                            {detailItem.justificativaAprovacaoN1 && (
+                                <div className="bg-blue-50/40 p-4 rounded-2xl border border-blue-100/60 space-y-1 text-blue-900">
+                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest block">Parecer Aprovador N1 ({detailItem.aprovadorN1?.nome || 'N/A'})</span>
+                                    <p className="text-sm text-blue-800 italic block">"{detailItem.justificativaAprovacaoN1}"</p>
                                 </div>
+                            )}
+
+                            {/* Footer Request Info */}
+                            <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider px-1 pt-2 border-t border-slate-100/60">
+                                <span>Solicitado por: {detailItem.supervisor.nome}</span>
+                                {detailItem.createdAt && (
+                                    <span>
+                                        Em: {new Date(detailItem.createdAt).toLocaleDateString('pt-BR')}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     )}
