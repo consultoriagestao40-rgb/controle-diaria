@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileText, CheckCircle, XCircle } from "lucide-react"
+import { CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileText, CheckCircle, XCircle, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Despesa {
     id: string
@@ -21,11 +22,14 @@ interface Despesa {
     solicitante: { nome: string, email: string, role: string }
     anexos: any[]
     alertaAuditoria: string | null
+    itens?: any[]
+    centroCusto?: { id: string, nome: string } | null
 }
 
 export default function AprovacoesDespesasPage() {
     const [despesas, setDespesas] = useState<Despesa[]>([])
     const [loading, setLoading] = useState(true)
+    const [detailItem, setDetailItem] = useState<Despesa | null>(null)
 
     // Estados para o Modal de Decisão (Aprovar/Reprovar)
     const [decisionModalOpen, setDecisionModalOpen] = useState(false)
@@ -149,108 +153,103 @@ export default function AprovacoesDespesasPage() {
                         </div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Carregando pendências...</p>
                     </div>
-                ) : despesas.length === 0 ? (
-                    <Card className="glass-card border-dashed border-2 py-32 flex flex-col items-center justify-center bg-white opacity-80">
-                        <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center mb-6">
-                            <CheckSquare className="h-10 w-10 text-slate-300" />
-                        </div>
-                        <div className="text-center text-slate-400 font-bold uppercase tracking-widest text-sm">
-                            Tudo em dia! Nenhuma despesa pendente de aprovação.
-                        </div>
-                    </Card>
-                ) : (
-                    <div className="grid gap-6">
-                        {despesas.map((item) => (
-                            <Card key={item.id} className="glass-card hover:scale-[1.002] transition-all duration-300 shadow-xl border-none bg-white">
-                                <CardContent className="p-8">
-                                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                                        {/* Detalhes */}
-                                        <div className="space-y-4 flex-1">
-                                            <div className="flex flex-wrap items-center gap-3">
-                                                <Badge className={`border-0 font-bold px-3 py-1 rounded-lg ${
+                                ) : (
+                    <>
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        <th className="py-4.5 px-6">Data</th>
+                                        <th className="py-4.5 px-6">Tipo</th>
+                                        <th className="py-4.5 px-6">Solicitante</th>
+                                        <th className="py-4.5 px-6">Descrição</th>
+                                        <th className="py-4.5 px-6 text-right">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100/60">
+                                    {despesas.map(item => (
+                                        <tr
+                                            key={item.id}
+                                            onClick={() => setDetailItem(item)}
+                                            className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
+                                        >
+                                            <td className="py-4.5 px-6">
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+                                                    <span className="font-semibold text-slate-700">
+                                                        {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4.5 px-6">
+                                                <Badge className={`border-0 font-bold px-2.5 py-0.5 rounded-lg text-xs ${
                                                     item.tipo === "REEMBOLSO"
                                                         ? "bg-rose-100 text-rose-800"
                                                         : "bg-emerald-100 text-emerald-800"
                                                 }`}>
                                                     {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
                                                 </Badge>
-                                                {item.status === 'AGUARDANDO_APROVACAO_N1' && (
-                                                    <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50/50 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider">
-                                                        N1
-                                                    </Badge>
-                                                )}
-                                                {item.status === 'AGUARDANDO_APROVACAO_N2' && (
-                                                    <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50/50 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider">
-                                                        N2
-                                                    </Badge>
-                                                )}
-                                                <div className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{new Date(item.createdAt).toLocaleDateString('pt-BR')}</span>
-                                                <div className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: {item.id.slice(0, 6)}</span>
-                                            </div>
+                                            </td>
+                                            <td className="py-4.5 px-6">
+                                                <div className="font-bold text-slate-900">{item.solicitante.nome}</div>
+                                                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                                                    {item.solicitante.role}
+                                                </span>
+                                            </td>
+                                            <td className="py-4.5 px-6 truncate max-w-xs">
+                                                <span className="text-slate-600 font-medium">{item.descricao}</span>
+                                            </td>
+                                            <td className="py-4.5 px-6 text-right">
+                                                <span className="font-black text-slate-900 tracking-tight text-base">
+                                                    R$ {Number(item.valorSolicitado).toFixed(2)}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
 
-                                            <div>
-                                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">R$ {Number(item.valorSolicitado).toFixed(2)}</h3>
-                                                <p className="text-xs text-slate-400 font-semibold pt-0.5">Solicitado por: <span className="text-slate-700">{item.solicitante.nome}</span> ({item.solicitante.role})</p>
-                                            </div>
-
-                                            {item.alertaAuditoria && (
-                                                <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-xs font-bold flex items-start gap-2">
-                                                    <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
-                                                    <span>{item.alertaAuditoria}</span>
-                                                </div>
-                                            )}
-
-                                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600 font-semibold">
-                                                {item.descricao}
-                                            </div>
-
-                                            {/* Exibição dos Anexos/Recibos enviados */}
-                                            {item.anexos && item.anexos.length > 0 && (
-                                                <div className="space-y-1.5">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Documentos Comprovantes ({item.anexos.length})</p>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {item.anexos.map((anexo, idx) => (
-                                                            <a
-                                                                key={idx}
-                                                                href={anexo.url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-center gap-1.5 bg-white border px-3 py-1.5 rounded-lg text-xs font-semibold text-primary hover:bg-slate-50 transition-all shadow-sm"
-                                                            >
-                                                                <FileText className="h-3.5 w-3.5" />
-                                                                <span>{anexo.nomeOriginal}</span>
-                                                            </a>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                        {/* Mobile Extrato List View */}
+                        <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
+                            {despesas.map((item, idx) => (
+                                <div
+                                    key={item.id}
+                                    onClick={() => setDetailItem(item)}
+                                    className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== despesas.length - 1 ? 'border-b border-slate-100/80' : ''}`}
+                                >
+                                    <div className="flex items-center gap-3.5 min-w-0">
+                                        <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
+                                            item.tipo === "REEMBOLSO" 
+                                                ? "bg-rose-50 text-rose-500 border border-rose-100" 
+                                                : "bg-emerald-50 text-emerald-500 border border-emerald-100"
+                                        }`}>
+                                            {item.tipo === "REEMBOLSO" ? <Receipt className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
                                         </div>
-
-                                        {/* Ações */}
-                                        <div className="flex sm:flex-row lg:flex-col gap-3 w-full lg:w-auto border-t lg:border-t-0 pt-4 lg:pt-0 shrink-0">
-                                            <Button
-                                                onClick={() => openDecisionModal(item, "REPROVAR")}
-                                                variant="outline"
-                                                className="flex-1 lg:w-40 h-12 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold uppercase tracking-widest text-[10px] gap-1.5 transition-all"
-                                            >
-                                                <XCircle className="h-4 w-4" />
-                                                Reprovar
-                                            </Button>
-                                            <Button
-                                                onClick={() => openDecisionModal(item, "APROVAR")}
-                                                className="flex-1 lg:w-40 h-12 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-widest text-[10px] gap-1.5 transition-all shadow-md"
-                                            >
-                                                <CheckCircle className="h-4 w-4" />
-                                                Aprovar
-                                            </Button>
+                                        
+                                        <div className="min-w-0 space-y-0.5">
+                                            <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
+                                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
+                                                {item.solicitante.nome} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
+                                            </p>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+
+                                    <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
+                                        <p className="text-xs font-black text-slate-900 tracking-tight">
+                                            R$ {Number(item.valorSolicitado).toFixed(2)}
+                                        </p>
+                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border ${
+                                            item.tipo === 'REEMBOLSO' ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                                        }`}>
+                                            {item.tipo === 'REEMBOLSO' ? 'Reembolso' : 'Adiantamento'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 )}
             </div>
 
@@ -370,6 +369,135 @@ export default function AprovacoesDespesasPage() {
                     </div>
                 </div>
             )}
+
+            {/* Modal de Detalhes da Despesa */}
+            <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
+                <DialogContent className="max-w-xl rounded-3xl border-none shadow-2xl p-0 overflow-hidden bg-slate-50/50">
+                    {detailItem && (
+                        <div className="flex flex-col max-h-[90vh]">
+                            {/* Header */}
+                            <div className="bg-white p-6 border-b border-slate-100 flex flex-col gap-2 shrink-0">
+                                <div className="flex items-center justify-between">
+                                    <Badge className={`border-0 font-bold px-3 py-1 rounded-lg ${
+                                        detailItem.tipo === "REEMBOLSO"
+                                            ? "bg-rose-100 text-rose-800"
+                                            : "bg-emerald-100 text-emerald-800"
+                                    }`}>
+                                        {detailItem.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
+                                    </Badge>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        ID: {detailItem.id.slice(0, 8)}
+                                    </span>
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">
+                                        R$ {Number(detailItem.valorSolicitado).toFixed(2)}
+                                    </h3>
+                                    <p className="text-xs text-slate-400 font-semibold pt-0.5">
+                                        Solicitado por: <span className="text-slate-700">{detailItem.solicitante.nome}</span> ({detailItem.solicitante.role})
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Scrollable Content */}
+                            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-sm text-slate-700">
+                                {/* Alertas de Auditoria */}
+                                {detailItem.alertaAuditoria && (
+                                    <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-xs font-bold flex items-start gap-2">
+                                        <AlertCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
+                                        <span>{detailItem.alertaAuditoria}</span>
+                                    </div>
+                                )}
+
+                                {/* Descrição / Finalidade */}
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Finalidade / Descrição</Label>
+                                    <div className="bg-white p-4 rounded-xl border border-slate-100 text-sm text-slate-600 font-semibold italic">
+                                        "{detailItem.descricao}"
+                                    </div>
+                                </div>
+
+                                {/* Itens da Despesa (se houver) */}
+                                {detailItem.itens && detailItem.itens.length > 0 && (
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Itens Lançados ({detailItem.itens.length})</Label>
+                                        <div className="border rounded-xl overflow-hidden bg-white shadow-xs divide-y">
+                                            {detailItem.itens.map((item: any) => (
+                                                <div key={item.id} className="p-3 flex justify-between items-center text-xs">
+                                                    <div className="space-y-1">
+                                                        <div className="font-bold text-slate-900">{item.descricao}</div>
+                                                        <div className="text-slate-400 font-medium">
+                                                            {item.categoria} &bull; {item.quantidade}x R$ {Number(item.valorUnitario).toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                    <div className="font-black text-slate-900 shrink-0">
+                                                        R$ {Number(item.valorTotal).toFixed(2)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Documentos / Comprovantes */}
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Comprovantes ({detailItem.anexos?.length || 0})</Label>
+                                    {detailItem.anexos && detailItem.anexos.length > 0 ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {detailItem.anexos.map((anexo: any, idx: number) => (
+                                                <a
+                                                    key={idx}
+                                                    href={anexo.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1.5 bg-white border px-3 py-2.5 rounded-xl text-xs font-semibold text-primary hover:bg-slate-50 transition-all shadow-xs"
+                                                >
+                                                    <FileText className="h-3.5 w-3.5 text-slate-400" />
+                                                    <span className="truncate">{anexo.nomeOriginal}</span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-slate-400 italic text-xs">Nenhum comprovante anexado.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Footer Actions */}
+                            <div className="bg-white p-5 border-t border-slate-100 flex gap-3 justify-end shrink-0">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setDetailItem(null)}
+                                    className="h-10 px-5 rounded-xl font-bold uppercase tracking-wider text-[10px]"
+                                >
+                                    Fechar
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        openDecisionModal(detailItem, "REPROVAR")
+                                        setDetailItem(null)
+                                    }}
+                                    variant="outline"
+                                    className="h-10 px-6 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold uppercase tracking-wider text-[10px] gap-1.5"
+                                >
+                                    <XCircle className="h-4 w-4" />
+                                    Reprovar
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        openDecisionModal(detailItem, "APROVAR")
+                                        setDetailItem(null)
+                                    }}
+                                    className="h-10 px-6 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-1.5 shadow-sm"
+                                >
+                                    <CheckCircle className="h-4 w-4" />
+                                    Aprovar
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
