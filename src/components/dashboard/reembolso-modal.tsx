@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
+import { compressImageIfNeeded } from "@/lib/image-compress"
 import { MobileNav } from "./mobile-nav"
 
 export interface ReembolsoModalProps {
@@ -105,8 +106,9 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
 
         setUploading(true)
         try {
+            const compressedFile = await compressImageIfNeeded(file)
             const formData = new FormData()
-            formData.append("file", file)
+            formData.append("file", compressedFile)
 
             const res = await fetch("/api/upload", {
                 method: "POST",

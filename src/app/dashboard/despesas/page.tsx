@@ -22,6 +22,7 @@ import {
 import { ReembolsoModal } from "@/components/dashboard/reembolso-modal"
 import { AdiantamentoModal } from "@/components/dashboard/adiantamento-modal"
 import { formatCurrency } from "@/lib/utils"
+import { compressImageIfNeeded } from "@/lib/image-compress"
 
 function formatDate(dateInput: any) {
     if (!dateInput) return ""
@@ -167,8 +168,9 @@ export default function MinhasDespesasPage() {
 
         setUploadingComprovante(true)
         try {
+            const compressedFile = await compressImageIfNeeded(file)
             const formData = new FormData()
-            formData.append("file", file)
+            formData.append("file", compressedFile)
 
             const res = await fetch("/api/upload", {
                 method: "POST",

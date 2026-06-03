@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn, formatCurrency } from "@/lib/utils"
+import { compressImageIfNeeded } from "@/lib/image-compress"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
@@ -171,6 +172,15 @@ export default function FinanceDashboard() {
         if (!selectedItem && (!batchItemsToPay || batchItemsToPay.length === 0)) return
         setProcessing(true)
 
+        let fileToUpload = file
+        if (file) {
+            try {
+                fileToUpload = await compressImageIfNeeded(file)
+            } catch (err) {
+                console.error("Compression failed, uploading original:", err)
+            }
+        }
+
         const itemsToProcess = batchItemsToPay ? batchItemsToPay : [selectedItem!]
         let successCount = 0
         let failCount = 0
@@ -183,8 +193,8 @@ export default function FinanceDashboard() {
                 formData.append("dataPagamento", payData.date)
                 formData.append("meioPagamentoId", payData.methodId)
                 formData.append("justificativa", payData.obs)
-                if (file) {
-                    formData.append("comprovante", file)
+                if (fileToUpload) {
+                    formData.append("comprovante", fileToUpload)
                 }
 
                 const res = await fetch("/api/finance/payable", {

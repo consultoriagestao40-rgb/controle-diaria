@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+import { compressImageIfNeeded } from "@/lib/image-compress"
 
 export default function NovaDespesaPage() {
     const router = useRouter()
@@ -97,8 +98,9 @@ export default function NovaDespesaPage() {
 
         setUploading(true)
         try {
+            const compressedFile = await compressImageIfNeeded(file)
             const formData = new FormData()
-            formData.append("file", file)
+            formData.append("file", compressedFile)
 
             const res = await fetch("/api/upload", {
                 method: "POST",
