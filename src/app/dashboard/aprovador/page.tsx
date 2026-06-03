@@ -974,6 +974,7 @@ export default function ApproverDashboard() {
                                                         {groupBy !== 'RESERVA' && item.reserva?.nome && ` • Faltou: ${item.reserva.nome}`}
                                                     </p>
                                                 </div>
+                                            </div>
                                             <div className="flex items-center gap-2 shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
                                                 <div className="text-right flex flex-col items-end gap-1">
                                                     <span className="text-sm font-black text-slate-900 tracking-tight">
