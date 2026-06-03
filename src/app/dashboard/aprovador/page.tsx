@@ -102,6 +102,28 @@ export default function ApproverDashboard() {
     const [justificativa, setJustificativa] = useState("")
     const [processing, setProcessing] = useState(false)
 
+    // Grouping State
+    const [groupBy, setGroupBy] = useState<'NONE' | 'DIARISTA' | 'POSTO' | 'EMPRESA' | 'RESERVA' | 'MOTIVO'>('NONE')
+    const [selectedGroup, setSelectedGroup] = useState<{ type: string; name: string; items: Item[] } | null>(null)
+    const [selectedItemIdsForBatch, setSelectedItemIdsForBatch] = useState<string[]>([])
+    const [batchItemsToApprove, setBatchItemsToApprove] = useState<Item[] | null>(null)
+
+    // Sync open group items when the main items list changes
+    useEffect(() => {
+        if (selectedGroup && items.length > 0) {
+            const updatedItems = items.filter(newItem => 
+                selectedGroup.items.some(oldItem => oldItem.id === newItem.id)
+            )
+            if (updatedItems.length === 0) {
+                setSelectedGroup(null)
+                setSelectedItemIdsForBatch([])
+            } else {
+                setSelectedGroup(prev => prev ? { ...prev, items: updatedItems } : null)
+                setSelectedItemIdsForBatch(prev => prev.filter(id => updatedItems.some(i => i.id === id)))
+            }
+        }
+    }, [items])
+
     const handleQuickApprove = async (item: Item, e: React.MouseEvent) => {
         e.stopPropagation()
         openActionDialog(item, 'APROVAR', e)
@@ -132,6 +154,115 @@ export default function ApproverDashboard() {
         } finally {
             setProcessing(false)
         }
+    }
+
+    const submitBatchAction = async (justif?: string) => {
+        if (!batchItemsToApprove || batchItemsToApprove.length === 0) return
+        setProcessing(true)
+        
+        let successCount = 0
+        let failCount = 0
+
+        for (const item of batchItemsToApprove) {
+            try {
+                const res = await fetch("/api/approver/items", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: item.id, acao: 'APROVAR', justificativa: justif })
+                })
+                if (res.ok) {
+                    successCount++
+                } else {
+                    failCount++
+                }
+            } catch {
+                failCount++
+            }
+        }
+
+        if (successCount > 0) {
+            toast.success(`${successCount} itens aprovados com sucesso!`)
+        }
+        if (failCount > 0) {
+            toast.error(`Erro ao aprovar ${failCount} itens.`)
+        }
+
+        setBatchItemsToApprove(null)
+        setSelectedGroup(null)
+        setSelectedItemIdsForBatch([])
+        fetchItems()
+        setProcessing(false)
+    }
+
+    const toggleItemSelection = (id: string) => {
+        setSelectedItemIdsForBatch(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        )
+    }
+
+    const toggleAllItems = () => {
+        if (!selectedGroup) return
+        if (selectedItemIdsForBatch.length === selectedGroup.items.length) {
+            setSelectedItemIdsForBatch([])
+        } else {
+            setSelectedItemIdsForBatch(selectedGroup.items.map(i => i.id))
+        }
+    }
+
+    const getGroupedItems = () => {
+        if (groupBy === 'NONE') return []
+
+        const groups: { [key: string]: Item[] } = {}
+
+        filteredItems.forEach(item => {
+            let key = ""
+            if (groupBy === 'DIARISTA') {
+                key = item.diarista.nome
+            } else if (groupBy === 'POSTO') {
+                key = item.posto.nome
+            } else if (groupBy === 'EMPRESA') {
+                key = item.empresa?.nome || 'Sem Empresa'
+            } else if (groupBy === 'RESERVA') {
+                key = item.reserva?.nome || 'Vaga em Aberto'
+            } else if (groupBy === 'MOTIVO') {
+                key = item.motivo.descricao
+            }
+
+            if (!groups[key]) {
+                groups[key] = []
+            }
+            groups[key].push(item)
+        })
+
+        return Object.entries(groups).map(([name, groupItems]) => {
+            const totalVal = groupItems.reduce((acc, item) => acc + Number(item.valor), 0)
+            return {
+                name,
+                items: groupItems,
+                count: groupItems.length,
+                totalValue: totalVal
+            }
+        }).sort((a, b) => b.totalValue - a.totalValue)
+    }
+
+    const groupedItems = getGroupedItems()
+
+    const getGroupIcon = () => {
+        if (groupBy === 'DIARISTA') return <User className="h-4 w-4 text-blue-500" />
+        if (groupBy === 'POSTO') return <MapPin className="h-4 w-4 text-primary" />
+        if (groupBy === 'EMPRESA') return <FileText className="h-4 w-4 text-indigo-500" />
+        if (groupBy === 'RESERVA') return <User className="h-4 w-4 text-purple-500" />
+        if (groupBy === 'MOTIVO') return <FileText className="h-4 w-4 text-slate-500" />
+        return <User className="h-4 w-4 text-slate-500" />
+    }
+
+    const getGroupTypeLabel = () => {
+        if (groupBy === 'DIARISTA') return "Diarista"
+        if (groupBy === 'POSTO') return "Posto de Trabalho"
+        if (groupBy === 'EMPRESA') return "Empresa (Grupo)"
+        if (groupBy === 'RESERVA') return "Quem Faltou"
+        if (groupBy === 'MOTIVO') return "Motivo"
+        return ""
     }
 
     const getStatusCircleIcon = (status: string) => {
@@ -252,20 +383,43 @@ export default function ApproverDashboard() {
                             />
                         </div>
                     </div>
+
+                    {/* Agrupar por */}
+                    <div className="space-y-1 md:space-y-1.5 w-full md:w-52">
+                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Visualização (Agrupar)</label>
+                        <select
+                            value={groupBy}
+                            onChange={(e: any) => {
+                                setGroupBy(e.target.value)
+                                setSelectedGroup(null)
+                            }}
+                            className="h-10 md:h-12 bg-white border border-slate-200 hover:border-slate-300 shadow-xs rounded-xl px-3 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all font-semibold text-xs md:text-sm text-slate-700 w-full outline-none appearance-none cursor-pointer"
+                            style={{ backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px' }}
+                        >
+                            <option value="NONE">Sem Agrupamento (Padrão)</option>
+                            <option value="DIARISTA">Agrupar por Diarista</option>
+                            <option value="POSTO">Agrupar por Posto de Trabalho</option>
+                            <option value="EMPRESA">Agrupar por Empresa (Grupo)</option>
+                            <option value="RESERVA">Agrupar por Quem Faltou</option>
+                            <option value="MOTIVO">Agrupar por Motivo</option>
+                        </select>
+                    </div>
                 </div>
 
-                {(searchTerm || startDate || endDate) && (
-                    <div className="flex justify-start px-1">
+                {(searchTerm || startDate || endDate || groupBy !== 'NONE') && (
+                    <div className="flex justify-start gap-2 px-1">
                         <Button
                             variant="ghost"
                             onClick={() => {
                                 setSearchTerm("")
                                 setStartDate("")
                                 setEndDate("")
+                                setGroupBy("NONE")
+                                setSelectedGroup(null)
                             }}
                             className="text-[10px] text-slate-500 hover:text-primary font-bold uppercase tracking-wider h-8 rounded-lg px-3 bg-slate-100 hover:bg-slate-200/50 transition-all cursor-pointer"
                         >
-                            Limpar Filtros
+                            Limpar Filtros & Agrupamentos
                         </Button>
                     </div>
                 )}
@@ -279,6 +433,98 @@ export default function ApproverDashboard() {
                         {searchTerm || startDate || endDate ? "Nenhum resultado para a busca." : "Nenhuma pendência encontrada."}
                     </div>
                 </Card>
+            ) : groupBy !== 'NONE' ? (
+                <>
+                    {/* Desktop Grouped Table View */}
+                    <div className="hidden md:block bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    <th className="py-4.5 px-6">{getGroupTypeLabel()}</th>
+                                    <th className="py-4.5 px-6 text-center">Qtd. Plantões</th>
+                                    <th className="py-4.5 px-6 text-right">Valor Acumulado</th>
+                                    <th className="py-4.5 px-6 text-right">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100/60">
+                                {groupedItems.map(group => (
+                                    <tr
+                                        key={group.name}
+                                        onClick={() => {
+                                            setSelectedGroup({ type: getGroupTypeLabel(), name: group.name, items: group.items })
+                                            setSelectedItemIdsForBatch(group.items.map(i => i.id)) // select all by default
+                                        }}
+                                        className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
+                                    >
+                                        <td className="py-4.5 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                                    {getGroupIcon()}
+                                                </div>
+                                                <span className="font-bold text-slate-900 text-sm">
+                                                    {group.name}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4.5 px-6 text-center">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
+                                                {group.count} {group.count === 1 ? 'plantão' : 'plantões'}
+                                            </span>
+                                        </td>
+                                        <td className="py-4.5 px-6 text-right">
+                                            <span className="font-black text-slate-900 tracking-tight text-base">
+                                                {formatCurrency(group.totalValue)}
+                                            </span>
+                                        </td>
+                                        <td className="py-4.5 px-6 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                className="text-xs font-black uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/5"
+                                            >
+                                                Abrir Extrato
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile Grouped Feed View */}
+                    <div className="block md:hidden space-y-3 mx-1">
+                        {groupedItems.map(group => (
+                            <div
+                                key={group.name}
+                                onClick={() => {
+                                    setSelectedGroup({ type: getGroupTypeLabel(), name: group.name, items: group.items })
+                                    setSelectedItemIdsForBatch(group.items.map(i => i.id)) // select all by default
+                                }}
+                                className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-xs hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer flex justify-between items-center"
+                            >
+                                <div className="space-y-1.5 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        {getGroupIcon()}
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                                            {getGroupTypeLabel()}
+                                        </span>
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-sm truncate">{group.name}</h4>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 text-[10px] font-bold border border-slate-100">
+                                        {group.count} {group.count === 1 ? 'plantão' : 'plantões'}
+                                    </span>
+                                </div>
+                                <div className="text-right shrink-0 ml-3 space-y-1">
+                                    <span className="font-black text-slate-900 text-base tracking-tight block">
+                                        {formatCurrency(group.totalValue)}
+                                    </span>
+                                    <span className="text-[9px] font-black text-primary uppercase tracking-widest block">
+                                        Extrato &rarr;
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
             ) : (
                 <>
                     {/* Desktop Table View */}
@@ -386,18 +632,28 @@ export default function ApproverDashboard() {
             )}
 
             {/* Dialog for Reject/Adjust */}
-            <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+            <Dialog open={!!selectedItem || !!batchItemsToApprove} onOpenChange={(open) => {
+                if (!open) {
+                    setSelectedItem(null)
+                    setBatchItemsToApprove(null)
+                }
+            }}>
                 <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl">
                     <DialogHeader>
                         <DialogTitle className="font-bold text-slate-900">
-                            {actionType === 'REPROVAR' ? 'Reprovar Cobertura' : actionType === 'APROVAR' ? `Aprovar Cobertura (${userRole === 'APROVADOR_N1' ? 'N1' : 'N2'})` : 'Solicitar Ajuste'}
+                            {batchItemsToApprove
+                                ? `Aprovar em Lote (${batchItemsToApprove.length} itens)`
+                                : (actionType === 'REPROVAR' ? 'Reprovar Cobertura' : actionType === 'APROVAR' ? `Aprovar Cobertura (${userRole === 'APROVADOR_N1' ? 'N1' : 'N2'})` : 'Solicitar Ajuste')
+                            }
                         </DialogTitle>
                         <DialogDescription className="text-slate-500 font-medium">
-                            {actionType === 'REPROVAR'
-                                ? 'Justifique a reprovação. O item será cancelado.'
-                                : actionType === 'APROVAR'
-                                    ? 'Por favor, insira uma justificativa/parecer obrigatório para prosseguir com a aprovação.'
-                                    : 'Descreva o que precisa ser corrigido. O supervisor será notificado.'
+                            {batchItemsToApprove
+                                ? `Insira a justificativa/parecer que será aplicado a todas as ${batchItemsToApprove.length} coberturas selecionadas.`
+                                : (actionType === 'REPROVAR'
+                                    ? 'Justifique a reprovação. O item será cancelado.'
+                                    : actionType === 'APROVAR'
+                                        ? 'Por favor, insira uma justificativa/parecer obrigatório para prosseguir com a aprovação.'
+                                        : 'Descreva o que precisa ser corrigido. O supervisor será notificado.')
                             }
                         </DialogDescription>
                     </DialogHeader>
@@ -416,16 +672,26 @@ export default function ApproverDashboard() {
                         <Button
                             variant="ghost"
                             onClick={() => {
-                                setDetailItem(selectedItem) // Reopen detail modal
-                                setSelectedItem(null)
+                                if (batchItemsToApprove) {
+                                    setBatchItemsToApprove(null)
+                                } else {
+                                    setDetailItem(selectedItem) // Reopen detail modal
+                                    setSelectedItem(null)
+                                }
                             }}
                             className="w-full sm:w-auto"
                         >
                             Cancelar
                         </Button>
                         <Button
-                            variant={actionType === 'REPROVAR' ? 'destructive' : 'default'}
-                            onClick={() => selectedItem && submitAction(selectedItem.id, actionType!, justificativa)}
+                            variant={(actionType === 'REPROVAR' && !batchItemsToApprove) ? 'destructive' : 'default'}
+                            onClick={() => {
+                                if (batchItemsToApprove) {
+                                    submitBatchAction(justificativa)
+                                } else if (selectedItem) {
+                                    submitAction(selectedItem.id, actionType!, justificativa)
+                                }
+                            }}
                             disabled={processing || !justificativa.trim()}
                             className="w-full sm:w-auto cursor-pointer"
                         >
@@ -611,6 +877,120 @@ export default function ApproverDashboard() {
                                     <CheckCircle className="mr-1 h-3.5 w-3.5 hidden sm:inline" /> Aprovar
                                 </Button>
                             </div>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Group Extrato Modal */}
+            <Dialog open={!!selectedGroup} onOpenChange={(open) => !open && setSelectedGroup(null)}>
+                <DialogContent className="max-w-3xl rounded-3xl border-none shadow-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
+                    <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100/60 shrink-0 text-left">
+                        <DialogTitle className="font-black text-xl text-slate-900 tracking-tight">
+                            Extrato - {selectedGroup?.name}
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[9px] mt-0.5">
+                            Visualização agrupada por {selectedGroup?.type} • {selectedGroup?.items.length} diárias pendentes
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedGroup && (
+                        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-none">
+                            {/* Checklist Header */}
+                            <div className="flex justify-between items-center px-1 pb-2 border-b border-slate-100/65">
+                                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedItemIdsForBatch.length === selectedGroup.items.length}
+                                        onChange={toggleAllItems}
+                                        className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary/25 accent-primary cursor-pointer"
+                                    />
+                                    Selecionar Todos ({selectedItemIdsForBatch.length}/{selectedGroup.items.length})
+                                </label>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    Total: {formatCurrency(selectedGroup.items.reduce((acc, item) => acc + Number(item.valor), 0))}
+                                </span>
+                            </div>
+
+                            {/* Group list */}
+                            <div className="space-y-2">
+                                {selectedGroup.items.map(item => {
+                                    const isSelected = selectedItemIdsForBatch.includes(item.id)
+                                    return (
+                                        <div 
+                                            key={item.id}
+                                            onClick={() => toggleItemSelection(item.id)}
+                                            className={`flex items-center justify-between p-3.5 hover:bg-slate-50/50 transition-all rounded-2xl border border-slate-100/80 cursor-pointer select-none ${isSelected ? 'bg-primary/[0.01] border-primary/20 shadow-2xs' : 'bg-white'}`}
+                                        >
+                                            <div className="flex items-center gap-3.5 min-w-0">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={(e) => {
+                                                        e.stopPropagation() // Prevent row click trigger
+                                                        toggleItemSelection(item.id)
+                                                    }}
+                                                    className="h-4.5 w-4.5 rounded border-slate-300 text-primary focus:ring-primary/25 accent-primary cursor-pointer"
+                                                />
+                                                <div className="min-w-0 space-y-0.5">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-slate-800">
+                                                            {new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                        </span>
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-yellow-50 text-yellow-700 border border-yellow-100 text-[8px] font-black uppercase tracking-wider">
+                                                            {item.status}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">
+                                                        {groupBy !== 'POSTO' && `${item.posto.nome}`}
+                                                        {groupBy !== 'DIARISTA' && ` • Cobriu: ${item.diarista.nome}`}
+                                                        {groupBy !== 'RESERVA' && item.reserva?.nome && ` • Faltou: ${item.reserva.nome}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                <span className="text-sm font-black text-slate-900 tracking-tight">
+                                                    {formatCurrency(item.valor)}
+                                                </span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        setDetailItem(item)
+                                                    }}
+                                                    className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-slate-100 rounded-lg cursor-pointer shrink-0"
+                                                >
+                                                    <Search className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="px-5 py-4 border-t border-slate-100/60 bg-slate-50/50 shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setSelectedGroup(null)} 
+                            className="w-full sm:w-auto font-bold uppercase tracking-wider text-[10px] text-slate-500 hover:bg-slate-100"
+                        >
+                            Fechar
+                        </Button>
+                        {selectedGroup && (
+                            <Button
+                                disabled={selectedItemIdsForBatch.length === 0}
+                                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-105 disabled:text-slate-400 text-white font-black uppercase tracking-wider text-[10px] sm:text-xs py-2 w-full sm:w-auto cursor-pointer"
+                                onClick={() => {
+                                    const selectedItems = selectedGroup.items.filter(item => selectedItemIdsForBatch.includes(item.id))
+                                    setBatchItemsToApprove(selectedItems)
+                                    setActionType('APROVAR')
+                                    setJustificativa("")
+                                }}
+                            >
+                                <CheckCircle className="mr-1.5 h-4 w-4 hidden sm:inline" /> Aprovar Selecionados ({selectedItemIdsForBatch.length}) em Lote
+                            </Button>
                         )}
                     </DialogFooter>
                 </DialogContent>
