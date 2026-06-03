@@ -343,11 +343,15 @@ export default function MinhasDespesasPage() {
         <div className="space-y-10 pb-32 max-w-5xl mx-auto pt-4 relative">
             {/* Header */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-                <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
-                        Minhas <span className="text-primary italic">Despesas</span>
+                <div className="relative -mt-8 -mx-4 lg:mt-0 lg:mx-0 p-6 lg:p-0 bg-slate-950 lg:bg-transparent text-white lg:text-slate-900 border-b lg:border-none border-blue-500/20 overflow-hidden shadow-lg lg:shadow-none lg:space-y-1 lg:block flex flex-col justify-center w-full lg:w-auto">
+                    {/* Glows for App View */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
+                    
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight text-white lg:text-slate-900">
+                        Minhas <span className="text-blue-400 lg:text-primary italic">Despesas</span>
                     </h1>
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">
+                    <p className="text-blue-500/60 lg:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-1 lg:mt-0">
                         Acompanhe seus reembolsos e adiantamentos
                     </p>
                 </div>
