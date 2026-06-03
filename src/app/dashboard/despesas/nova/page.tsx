@@ -181,30 +181,42 @@ export default function NovaDespesaPage() {
     }
 
     return (
-        <div className="space-y-10 pb-32 max-w-4xl mx-auto pt-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center gap-3">
-                    <Link href="/dashboard/despesas">
-                        <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-600 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 transition-all shrink-0 cursor-pointer">
-                            <ChevronLeft className="h-5 w-5 stroke-[2.5]" />
-                        </Button>
-                    </Link>
-                    <div className="space-y-1">
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
-                            Solicitar <span className="text-primary italic">Reembolso ou Adiantamento</span>
-                        </h1>
-                        <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">
-                            Preencha os dados e anexe os comprovantes necessários
-                        </p>
+        <div className="space-y-10 pb-32 max-w-4xl mx-auto pt-4 relative">
+            {/* Header / Top Banner */}
+            <div className="relative -mt-8 -mx-4 lg:mt-0 lg:mx-0 p-6 lg:p-0 bg-slate-950 lg:bg-transparent text-white lg:text-slate-900 border-b lg:border-none border-emerald-500/20 overflow-hidden shadow-lg lg:shadow-none w-[calc(100%+2rem)] lg:w-auto">
+                {/* Glows for App View */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
+                
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <Link href="/dashboard/despesas">
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-10 w-10 text-white lg:text-slate-600 rounded-xl bg-white/10 lg:bg-white border border-white/5 lg:border-slate-200 hover:bg-white/20 lg:hover:bg-slate-50 active:scale-95 transition-all shrink-0 cursor-pointer"
+                            >
+                                <ChevronLeft className="h-5 w-5 stroke-[2.5]" />
+                            </Button>
+                        </Link>
+                        <div className="space-y-1">
+                            <h1 className="text-xl sm:text-2xl lg:text-4xl font-black tracking-tighter flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight text-white lg:text-slate-900">
+                                Solicitar <span className="text-emerald-400 lg:text-primary italic">Reembolso ou Adiantamento</span>
+                            </h1>
+                            <p className="text-emerald-500/60 lg:text-slate-400 font-bold uppercase tracking-[0.3em] text-[9px] lg:text-[10px] mt-1 lg:mt-0">
+                                Preencha os dados e anexe os comprovantes necessários
+                            </p>
+                        </div>
                     </div>
+                    
+                    <Link
+                        href="/dashboard/despesas/politicas"
+                        className="flex items-center gap-1.5 text-[9px] lg:text-[10px] font-black uppercase tracking-wider text-emerald-400 lg:text-slate-500 hover:text-emerald-300 lg:hover:text-primary transition-colors bg-white/10 lg:bg-slate-100 hover:bg-white/20 lg:hover:bg-slate-200/80 px-3.5 py-2 rounded-xl border border-white/5 lg:border-slate-200 w-full lg:w-auto justify-center"
+                    >
+                        <Settings className="h-3.5 w-3.5" />
+                        Ver Políticas Corporativas
+                    </Link>
                 </div>
-                <Link
-                    href="/dashboard/despesas/politicas"
-                    className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-primary transition-colors bg-slate-100 hover:bg-slate-200/80 px-3.5 py-2 rounded-xl border border-slate-200"
-                >
-                    <Settings className="h-3.5 w-3.5" />
-                    Ver Políticas Corporativas
-                </Link>
             </div>
 
             {/* Toggle Tipo */}
