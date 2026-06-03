@@ -927,7 +927,7 @@ export default function ApproverDashboard() {
                                             onClick={() => toggleItemSelection(item.id)}
                                             className={`flex items-center justify-between p-3.5 hover:bg-slate-50/50 transition-all rounded-2xl border border-slate-100/80 cursor-pointer select-none ${isSelected ? 'bg-primary/[0.01] border-primary/20 shadow-2xs' : 'bg-white'}`}
                                         >
-                                            <div className="flex items-center gap-3.5 min-w-0">
+                                            <div className="flex items-center gap-3.5 min-w-0 flex-1">
                                                 <input
                                                     type="checkbox"
                                                     checked={isSelected}
@@ -935,17 +935,12 @@ export default function ApproverDashboard() {
                                                         e.stopPropagation() // Prevent row click trigger
                                                         toggleItemSelection(item.id)
                                                     }}
-                                                    className="h-4.5 w-4.5 rounded border-slate-300 text-primary focus:ring-primary/25 accent-primary cursor-pointer"
+                                                    className="h-4.5 w-4.5 rounded border-slate-300 text-primary focus:ring-primary/25 accent-primary cursor-pointer shrink-0"
                                                 />
                                                 <div className="min-w-0 space-y-0.5">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold text-slate-800">
-                                                            {new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                                        </span>
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-yellow-50 text-yellow-700 border border-yellow-100 text-[8px] font-black uppercase tracking-wider">
-                                                            {item.status}
-                                                        </span>
-                                                    </div>
+                                                    <span className="text-xs font-bold text-slate-800 block">
+                                                        {new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                    </span>
                                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">
                                                         {groupBy !== 'POSTO' && `${item.posto.nome}`}
                                                         {groupBy !== 'DIARISTA' && ` • Cobriu: ${item.diarista.nome}`}
@@ -953,10 +948,20 @@ export default function ApproverDashboard() {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                <span className="text-sm font-black text-slate-900 tracking-tight">
-                                                    {formatCurrency(item.valor)}
-                                                </span>
+                                            <div className="flex items-center gap-2 shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
+                                                <div className="text-right flex flex-col items-end gap-1">
+                                                    <span className="text-sm font-black text-slate-900 tracking-tight">
+                                                        {formatCurrency(item.valor)}
+                                                    </span>
+                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${
+                                                        item.status === 'PENDENTE' ? 'bg-yellow-50 border-yellow-100 text-yellow-600' :
+                                                        item.status === 'APROVADO_N1' ? 'bg-blue-50 border-blue-100 text-primary' :
+                                                        item.status === 'APROVADO' ? 'bg-green-50 border-green-100 text-green-600' :
+                                                        'bg-red-50 border-red-100 text-red-600'
+                                                    }`}>
+                                                        {getStatusTextLabel(item.status)}
+                                                    </span>
+                                                </div>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
