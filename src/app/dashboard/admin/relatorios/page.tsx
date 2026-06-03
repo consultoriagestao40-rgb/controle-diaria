@@ -43,6 +43,48 @@ export default function RelatoriosPage() {
         end: new Date()
     })
 
+    const [startInput, setStartInput] = useState("")
+    const [endInput, setEndInput] = useState("")
+
+    const maskDate = (value: string) => {
+        return value
+            .replace(/\D/g, "")
+            .replace(/(\d{2})(\d)/, "$1/$2")
+            .replace(/(\d{2})(\d)/, "$1/$2")
+            .substring(0, 10)
+    }
+
+    const parseDate = (val: string): Date | undefined => {
+        const parts = val.split('/')
+        if (parts.length === 3) {
+            const day = parseInt(parts[0], 10)
+            const month = parseInt(parts[1], 10) - 1
+            const year = parseInt(parts[2], 10)
+            if (day > 0 && day <= 31 && month >= 0 && month < 12 && year >= 1900 && year <= 2100) {
+                return new Date(year, month, day)
+            }
+        }
+        return undefined
+    }
+
+    const formatDateForInput = (date: Date | undefined): string => {
+        if (!date) return ""
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const year = date.getFullYear()
+        return `${day}/${month}/${year}`
+    }
+
+    // Initialize inputs when state loads
+    useEffect(() => {
+        if (dateRange.start && !startInput) {
+            setStartInput(formatDateForInput(dateRange.start))
+        }
+        if (dateRange.end && !endInput) {
+            setEndInput(formatDateForInput(dateRange.end))
+        }
+    }, [dateRange.start, dateRange.end])
+
     const [filters, setFilters] = useState({
         diaristaId: "all",
         motivoId: "all",
@@ -149,19 +191,37 @@ export default function RelatoriosPage() {
                     <div className="flex flex-col gap-1">
                         <Label className="text-xs text-muted-foreground">Início</Label>
                         <Input
-                            type="date"
-                            className="h-8 w-[130px] text-sm"
-                            value={dateRange.start ? dateRange.start.toISOString().split('T')[0] : ''}
-                            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value ? new Date(e.target.value) : undefined }))}
+                            type="text"
+                            placeholder="dd/mm/aaaa"
+                            className="h-8 w-[110px] text-sm text-center"
+                            maxLength={10}
+                            value={startInput}
+                            onChange={(e) => {
+                                const masked = maskDate(e.target.value)
+                                setStartInput(masked)
+                                const parsed = parseDate(masked)
+                                if (parsed) {
+                                    setDateRange(prev => ({ ...prev, start: parsed }))
+                                }
+                            }}
                         />
                     </div>
                     <div className="flex flex-col gap-1">
                         <Label className="text-xs text-muted-foreground">Fim</Label>
                         <Input
-                            type="date"
-                            className="h-8 w-[130px] text-sm"
-                            value={dateRange.end ? dateRange.end.toISOString().split('T')[0] : ''}
-                            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value ? new Date(e.target.value) : undefined }))}
+                            type="text"
+                            placeholder="dd/mm/aaaa"
+                            className="h-8 w-[110px] text-sm text-center"
+                            maxLength={10}
+                            value={endInput}
+                            onChange={(e) => {
+                                const masked = maskDate(e.target.value)
+                                setEndInput(masked)
+                                const parsed = parseDate(masked)
+                                if (parsed) {
+                                    setDateRange(prev => ({ ...prev, end: parsed }))
+                                }
+                            }}
                         />
                     </div>
                     <Button size="sm" onClick={handleFilterApply} disabled={loadingStats}>

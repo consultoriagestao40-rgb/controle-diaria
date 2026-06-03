@@ -46,6 +46,29 @@ export default function AdminCoberturasPage() {
     // Date Filters
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
+    const [startInput, setStartInput] = useState("")
+    const [endInput, setEndInput] = useState("")
+
+    const maskDate = (value: string) => {
+        return value
+            .replace(/\D/g, "")
+            .replace(/(\d{2})(\d)/, "$1/$2")
+            .replace(/(\d{2})(\d)/, "$1/$2")
+            .substring(0, 10)
+    }
+
+    const parseToISODate = (val: string): string => {
+        const parts = val.split('/')
+        if (parts.length === 3) {
+            const day = parts[0]
+            const month = parts[1]
+            const year = parts[2]
+            if (day.length === 2 && month.length === 2 && year.length === 4) {
+                return `${year}-${month}-${day}`
+            }
+        }
+        return ""
+    }
 
     const [status, setStatus] = useState("ALL")
 
@@ -134,6 +157,8 @@ export default function AdminCoberturasPage() {
     const clearFilters = () => {
         setStartDate("")
         setEndDate("")
+        setStartInput("")
+        setEndInput("")
         setStatus("ALL")
         setFilters({
             diaristaId: "ALL",
@@ -321,17 +346,31 @@ export default function AdminCoberturasPage() {
 
                         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                             <Input
-                                type="date"
-                                className="w-[150px]"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
+                                type="text"
+                                placeholder="dd/mm/aaaa"
+                                className="w-[110px] text-sm text-center"
+                                maxLength={10}
+                                value={startInput}
+                                onChange={(e) => {
+                                    const masked = maskDate(e.target.value)
+                                    setStartInput(masked)
+                                    const iso = parseToISODate(masked)
+                                    if (iso) setStartDate(iso)
+                                }}
                             />
                             <span className="text-muted-foreground">-</span>
                             <Input
-                                type="date"
-                                className="w-[150px]"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
+                                type="text"
+                                placeholder="dd/mm/aaaa"
+                                className="w-[110px] text-sm text-center"
+                                maxLength={10}
+                                value={endInput}
+                                onChange={(e) => {
+                                    const masked = maskDate(e.target.value)
+                                    setEndInput(masked)
+                                    const iso = parseToISODate(masked)
+                                    if (iso) setEndDate(iso)
+                                }}
                             />
                             <Select value={status} onValueChange={setStatus}>
                                 <SelectTrigger className="w-[140px]">
