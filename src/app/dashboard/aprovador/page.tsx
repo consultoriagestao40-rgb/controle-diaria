@@ -319,20 +319,26 @@ export default function ApproverDashboard() {
 
     return (
         <div className="space-y-4 md:space-y-6 pb-24 md:pb-32 px-1 md:px-0">
-            {/* Header section */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 md:gap-6">
+            {/* Header section / Banner Dark */}
+            <div className="relative -mt-4 -mx-5 md:mt-0 md:mx-0 p-6 md:p-0 bg-slate-950 md:bg-transparent text-white md:text-slate-900 border-b md:border-none border-emerald-500/20 overflow-hidden shadow-lg md:shadow-none flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 md:gap-6">
+                {/* Glows for App View */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -z-10 md:hidden" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -z-10 md:hidden" />
+                
                 <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight">
-                        Controle de <span className="text-primary italic">Aprovação</span>
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight text-white md:text-slate-900">
+                        Controle de <span className="text-emerald-400 md:text-primary italic">Aprovação</span>
                     </h1>
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">Análise e validação de plantões</p>
+                    <p className="text-emerald-500/60 md:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-1 md:mt-0">
+                        Análise e validação de plantões
+                    </p>
                 </div>
                 {!loading && (
                     <>
                         {/* Mobile Compact Total Bar */}
-                        <div className="flex md:hidden items-center justify-between bg-white/60 backdrop-blur-sm px-3.5 py-2.5 rounded-xl border border-slate-100/50 w-full shadow-2xs">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Total sob análise</span>
-                            <span className="text-sm font-black text-slate-900 tracking-tight">
+                        <div className="flex md:hidden items-center justify-between bg-white/10 backdrop-blur-sm px-3.5 py-2.5 rounded-xl border border-white/10 w-full shadow-2xs">
+                            <span className="text-[9px] font-black text-emerald-400/80 uppercase tracking-wider">Total sob análise</span>
+                            <span className="text-sm font-black text-white tracking-tight">
                                 {formatCurrency(filteredItems.reduce((acc: number, item: Item) => acc + Number(item.valor), 0))}
                             </span>
                         </div>
