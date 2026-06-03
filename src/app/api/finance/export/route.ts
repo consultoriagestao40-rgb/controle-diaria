@@ -83,10 +83,24 @@ export async function GET(req: Request) {
             { header: "Data Pagto", key: "dataPagto", width: 15 },
         ]
 
+        const formatDate = (date: Date) => {
+            const day = String(date.getUTCDate()).padStart(2, '0')
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+            const year = date.getUTCFullYear()
+            return `${day}/${month}/${year}`
+        }
+
+        const formatLocalDate = (date: Date) => {
+            const day = String(date.getDate()).padStart(2, '0')
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const year = date.getFullYear()
+            return `${day}/${month}/${year}`
+        }
+
         coberturas.forEach(c => {
             worksheet.addRow({
                 id: c.id.substring(0, 8),
-                data: c.data.toISOString().split('T')[0],
+                data: formatDate(c.data),
                 posto: c.posto.nome,
                 empresa: c.empresa?.nome || '-',
                 diarista: c.diarista.nome,
@@ -101,7 +115,7 @@ export async function GET(req: Request) {
                 financeiro: c.financeiro?.nome || '-',
                 pagtoSol: c.meioPagamentoSolicitado.descricao,
                 pagtoEfe: c.meioPagamentoEfetivado?.descricao || '-',
-                dataPagto: c.dataPagamento ? c.dataPagamento.toISOString().split('T')[0] : '-'
+                dataPagto: c.dataPagamento ? formatLocalDate(c.dataPagamento) : '-'
             })
         })
 

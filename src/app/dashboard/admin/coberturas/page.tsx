@@ -404,7 +404,7 @@ export default function AdminCoberturasPage() {
                                 <TableBody>
                                     {filteredItems.map((item) => (
                                         <TableRow key={item.id} className="hover:bg-slate-50">
-                                            <TableCell>{new Date(item.data).toLocaleDateString()}</TableCell>
+                                            <TableCell>{new Date(item.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                                             <TableCell>{item.posto.nome}</TableCell>
                                             <TableCell className="text-muted-foreground">{(item as any).empresa?.nome || '-'}</TableCell>
                                             <TableCell className="font-medium">{item.diarista.nome}</TableCell>

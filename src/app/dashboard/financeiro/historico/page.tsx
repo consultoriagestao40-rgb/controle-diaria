@@ -80,8 +80,8 @@ export default function FinanceHistoryPage() {
                                     <TableRow key={item.id}>
                                         <TableCell>
                                             <div className="flex flex-col">
-                                                <span className="font-medium">{new Date(item.dataPagamento).toLocaleDateString()}</span>
-                                                <span className="text-xs text-muted-foreground">Ref: {new Date(item.data).toLocaleDateString()}</span>
+                                                <span className="font-medium">{new Date(item.dataPagamento).toLocaleDateString('pt-BR')}</span>
+                                                <span className="text-xs text-muted-foreground">Ref: {new Date(item.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
