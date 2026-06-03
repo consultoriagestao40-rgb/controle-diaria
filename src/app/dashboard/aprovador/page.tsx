@@ -275,13 +275,13 @@ export default function ApproverDashboard() {
     const getStatusCircleIcon = (status: string) => {
         const iconMap: any = {
             'PENDENTE': <Clock className="h-4 w-4 text-yellow-500 animate-pulse" />,
-            'APROVADO_N1': <CheckCircle className="h-4 w-4 text-primary animate-pulse" />,
+            'APROVADO_N1': <CheckCircle className="h-4 w-4 text-yellow-500 animate-pulse" />,
             'APROVADO': <CheckCircle className="h-4 w-4 text-green-500" />,
             'REPROVADO': <XCircle className="h-4 w-4 text-red-500" />,
         }
         const bgMap: any = {
             'PENDENTE': 'bg-yellow-50 border-yellow-100',
-            'APROVADO_N1': 'bg-blue-50 border-blue-100',
+            'APROVADO_N1': 'bg-yellow-50 border-yellow-100',
             'APROVADO': 'bg-green-50 border-green-100',
             'REPROVADO': 'bg-red-50 border-red-100',
         }
@@ -292,10 +292,13 @@ export default function ApproverDashboard() {
         )
     }
 
-    const getStatusTextLabel = (status: string) => {
+    const getStatusTextLabel = (status: string, aprovadorN1Name?: string) => {
+        if (status === 'APROVADO_N1') {
+            const name = aprovadorN1Name ? aprovadorN1Name.split(' ')[0] : 'N1'
+            return `Ap. ${name}`
+        }
         const map: any = {
             'PENDENTE': 'PENDENTE',
-            'APROVADO_N1': 'APROVADO N1',
             'APROVADO': 'APROVADO',
             'REPROVADO': 'REPROVADO',
         }
@@ -305,7 +308,7 @@ export default function ApproverDashboard() {
     const getStatusTextColorClass = (status: string) => {
         const map: any = {
             'PENDENTE': 'text-yellow-600',
-            'APROVADO_N1': 'text-primary',
+            'APROVADO_N1': 'text-yellow-600',
             'APROVADO': 'text-green-600',
             'REPROVADO': 'text-red-600',
         }
@@ -646,11 +649,11 @@ export default function ApproverDashboard() {
                                     </p>
                                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${
                                         item.status === 'PENDENTE' ? 'bg-yellow-50 border-yellow-100 text-yellow-600' :
-                                        item.status === 'APROVADO_N1' ? 'bg-blue-50 border-blue-100 text-primary' :
+                                        item.status === 'APROVADO_N1' ? 'bg-yellow-50 border-yellow-100 text-yellow-600' :
                                         item.status === 'APROVADO' ? 'bg-green-50 border-green-100 text-green-600' :
                                         'bg-red-50 border-red-100 text-red-600'
                                     }`}>
-                                        {getStatusTextLabel(item.status)}
+                                        {getStatusTextLabel(item.status, item.aprovadorN1?.nome)}
                                     </span>
                                 </div>
                             </div>
@@ -978,11 +981,11 @@ export default function ApproverDashboard() {
                                                     </span>
                                                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${
                                                         item.status === 'PENDENTE' ? 'bg-yellow-50 border-yellow-100 text-yellow-600' :
-                                                        item.status === 'APROVADO_N1' ? 'bg-blue-50 border-blue-100 text-primary' :
+                                                        item.status === 'APROVADO_N1' ? 'bg-yellow-50 border-yellow-100 text-yellow-600' :
                                                         item.status === 'APROVADO' ? 'bg-green-50 border-green-100 text-green-600' :
                                                         'bg-red-50 border-red-100 text-red-600'
                                                     }`}>
-                                                        {getStatusTextLabel(item.status)}
+                                                        {getStatusTextLabel(item.status, item.aprovadorN1?.nome)}
                                                     </span>
                                                 </div>
                                                 <Button
