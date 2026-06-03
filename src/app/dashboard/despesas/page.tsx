@@ -342,21 +342,21 @@ export default function MinhasDespesasPage() {
     return (
         <div className="space-y-10 pb-32 max-w-5xl mx-auto pt-4 relative">
             {/* Header */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-                <div className="relative -mt-8 -mx-4 lg:mt-0 lg:mx-0 p-6 lg:p-0 bg-slate-950 lg:bg-transparent text-white lg:text-slate-900 border-b lg:border-none border-blue-500/20 overflow-hidden shadow-lg lg:shadow-none lg:space-y-1 lg:block flex flex-col justify-center w-full lg:w-auto">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 w-full">
+                <div className="relative -mt-8 -mx-4 lg:mt-0 lg:mx-0 p-6 lg:p-0 bg-slate-950 lg:bg-transparent text-white lg:text-slate-900 border-b lg:border-none border-emerald-500/20 overflow-hidden shadow-lg lg:shadow-none lg:space-y-1 lg:block flex flex-col justify-center w-[calc(100%+2rem)] lg:w-auto">
                     {/* Glows for App View */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -z-10 lg:hidden" />
                     
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight text-white lg:text-slate-900">
-                        Minhas <span className="text-blue-400 lg:text-primary italic">Despesas</span>
+                        Minhas <span className="text-emerald-400 lg:text-primary italic">Despesas</span>
                     </h1>
-                    <p className="text-blue-500/60 lg:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-1 lg:mt-0">
+                    <p className="text-emerald-500/60 lg:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-1 lg:mt-0">
                         Acompanhe seus reembolsos e adiantamentos
                     </p>
                 </div>
                 {!loading && (
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto px-4 lg:px-0">
                         <Link href="/dashboard/despesas/politicas" className="w-full sm:w-auto">
                             <Button variant="outline" className="w-full sm:w-auto h-14 px-6 border-slate-200 hover:bg-slate-50 text-slate-700 transition-all rounded-2xl font-black uppercase tracking-wider text-[11px] flex items-center justify-center gap-2">
                                 <Settings className="h-4 w-4 text-slate-500" />
