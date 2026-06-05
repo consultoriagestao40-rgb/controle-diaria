@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 import { AttachmentViewer } from "@/components/dashboard/attachment-viewer"
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog"
 
 interface Despesa {
     id: string
