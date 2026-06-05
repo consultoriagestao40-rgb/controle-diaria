@@ -39,7 +39,8 @@ export async function GET(req: Request) {
                 meioPagamentoSolicitado: true,
                 supervisor: { select: { nome: true } },
                 aprovadorN1: { select: { nome: true } },
-                aprovador: { select: { nome: true } }
+                aprovador: { select: { nome: true } },
+                empresa: true
             },
             orderBy: { data: 'asc' }
         })

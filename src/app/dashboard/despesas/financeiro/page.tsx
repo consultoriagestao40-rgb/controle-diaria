@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog"
-import { formatCurrency, handleOpenAnexo } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
+import { AttachmentViewer } from "@/components/dashboard/attachment-viewer"
 
 interface Despesa {
     id: string
@@ -32,6 +32,7 @@ interface Despesa {
 export default function FinanceiroDespesasPage() {
     const [despesasAprovadas, setDespesasAprovadas] = useState<Despesa[]>([])
     const [despesasPendentesPrestacao, setDespesasPendentesPrestacao] = useState<Despesa[]>([])
+    const [previewAnexo, setPreviewAnexo] = useState<any | null>(null)
     const [loading, setLoading] = useState(true)
     const [activeSection, setActiveSection] = useState<"PAGAMENTOS" | "CONCILIACOES">("PAGAMENTOS")
 
@@ -526,7 +527,7 @@ export default function FinanceiroDespesasPage() {
                                             {selectedDespesa.anexos.map((anexo: any, idx: number) => (
                                                 <button
                                                     key={idx}
-                                                    onClick={() => handleOpenAnexo(anexo)}
+                                                    onClick={() => setPreviewAnexo(anexo)}
                                                     className="flex items-center gap-1.5 bg-white border px-3 py-2.5 rounded-xl text-xs font-semibold text-primary hover:bg-slate-50 transition-all shadow-xs w-full text-left cursor-pointer"
                                                 >
                                                     <FileText className="h-3.5 w-3.5 text-slate-400" />
@@ -656,6 +657,8 @@ export default function FinanceiroDespesasPage() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <AttachmentViewer anexo={previewAnexo} onClose={() => setPreviewAnexo(null)} />
         </div>
     )
 }

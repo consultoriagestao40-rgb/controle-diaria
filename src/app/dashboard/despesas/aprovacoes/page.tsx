@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog"
-import { handleOpenAnexo } from "@/lib/utils"
+import { AttachmentViewer } from "@/components/dashboard/attachment-viewer"
 
 interface Despesa {
     id: string
@@ -31,6 +31,7 @@ export default function AprovacoesDespesasPage() {
     const [despesas, setDespesas] = useState<Despesa[]>([])
     const [loading, setLoading] = useState(true)
     const [detailItem, setDetailItem] = useState<Despesa | null>(null)
+    const [previewAnexo, setPreviewAnexo] = useState<any | null>(null)
 
     // Estados para o Modal de Decisão (Aprovar/Reprovar)
     const [decisionModalOpen, setDecisionModalOpen] = useState(false)
@@ -457,7 +458,7 @@ export default function AprovacoesDespesasPage() {
                                             {detailItem.anexos.map((anexo: any, idx: number) => (
                                                 <button
                                                     key={idx}
-                                                    onClick={() => handleOpenAnexo(anexo)}
+                                                    onClick={() => setPreviewAnexo(anexo)}
                                                     className="flex items-center gap-1.5 bg-white border px-3 py-2.5 rounded-xl text-xs font-semibold text-primary hover:bg-slate-50 transition-all shadow-xs w-full text-left cursor-pointer"
                                                 >
                                                     <FileText className="h-3.5 w-3.5 text-slate-400" />
@@ -508,6 +509,8 @@ export default function AprovacoesDespesasPage() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <AttachmentViewer anexo={previewAnexo} onClose={() => setPreviewAnexo(null)} />
         </div>
     )
 }

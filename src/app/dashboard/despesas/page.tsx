@@ -21,8 +21,9 @@ import {
 } from "@/components/ui/dialog"
 import { ReembolsoModal } from "@/components/dashboard/reembolso-modal"
 import { AdiantamentoModal } from "@/components/dashboard/adiantamento-modal"
-import { formatCurrency, handleOpenAnexo } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 import { compressImageIfNeeded } from "@/lib/image-compress"
+import { AttachmentViewer } from "@/components/dashboard/attachment-viewer"
 
 function formatDate(dateInput: any) {
     if (!dateInput) return ""
@@ -62,6 +63,7 @@ export default function MinhasDespesasPage() {
     const [despesas, setDespesas] = useState<Despesa[]>([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<"TODAS" | "REEMBOLSO" | "ADIANTAMENTO">("TODAS")
+    const [previewAnexo, setPreviewAnexo] = useState<any | null>(null)
     
     // Estados para o Modal de Prestação de Contas
     const [prestacaoModalOpen, setPrestacaoModalOpen] = useState(false)
@@ -1027,7 +1029,7 @@ export default function MinhasDespesasPage() {
                                             {detailDespesa.anexos.map((anexo: any, idx: number) => (
                                                 <button
                                                     key={idx}
-                                                    onClick={() => handleOpenAnexo(anexo)}
+                                                    onClick={() => setPreviewAnexo(anexo)}
                                                     className="flex items-center gap-1.5 bg-white border px-3 py-2.5 rounded-xl text-xs font-semibold text-primary hover:bg-slate-50 transition-all shadow-xs w-full text-left cursor-pointer"
                                                 >
                                                     <FileText className="h-3.5 w-3.5 text-slate-400" />
@@ -1110,6 +1112,8 @@ export default function MinhasDespesasPage() {
                 user={user}
                 logoUrl={logoUrl}
             />
+
+            <AttachmentViewer anexo={previewAnexo} onClose={() => setPreviewAnexo(null)} />
         </div>
     )
 }
