@@ -265,7 +265,7 @@ export default function UsuariosPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            {(u.role === 'SUPERVISOR' || u.role === 'ENCARREGADO') && (
+                                            {u.role !== 'ADMIN' && (
                                                 <div className="flex flex-wrap gap-1">
                                                     {u.postosAutorizados.length > 0 ? (
                                                         u.postosAutorizados.slice(0, 2).map(p => (
@@ -379,9 +379,9 @@ export default function UsuariosPage() {
                             </Select>
                         </div>
 
-                        {(formData.role === 'SUPERVISOR' || formData.role === 'ENCARREGADO') && (
+                        {formData.role !== 'ADMIN' && (
                             <div className="space-y-2">
-                                <Label className="text-amber-600 font-medium">Postos Autorizados (Supervisor/Encarregado)</Label>
+                                <Label className="text-amber-600 font-medium">Postos Autorizados</Label>
                                 <div className="border rounded-md p-4 max-h-[200px] overflow-y-auto grid grid-cols-2 gap-2 bg-amber-50/10">
                                     {postos.map(posto => {
                                         const isSelected = formData.postosIds.includes(posto.id)
