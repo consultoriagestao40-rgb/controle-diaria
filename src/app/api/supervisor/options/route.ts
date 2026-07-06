@@ -18,7 +18,7 @@ export async function GET() {
     try {
         // 1. Postos
         const postosFn = prisma.posto.findMany({
-            where: user.role === 'ADMIN' ? { ativo: true } : {
+            where: (user.role === 'ADMIN' || user.role === 'APROVADOR_N1' || user.role === 'APROVADOR_N2' || user.role === 'FINANCEIRO') ? { ativo: true } : {
                 ativo: true,
                 supervisores: { some: { id: user.id } }
             },
