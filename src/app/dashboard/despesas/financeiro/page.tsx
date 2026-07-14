@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DollarSign, Loader2, AlertCircle, Calendar, Receipt, FileText, CheckCircle, Wallet, ArrowRightLeft, X, XCircle } from "lucide-react"
+import { DollarSign, Loader2, AlertCircle, Calendar, Receipt, FileText, CheckCircle, Wallet, ArrowRightLeft, X, XCircle, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -45,6 +45,56 @@ export default function FinanceiroDespesasPage() {
     const [motivosDisponiveis, setMotivosDisponiveis] = useState<string[]>([])
     const [motivoSelecionado, setMotivoSelecionado] = useState("")
     const [submitting, setSubmitting] = useState(false)
+
+    // Filtros de Pesquisa e Agrupador
+    const [searchQuery, setSearchQuery] = useState("")
+    const [selectedColaborador, setSelectedColaborador] = useState("")
+
+    // Colaboradores únicos dinamicamente com base nas duas listas
+    const colaboradoresUnicos = Array.from(
+        new Set([
+            ...despesasAprovadas.map(d => d.solicitante.nome),
+            ...despesasPendentesPrestacao.map(d => d.solicitante.nome)
+        ])
+    ).sort()
+
+    // Filtragem dinâmica de pagamentos
+    const filteredPagamentos = despesasAprovadas.filter(d => {
+        const matchesSearch = 
+            d.descricao.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.solicitante.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.id.toLowerCase().includes(searchQuery.toLowerCase())
+        
+        const matchesColaborador = selectedColaborador ? d.solicitante.nome === selectedColaborador : true
+        
+        return matchesSearch && matchesColaborador
+    })
+
+    // Filtragem dinâmica de conciliações
+    const filteredConciliacoes = despesasPendentesPrestacao.filter(d => {
+        const matchesSearch = 
+            d.descricao.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.solicitante.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.id.toLowerCase().includes(searchQuery.toLowerCase())
+        
+        const matchesColaborador = selectedColaborador ? d.solicitante.nome === selectedColaborador : true
+        
+        return matchesSearch && matchesColaborador
+    })
+
+    // Totais de Pagamentos (A Pagar)
+    const totalPagamentosValor = filteredPagamentos.reduce((acc, curr) => acc + Number(curr.valorSolicitado), 0)
+    const pagamentosReembolsos = filteredPagamentos.filter(d => d.tipo === 'REEMBOLSO')
+    const totalReembolsosPagar = pagamentosReembolsos.reduce((acc, curr) => acc + Number(curr.valorSolicitado), 0)
+    const pagamentosAdiantamentos = filteredPagamentos.filter(d => d.tipo === 'ADIANTAMENTO')
+    const totalAdiantamentosPagar = pagamentosAdiantamentos.reduce((acc, curr) => acc + Number(curr.valorSolicitado), 0)
+
+    // Totais de Conciliações
+    const totalConciliacoesValorAcertar = filteredConciliacoes.reduce((acc, curr) => acc + Number(curr.saldoFinal || 0), 0)
+    const aReceberColaborador = filteredConciliacoes.filter(d => (d.saldoFinal ? Number(d.saldoFinal) : 0) > 0)
+    const totalAReceber = aReceberColaborador.reduce((acc, curr) => acc + Number(curr.saldoFinal), 0)
+    const aPagarColaborador = filteredConciliacoes.filter(d => (d.saldoFinal ? Number(d.saldoFinal) : 0) < 0)
+    const totalAPagarComplementar = aPagarColaborador.reduce((acc, curr) => acc + Math.abs(Number(curr.saldoFinal)), 0)
 
     useEffect(() => {
         fetchFinanceData()
@@ -163,6 +213,53 @@ export default function FinanceiroDespesasPage() {
                 </p>
             </div>
 
+            {/* Cards de Resumo no Topo */}
+            {!loading && (
+                activeSection === "PAGAMENTOS" ? (
+                    despesasAprovadas.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total a Pagar</span>
+                                <h3 className="text-2xl font-black text-slate-900">R$ {totalPagamentosValor.toFixed(2)}</h3>
+                                <p className="text-xs font-semibold text-slate-400">{filteredPagamentos.length} pagamentos pendentes</p>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-rose-500/70 uppercase tracking-widest block">Reembolsos Aprovados</span>
+                                <h3 className="text-2xl font-black text-rose-600">R$ {totalReembolsosPagar.toFixed(2)}</h3>
+                                <p className="text-xs font-semibold text-slate-400">{pagamentosReembolsos.length} itens a pagar</p>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-emerald-500/70 uppercase tracking-widest block">Adiantamentos Aprovados</span>
+                                <h3 className="text-2xl font-black text-emerald-600">R$ {totalAdiantamentosPagar.toFixed(2)}</h3>
+                                <p className="text-xs font-semibold text-slate-400">{pagamentosAdiantamentos.length} adiantamentos a liberar</p>
+                            </div>
+                        </div>
+                    )
+                ) : (
+                    despesasPendentesPrestacao.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Saldo Líquido de Acerto</span>
+                                <h3 className={`text-2xl font-black ${totalConciliacoesValorAcertar === 0 ? "text-green-600" : totalConciliacoesValorAcertar > 0 ? "text-amber-600" : "text-rose-600"}`}>
+                                    {totalConciliacoesValorAcertar === 0 ? "Zerado" : `${totalConciliacoesValorAcertar > 0 ? 'A Receber' : 'A Pagar'} R$ ${Math.abs(totalConciliacoesValorAcertar).toFixed(2)}`}
+                                </h3>
+                                <p className="text-xs font-semibold text-slate-400">{filteredConciliacoes.length} conciliações pendentes</p>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-amber-500/70 uppercase tracking-widest block">A Receber (Colaborador Devolve)</span>
+                                <h3 className="text-2xl font-black text-amber-600">R$ {totalAReceber.toFixed(2)}</h3>
+                                <p className="text-xs font-semibold text-slate-400">{aReceberColaborador.length} devoluções de saldo</p>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-rose-500/70 uppercase tracking-widest block">A Pagar (Reembolso Complementar)</span>
+                                <h3 className="text-2xl font-black text-rose-600">R$ {totalAPagarComplementar.toFixed(2)}</h3>
+                                <p className="text-xs font-semibold text-slate-400">{aPagarColaborador.length} reembolsos complementares</p>
+                            </div>
+                        </div>
+                    )
+                )
+            )}
+
             {/* Abas minimalistas com rolagem horizontal no mobile */}
             <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full sm:max-w-md overflow-x-auto scrollbar-none flex-nowrap">
                 {(["PAGAMENTOS", "CONCILIACOES"] as const).map((tab) => (
@@ -175,13 +272,41 @@ export default function FinanceiroDespesasPage() {
                                 : "text-slate-500 hover:text-slate-900 hover:bg-white/30"
                         }`}
                     >
-                        {tab === "PAGAMENTOS" ? `Pagamentos Iniciais (${despesasAprovadas.length})` : `Conciliações (${despesasPendentesPrestacao.length})`}
+                        {tab === "PAGAMENTOS" ? `Pagamentos Iniciais (${filteredPagamentos.length})` : `Conciliações (${filteredConciliacoes.length})`}
                     </button>
                 ))}
             </div>
 
             {/* Listagem */}
             <div className="space-y-6">
+                {/* Filtros de Pesquisa e Agrupador */}
+                {!loading && (despesasAprovadas.length > 0 || despesasPendentesPrestacao.length > 0) && (
+                    <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-3xl border border-slate-100 shadow-xs">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Pesquisar por colaborador, descrição ou ID..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full h-11 pl-10 pr-4 border border-slate-100 rounded-2xl bg-slate-50/50 text-xs font-semibold focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-hidden text-slate-700"
+                            />
+                        </div>
+                        <div className="w-full sm:w-60">
+                            <select
+                                value={selectedColaborador}
+                                onChange={(e) => setSelectedColaborador(e.target.value)}
+                                className="w-full h-11 border border-slate-100 rounded-2xl px-3 bg-slate-50/50 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-hidden cursor-pointer"
+                            >
+                                <option value="">Todos os Colaboradores</option>
+                                {colaboradoresUnicos.map((nome) => (
+                                    <option key={nome} value={nome}>{nome}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                )}
+
                 {loading ? (
                     <div className="flex flex-col items-center justify-center p-32 gap-6">
                         <div className="relative h-16 w-16">
@@ -193,13 +318,13 @@ export default function FinanceiroDespesasPage() {
                 ) : (
                     <>
                         {activeSection === "PAGAMENTOS" ? (
-                            despesasAprovadas.length === 0 ? (
+                            filteredPagamentos.length === 0 ? (
                                 <Card className="glass-card border-dashed border-2 py-32 flex flex-col items-center justify-center bg-white opacity-85">
                                     <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center mb-6">
                                         <DollarSign className="h-10 w-10 text-slate-300" />
                                     </div>
                                     <div className="text-center text-slate-400 font-bold uppercase tracking-widest text-sm">
-                                        Nenhum pagamento aprovado aguardando liberação.
+                                        Nenhum pagamento correspondente aos filtros.
                                     </div>
                                 </Card>
                             ) : (
@@ -217,7 +342,7 @@ export default function FinanceiroDespesasPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100/60">
-                                                {despesasAprovadas.map(item => (
+                                                {filteredPagamentos.map(item => (
                                                     <tr
                                                         key={item.id}
                                                         onClick={() => openActionModal(item)}
@@ -257,24 +382,37 @@ export default function FinanceiroDespesasPage() {
 
                                     {/* Mobile Extrato List View */}
                                     <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
-                                        {despesasAprovadas.map((item, idx) => (
+                                        {filteredPagamentos.map((item, idx) => (
                                             <div
                                                 key={item.id}
                                                 onClick={() => openActionModal(item)}
-                                                className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${
-                                                    idx !== despesasAprovadas.length - 1 ? 'border-b border-slate-100/80' : ''
-                                                }`}
+                                                className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== filteredPagamentos.length - 1 ? 'border-b border-slate-100/80' : ''}`}
                                             >
-                                                <div className="min-w-0 space-y-1">
-                                                    <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
-                                                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
-                                                        {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"} &bull; {item.solicitante.nome} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
-                                                    </p>
+                                                <div className="flex items-center gap-3.5 min-w-0">
+                                                    <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
+                                                        item.tipo === "REEMBOLSO" 
+                                                            ? "bg-rose-50 text-rose-500 border border-rose-100" 
+                                                            : "bg-emerald-50 text-emerald-500 border border-emerald-100"
+                                                    }`}>
+                                                        {item.tipo === "REEMBOLSO" ? <Receipt className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                                                    </div>
+                                                    
+                                                    <div className="min-w-0 space-y-0.5">
+                                                        <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
+                                                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
+                                                            {item.solicitante.nome} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right shrink-0 ml-3">
-                                                    <p className="text-sm font-black text-slate-900 tracking-tight">{formatCurrency(item.valorSolicitado)}</p>
-                                                    <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
-                                                        Aprovado
+
+                                                <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
+                                                    <p className="text-xs font-black text-slate-900 tracking-tight">
+                                                        {formatCurrency(item.valorSolicitado)}
+                                                    </p>
+                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border ${
+                                                        item.tipo === 'REEMBOLSO' ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                                                    }`}>
+                                                        {item.tipo === 'REEMBOLSO' ? 'Reembolso' : 'Adiantamento'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -283,13 +421,13 @@ export default function FinanceiroDespesasPage() {
                                 </>
                             )
                         ) : (
-                            despesasPendentesPrestacao.length === 0 ? (
+                            filteredConciliacoes.length === 0 ? (
                                 <Card className="glass-card border-dashed border-2 py-32 flex flex-col items-center justify-center bg-white opacity-85">
                                     <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center mb-6">
-                                        <ArrowRightLeft className="h-10 w-10 text-slate-300" />
+                                        <DollarSign className="h-10 w-10 text-slate-300" />
                                     </div>
                                     <div className="text-center text-slate-400 font-bold uppercase tracking-widest text-sm">
-                                        Nenhuma conciliação ou acerto de saldo pendente.
+                                        Nenhuma conciliação correspondente aos filtros.
                                     </div>
                                 </Card>
                             ) : (
@@ -309,7 +447,7 @@ export default function FinanceiroDespesasPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100/60">
-                                                {despesasPendentesPrestacao.map(item => {
+                                                {filteredConciliacoes.map(item => {
                                                     const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
                                                     return (
                                                         <tr
@@ -356,14 +494,14 @@ export default function FinanceiroDespesasPage() {
 
                                     {/* Mobile Extrato List View */}
                                     <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
-                                        {despesasPendentesPrestacao.map((item, idx) => {
+                                        {filteredConciliacoes.map((item, idx) => {
                                             const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
                                             return (
                                                 <div
                                                     key={item.id}
                                                     onClick={() => openActionModal(item)}
                                                     className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${
-                                                        idx !== despesasPendentesPrestacao.length - 1 ? 'border-b border-slate-100/80' : ''
+                                                        idx !== filteredConciliacoes.length - 1 ? 'border-b border-slate-100/80' : ''
                                                     }`}
                                                 >
                                                     <div className="min-w-0 space-y-1">

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileText, CheckCircle, XCircle, Clock, X } from "lucide-react"
+import { CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileText, CheckCircle, XCircle, Clock, X, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -41,6 +41,32 @@ export default function AprovacoesPrestacoesPage() {
     const [motivosDisponiveis, setMotivosDisponiveis] = useState<string[]>([])
     const [motivoSelecionado, setMotivoSelecionado] = useState("")
     const [submitting, setSubmitting] = useState(false)
+
+    // Filtros de Pesquisa e Agrupador
+    const [searchQuery, setSearchQuery] = useState("")
+    const [selectedSolicitante, setSelectedSolicitante] = useState("")
+
+    // Solicitantes únicos com base na listagem atual
+    const solicitantesUnicos = Array.from(
+        new Set(despesas.map(d => d.solicitante.nome))
+    ).sort()
+
+    // Filtragem dinâmica
+    const filteredDespesas = despesas.filter(d => {
+        const matchesSearch = 
+            d.descricao.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.solicitante.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.id.toLowerCase().includes(searchQuery.toLowerCase())
+        
+        const matchesSolicitante = selectedSolicitante ? d.solicitante.nome === selectedSolicitante : true
+        
+        return matchesSearch && matchesSolicitante
+    })
+
+    // Totais calculados dinamicamente com base nas despesas filtradas
+    const totalGastoReal = filteredDespesas.reduce((acc, curr) => acc + Number(curr.valorComprovado || 0), 0)
+    const totalAdiantado = filteredDespesas.reduce((acc, curr) => acc + Number(curr.valorSolicitado), 0)
+    const saldoTotalAcertar = filteredDespesas.reduce((acc, curr) => acc + Number(curr.saldoFinal || 0), 0)
 
     useEffect(() => {
         fetchAprovacoes()
@@ -143,12 +169,63 @@ export default function AprovacoesPrestacoesPage() {
                 </p>
             </div>
 
+            {/* Cards de Resumo no Topo */}
+            {!loading && despesas.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Adiantado</span>
+                        <h3 className="text-2xl font-black text-slate-900">R$ {totalAdiantado.toFixed(2)}</h3>
+                        <p className="text-xs font-semibold text-slate-400">{filteredDespesas.length} prestações</p>
+                    </div>
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                        <span className="text-[10px] font-black text-indigo-500/70 uppercase tracking-widest block">Total Gasto Real</span>
+                        <h3 className="text-2xl font-black text-indigo-600">R$ {totalGastoReal.toFixed(2)}</h3>
+                        <p className="text-xs font-semibold text-slate-400">Comprovado em notas</p>
+                    </div>
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Saldo Total de Acerto</span>
+                        <h3 className={`text-2xl font-black ${saldoTotalAcertar === 0 ? "text-green-600" : saldoTotalAcertar > 0 ? "text-amber-600" : "text-rose-600"}`}>
+                            {saldoTotalAcertar === 0 ? "Zerado" : `${saldoTotalAcertar > 0 ? 'Devolver' : 'Reembolsar'} R$ ${Math.abs(saldoTotalAcertar).toFixed(2)}`}
+                        </h3>
+                        <p className="text-xs font-semibold text-slate-400">Diferença de adiantamento</p>
+                    </div>
+                </div>
+            )}
+
             {/* Listagem de pendentes */}
             <div className="space-y-6">
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-1 bg-indigo-600 rounded-full" />
                     <h2 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">Prestações Aguardando Seu Parecer</h2>
                 </div>
+
+                {/* Filtros de Pesquisa e Agrupador */}
+                {!loading && despesas.length > 0 && (
+                    <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-3xl border border-slate-100 shadow-xs">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Pesquisar por solicitante, descrição ou ID..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full h-11 pl-10 pr-4 border border-slate-100 rounded-2xl bg-slate-50/50 text-xs font-semibold focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-hidden text-slate-700"
+                            />
+                        </div>
+                        <div className="w-full sm:w-60">
+                            <select
+                                value={selectedSolicitante}
+                                onChange={(e) => setSelectedSolicitante(e.target.value)}
+                                className="w-full h-11 border border-slate-100 rounded-2xl px-3 bg-slate-50/50 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-hidden cursor-pointer"
+                            >
+                                <option value="">Todos os Solicitantes</option>
+                                {solicitantesUnicos.map((nome) => (
+                                    <option key={nome} value={nome}>{nome}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="flex flex-col items-center justify-center p-32 gap-6">
@@ -167,26 +244,33 @@ export default function AprovacoesPrestacoesPage() {
                 ) : (
                     <>
                         {/* Desktop Table View */}
-                        <div className="hidden md:block bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                        <th className="py-4.5 px-6">Data</th>
-                                        <th className="py-4.5 px-6">Solicitante</th>
-                                        <th className="py-4.5 px-6">Descrição / Adiantamento</th>
-                                        <th className="py-4.5 px-6 text-right">Valor Gasto</th>
-                                        <th className="py-4.5 px-6 text-right">Saldo de Acerto</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100/60">
-                                    {despesas.map(item => {
-                                        const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
-                                        return (
-                                            <tr
-                                                key={item.id}
-                                                onClick={() => setDetailItem(item)}
-                                                className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
-                                            >
+                        {filteredDespesas.length === 0 ? (
+                            <div className="bg-white border rounded-3xl p-16 text-center space-y-3">
+                                <CheckCircle className="h-10 w-10 text-slate-300 mx-auto" />
+                                <h3 className="font-bold text-slate-800 text-sm">Nenhum resultado encontrado</h3>
+                                <p className="text-xs text-slate-400 max-w-xs mx-auto">Tente ajustar seus termos de pesquisa ou o filtro de solicitantes.</p>
+                            </div>
+                        ) : (
+                            <div className="hidden md:block bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            <th className="py-4.5 px-6">Data</th>
+                                            <th className="py-4.5 px-6">Solicitante</th>
+                                            <th className="py-4.5 px-6">Descrição / Adiantamento</th>
+                                            <th className="py-4.5 px-6 text-right">Valor Gasto</th>
+                                            <th className="py-4.5 px-6 text-right">Saldo de Acerto</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100/60">
+                                        {filteredDespesas.map(item => {
+                                            const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
+                                            return (
+                                                <tr
+                                                    key={item.id}
+                                                    onClick={() => setDetailItem(item)}
+                                                    className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
+                                                >
                                                 <td className="py-4.5 px-6">
                                                     <div className="flex items-center gap-2">
                                                         <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
@@ -217,14 +301,16 @@ export default function AprovacoesPrestacoesPage() {
                                         )
                                     })}
                                 </tbody>
-                            </table>
-                        </div>
+                                </table>
+                            </div>
+                        )}
 
                         {/* Mobile Extrato List View */}
-                        <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
-                            {despesas.map((item, idx) => {
-                                const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
-                                return (
+                        {filteredDespesas.length > 0 && (
+                            <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
+                                {filteredDespesas.map((item, idx) => {
+                                    const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
+                                    return (
                                     <div
                                         key={item.id}
                                         onClick={() => setDetailItem(item)}
@@ -259,9 +345,6 @@ export default function AprovacoesPrestacoesPage() {
                         </div>
                     </>
                 )}
-            </div>
-
-            {/* Modal de Aprovação / Reprovação */}
             {decisionModalOpen && selectedDespesa && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] flex flex-col">
