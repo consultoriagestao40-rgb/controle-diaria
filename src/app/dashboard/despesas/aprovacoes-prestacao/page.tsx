@@ -20,7 +20,7 @@ interface Despesa {
     valorComprovado: number | null
     saldoFinal: number | null
     createdAt: string
-    solicitante: { nome: string, email: string, role: string }
+    solicitante: { id: string, nome: string, email: string, role: string }
     anexos: any[]
     alertaAuditoria: string | null
     itens?: any[]
