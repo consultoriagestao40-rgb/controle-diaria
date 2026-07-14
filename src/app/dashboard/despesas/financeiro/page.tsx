@@ -75,6 +75,18 @@ export default function FinanceiroDespesasPage() {
         return matchesSearch && matchesColaborador
     })
 
+    // Filtragem dinâmica de conciliações
+    const filteredConciliacoes = despesasPendentesPrestacao.filter(d => {
+        const matchesSearch = 
+            d.descricao.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.solicitante.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.id.toLowerCase().includes(searchQuery.toLowerCase())
+        
+        const matchesColaborador = selectedColaborador ? d.solicitante.nome === selectedColaborador : true
+        
+        return matchesSearch && matchesColaborador
+    })
+
     // Agrupamento por colaborador para Pagamentos
     const pagamentosAgrupados = Array.from(
         filteredPagamentos.reduce((acc, curr) => {
@@ -121,17 +133,7 @@ export default function FinanceiroDespesasPage() {
         .values()
     ).sort((a, b) => b.totalValor - a.totalValor)
 
-    // Filtragem dinâmica de conciliações
-    const filteredConciliacoes = despesasPendentesPrestacao.filter(d => {
-        const matchesSearch = 
-            d.descricao.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            d.solicitante.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            d.id.toLowerCase().includes(searchQuery.toLowerCase())
-        
-        const matchesColaborador = selectedColaborador ? d.solicitante.nome === selectedColaborador : true
-        
-        return matchesSearch && matchesColaborador
-    })
+
 
     // Totais de Pagamentos (A Pagar)
     const totalPagamentosValor = filteredPagamentos.reduce((acc, curr) => acc + Number(curr.valorSolicitado), 0)
