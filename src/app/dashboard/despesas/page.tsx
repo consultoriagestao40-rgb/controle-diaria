@@ -57,6 +57,7 @@ interface Despesa {
     aprovador?: { nome: string; email: string } | null
     dataAprovacao?: string | null
     justificativaAprovacao?: string | null
+    solicitante: { nome: string; email: string; role?: string }
 }
 
 export default function MinhasDespesasPage() {
