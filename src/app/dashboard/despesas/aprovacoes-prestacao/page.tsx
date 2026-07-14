@@ -92,8 +92,10 @@ export default function AprovacoesPrestacoesPage() {
                 acc.set(nome, { nome, totalPendente: 0, quantidade: 0 })
             }
             const data = acc.get(nome)
-            data.totalPendente += valor
-            data.quantidade += 1
+            if (data) {
+                data.totalPendente += valor
+                data.quantidade += 1
+            }
             return acc
         }, new Map<string, { nome: string; totalPendente: number; quantidade: number }>())
         .values()
