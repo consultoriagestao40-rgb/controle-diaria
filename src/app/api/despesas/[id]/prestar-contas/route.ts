@@ -223,7 +223,7 @@ export async function POST(
                 await tx.historicoDespesa.create({
                     data: {
                         despesaId: cloneCriado.id,
-                        deStatus: 'NOVO',
+                        deStatus: 'RASCUNHO',
                         paraStatus: 'AGUARDANDO_PRESTACAO',
                         usuarioId: user.id,
                         observacao: `Adiantamento de saldo remanescente criado a partir do desmembramento do adiantamento original (ID ${despesa.id}).`
