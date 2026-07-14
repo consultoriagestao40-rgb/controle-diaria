@@ -217,7 +217,7 @@ export default function AprovacoesPrestacoesPage() {
 
             {/* Abas de Navegação */}
             {!loading && (
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full sm:max-w-md overflow-x-auto scrollbar-none flex-nowrap">
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-fit flex-nowrap">
                     {(["APROVACAO", "PENDENTES"] as const).map((tab) => (
                         <button
                             key={tab}

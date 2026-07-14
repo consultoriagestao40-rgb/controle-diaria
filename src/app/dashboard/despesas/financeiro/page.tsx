@@ -260,8 +260,8 @@ export default function FinanceiroDespesasPage() {
                 )
             )}
 
-            {/* Abas minimalistas com rolagem horizontal no mobile */}
-            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full sm:max-w-md overflow-x-auto scrollbar-none flex-nowrap">
+            {/* Abas minimalistas */}
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-fit flex-nowrap">
                 {(["PAGAMENTOS", "CONCILIACOES"] as const).map((tab) => (
                     <button
                         key={tab}
