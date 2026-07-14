@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileText, CheckCircle, XCircle, Clock, X, Search } from "lucide-react"
+import { CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, FileText, CheckCircle, XCircle, Clock, X, Search, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,7 +28,9 @@ interface Despesa {
 }
 
 export default function AprovacoesPrestacoesPage() {
-    const [despesas, setDespesas] = useState<Despesa[]>([])
+    const [despesasAprovacao, setDespesasAprovacao] = useState<Despesa[]>([])
+    const [despesasPendentesEnvio, setDespesasPendentesEnvio] = useState<Despesa[]>([])
+    const [activeTab, setActiveTab] = useState<"APROVACAO" | "PENDENTES">("APROVACAO")
     const [loading, setLoading] = useState(true)
     const [detailItem, setDetailItem] = useState<Despesa | null>(null)
     const [previewAnexo, setPreviewAnexo] = useState<any | null>(null)
@@ -46,13 +48,16 @@ export default function AprovacoesPrestacoesPage() {
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedSolicitante, setSelectedSolicitante] = useState("")
 
-    // Solicitantes únicos com base na listagem atual
+    // Lista ativa de despesas com base na aba selecionada
+    const activeList = activeTab === "APROVACAO" ? despesasAprovacao : despesasPendentesEnvio
+
+    // Solicitantes únicos com base na listagem atual da aba ativa
     const solicitantesUnicos = Array.from(
-        new Set(despesas.map(d => d.solicitante.nome))
+        new Set(activeList.map(d => d.solicitante.nome))
     ).sort()
 
     // Filtragem dinâmica
-    const filteredDespesas = despesas.filter(d => {
+    const filteredDespesas = activeList.filter(d => {
         const matchesSearch = 
             d.descricao.toLowerCase().includes(searchQuery.toLowerCase()) ||
             d.solicitante.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -63,10 +68,36 @@ export default function AprovacoesPrestacoesPage() {
         return matchesSearch && matchesSolicitante
     })
 
-    // Totais calculados dinamicamente com base nas despesas filtradas
+    // Totais calculados dinamicamente com base nas despesas filtradas (Aba Aprovação)
     const totalGastoReal = filteredDespesas.reduce((acc, curr) => acc + Number(curr.valorComprovado || 0), 0)
     const totalAdiantado = filteredDespesas.reduce((acc, curr) => acc + Number(curr.valorSolicitado), 0)
     const saldoTotalAcertar = filteredDespesas.reduce((acc, curr) => acc + Number(curr.saldoFinal || 0), 0)
+
+    // Totais calculados para Aba Pendentes de Envio
+    const totalComColaboradores = filteredDespesas.reduce((acc, curr) => acc + Number(curr.valorSolicitado), 0)
+    const devedoresUnicosCount = Array.from(new Set(filteredDespesas.map(d => d.solicitante.id))).length
+    
+    const adiantamentoMaisAntigo = filteredDespesas.length > 0
+        ? filteredDespesas.reduce((maisAntiga, atual) => {
+            return new Date(atual.createdAt) < new Date(maisAntiga.createdAt) ? atual : maisAntiga
+          })
+        : null
+
+    // Agrupamento por colaborador para a visão de saldos pendentes
+    const saldosPorColaborador = Array.from(
+        filteredDespesas.reduce((acc, curr) => {
+            const nome = curr.solicitante.nome
+            const valor = Number(curr.valorSolicitado)
+            if (!acc.has(nome)) {
+                acc.set(nome, { nome, totalPendente: 0, quantidade: 0 })
+            }
+            const data = acc.get(nome)
+            data.totalPendente += valor
+            data.quantidade += 1
+            return acc
+        }, new Map<string, { nome: string; totalPendente: number; quantidade: number }>())
+        .values()
+    ).sort((a, b) => b.totalPendente - a.totalPendente)
 
     useEffect(() => {
         fetchAprovacoes()
@@ -90,12 +121,25 @@ export default function AprovacoesPrestacoesPage() {
 
     const fetchAprovacoes = async () => {
         try {
-            const res = await fetch("/api/despesas?status=AGUARDANDO_APROVACAO")
+            const res = await fetch("/api/despesas")
             if (!res.ok) throw new Error()
             const data = await res.json()
-            // Filtrar apenas prestações de contas (adiantamentos com valor comprovado)
-            const prestacoesContas = data.filter((d: any) => d.tipo === 'ADIANTAMENTO' && d.valorComprovado !== null)
-            setDespesas(prestacoesContas)
+            
+            // 1. Filtrar prestações de contas enviadas aguardando aprovação
+            const aprovacaoList = data.filter((d: any) => 
+                d.tipo === 'ADIANTAMENTO' && 
+                d.valorComprovado !== null && 
+                (d.status === 'AGUARDANDO_APROVACAO' || d.status === 'AGUARDANDO_APROVACAO_N1' || d.status === 'AGUARDANDO_APROVACAO_N2')
+            )
+            setDespesasAprovacao(aprovacaoList)
+            
+            // 2. Filtrar adiantamentos pagos que o colaborador ainda não prestou contas
+            const pendentesList = data.filter((d: any) => 
+                d.tipo === 'ADIANTAMENTO' && 
+                d.status === 'AGUARDANDO_PRESTACAO' && 
+                d.valorComprovado === null
+            )
+            setDespesasPendentesEnvio(pendentesList)
         } catch {
             toast.error("Erro ao carregar prestações pendentes")
         } finally {
@@ -169,38 +213,91 @@ export default function AprovacoesPrestacoesPage() {
                 </p>
             </div>
 
-            {/* Cards de Resumo no Topo */}
-            {!loading && despesas.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Adiantado</span>
-                        <h3 className="text-2xl font-black text-slate-900">R$ {totalAdiantado.toFixed(2)}</h3>
-                        <p className="text-xs font-semibold text-slate-400">{filteredDespesas.length} prestações</p>
-                    </div>
-                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
-                        <span className="text-[10px] font-black text-indigo-500/70 uppercase tracking-widest block">Total Gasto Real</span>
-                        <h3 className="text-2xl font-black text-indigo-600">R$ {totalGastoReal.toFixed(2)}</h3>
-                        <p className="text-xs font-semibold text-slate-400">Comprovado em notas</p>
-                    </div>
-                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Saldo Total de Acerto</span>
-                        <h3 className={`text-2xl font-black ${saldoTotalAcertar === 0 ? "text-green-600" : saldoTotalAcertar > 0 ? "text-amber-600" : "text-rose-600"}`}>
-                            {saldoTotalAcertar === 0 ? "Zerado" : `${saldoTotalAcertar > 0 ? 'Devolver' : 'Reembolsar'} R$ ${Math.abs(saldoTotalAcertar).toFixed(2)}`}
-                        </h3>
-                        <p className="text-xs font-semibold text-slate-400">Diferença de adiantamento</p>
-                    </div>
+            {/* Abas de Navegação */}
+            {!loading && (
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full sm:max-w-md overflow-x-auto scrollbar-none flex-nowrap">
+                    {(["APROVACAO", "PENDENTES"] as const).map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => {
+                                setActiveTab(tab)
+                                setSearchQuery("")
+                                setSelectedSolicitante("")
+                            }}
+                            className={`flex-1 py-2 px-3 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all duration-300 ${
+                                activeTab === tab
+                                    ? "bg-white text-slate-900 shadow-sm font-black"
+                                    : "text-slate-500 hover:text-slate-900 hover:bg-white/30"
+                            }`}
+                        >
+                            {tab === "APROVACAO" ? `Aprovadas / Enviadas (${despesasAprovacao.length})` : `Pendente Colaborador (${despesasPendentesEnvio.length})`}
+                        </button>
+                    ))}
                 </div>
+            )}
+
+            {/* Cards de Resumo no Topo */}
+            {!loading && (
+                activeTab === "APROVACAO" ? (
+                    despesasAprovacao.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Adiantado</span>
+                                <h3 className="text-2xl font-black text-slate-900">R$ {totalAdiantado.toFixed(2)}</h3>
+                                <p className="text-xs font-semibold text-slate-400">{filteredDespesas.length} prestações</p>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-indigo-500/70 uppercase tracking-widest block">Total Gasto Real</span>
+                                <h3 className="text-2xl font-black text-indigo-600">R$ {totalGastoReal.toFixed(2)}</h3>
+                                <p className="text-xs font-semibold text-slate-400">Comprovado em notas</p>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Saldo Total de Acerto</span>
+                                <h3 className={`text-2xl font-black ${saldoTotalAcertar === 0 ? "text-green-600" : saldoTotalAcertar > 0 ? "text-amber-600" : "text-rose-600"}`}>
+                                    {saldoTotalAcertar === 0 ? "Zerado" : `${saldoTotalAcertar > 0 ? 'Devolver' : 'Reembolsar'} R$ ${Math.abs(saldoTotalAcertar).toFixed(2)}`}
+                                </h3>
+                                <p className="text-xs font-semibold text-slate-400">Diferença de adiantamento</p>
+                            </div>
+                        </div>
+                    )
+                ) : (
+                    despesasPendentesEnvio.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Em Aberto</span>
+                                <h3 className="text-2xl font-black text-slate-900">R$ {totalComColaboradores.toFixed(2)}</h3>
+                                <p className="text-xs font-semibold text-slate-400">{filteredDespesas.length} adiantamentos em aberto</p>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-indigo-500/70 uppercase tracking-widest block">Colaboradores Pendentes</span>
+                                <h3 className="text-2xl font-black text-indigo-600">{devedoresUnicosCount}</h3>
+                                <p className="text-xs font-semibold text-slate-400">Pessoas com saldo em aberto</p>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-1">
+                                <span className="text-[10px] font-black text-rose-500/70 uppercase tracking-widest block">Mais Antigo Pendente</span>
+                                <h3 className="text-2xl font-black text-rose-600">
+                                    {adiantamentoMaisAntigo 
+                                        ? new Date(adiantamentoMaisAntigo.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                                        : "Nenhum"}
+                                </h3>
+                                <p className="text-xs font-semibold text-slate-400">Adiantamento em aberto mais antigo</p>
+                            </div>
+                        </div>
+                    )
+                )
             )}
 
             {/* Listagem de pendentes */}
             <div className="space-y-6">
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-1 bg-indigo-600 rounded-full" />
-                    <h2 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">Prestações Aguardando Seu Parecer</h2>
+                    <h2 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">
+                        {activeTab === "APROVACAO" ? "Prestações Aguardando Seu Parecer" : "Adiantamentos Pagos sem Prestação de Contas"}
+                    </h2>
                 </div>
 
                 {/* Filtros de Pesquisa e Agrupador */}
-                {!loading && despesas.length > 0 && (
+                {!loading && (despesasAprovacao.length > 0 || despesasPendentesEnvio.length > 0) && (
                     <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-3xl border border-slate-100 shadow-xs">
                         <div className="relative flex-1">
                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -227,6 +324,27 @@ export default function AprovacoesPrestacoesPage() {
                     </div>
                 )}
 
+                {/* Visão de Saldos Consolidados por Colaborador (Aba Pendentes) */}
+                {activeTab === "PENDENTES" && saldosPorColaborador.length > 0 && (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                        <div className="flex items-center gap-2">
+                            <Wallet className="h-4.5 w-4.5 text-slate-500" />
+                            <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">Resumo de Saldos em Aberto por Colaborador</h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            {saldosPorColaborador.map((c) => (
+                                <div key={c.nome} className="bg-slate-50/60 p-4.5 rounded-2xl border border-slate-100 flex flex-col justify-between space-y-1">
+                                    <span className="text-xs font-bold text-slate-800">{c.nome}</span>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-lg font-black text-slate-900">R$ {c.totalPendente.toFixed(2)}</span>
+                                        <span className="text-[10px] font-bold text-slate-400">({c.quantidade} adiant.)</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {loading ? (
                     <div className="flex flex-col items-center justify-center p-32 gap-6">
                         <div className="relative h-16 w-16">
@@ -235,11 +353,15 @@ export default function AprovacoesPrestacoesPage() {
                         </div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Carregando pendências...</p>
                     </div>
-                ) : despesas.length === 0 ? (
+                ) : activeList.length === 0 ? (
                     <div className="bg-white border rounded-3xl p-16 text-center space-y-3">
                         <CheckCircle className="h-10 w-10 text-slate-300 mx-auto" />
                         <h3 className="font-bold text-slate-800 text-sm">Tudo em dia!</h3>
-                        <p className="text-xs text-slate-400 max-w-xs mx-auto">Nenhuma prestação de contas pendente de validação no momento.</p>
+                        <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                            {activeTab === "APROVACAO" 
+                                ? "Nenhuma prestação de contas pendente de validação no momento."
+                                : "Nenhum adiantamento pendente de prestação de contas no momento."}
+                        </p>
                     </div>
                 ) : (
                     <>
@@ -258,8 +380,14 @@ export default function AprovacoesPrestacoesPage() {
                                             <th className="py-4.5 px-6">Data</th>
                                             <th className="py-4.5 px-6">Solicitante</th>
                                             <th className="py-4.5 px-6">Descrição / Adiantamento</th>
-                                            <th className="py-4.5 px-6 text-right">Valor Gasto</th>
-                                            <th className="py-4.5 px-6 text-right">Saldo de Acerto</th>
+                                            {activeTab === "APROVACAO" ? (
+                                                <>
+                                                    <th className="py-4.5 px-6 text-right">Valor Gasto</th>
+                                                    <th className="py-4.5 px-6 text-right">Saldo de Acerto</th>
+                                                </>
+                                            ) : (
+                                                <th className="py-4.5 px-6 text-right">Valor Em Aberto</th>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100/60">
@@ -291,12 +419,20 @@ export default function AprovacoesPrestacoesPage() {
                                                         Valor Adiantado: R$ {Number(item.valorSolicitado).toFixed(2)}
                                                     </span>
                                                 </td>
-                                                <td className="py-4.5 px-6 text-right font-black text-slate-900">
-                                                    R$ {Number(item.valorComprovado || 0).toFixed(2)}
-                                                </td>
-                                                <td className={`py-4.5 px-6 text-right font-bold ${saldo === 0 ? "text-green-600" : saldo > 0 ? "text-amber-600" : "text-rose-600"}`}>
-                                                    {saldo === 0 ? "Zerado" : saldo > 0 ? `Devolver R$ ${saldo.toFixed(2)}` : `Reembolsar R$ ${Math.abs(saldo).toFixed(2)}`}
-                                                </td>
+                                                {activeTab === "APROVACAO" ? (
+                                                    <>
+                                                        <td className="py-4.5 px-6 text-right font-black text-slate-900">
+                                                            R$ {Number(item.valorComprovado || 0).toFixed(2)}
+                                                        </td>
+                                                        <td className={`py-4.5 px-6 text-right font-bold ${saldo === 0 ? "text-green-600" : saldo > 0 ? "text-amber-600" : "text-rose-600"}`}>
+                                                            {saldo === 0 ? "Zerado" : saldo > 0 ? `Devolver R$ ${saldo.toFixed(2)}` : `Reembolsar R$ ${Math.abs(saldo).toFixed(2)}`}
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <td className="py-4.5 px-6 text-right font-black text-amber-600">
+                                                        R$ {Number(item.valorSolicitado).toFixed(2)}
+                                                    </td>
+                                                )}
                                             </tr>
                                         )
                                     })}
@@ -314,7 +450,7 @@ export default function AprovacoesPrestacoesPage() {
                                     <div
                                         key={item.id}
                                         onClick={() => setDetailItem(item)}
-                                        className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== despesas.length - 1 ? 'border-b border-slate-100/80' : ''}`}
+                                        className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== activeList.length - 1 ? 'border-b border-slate-100/80' : ''}`}
                                     >
                                         <div className="flex items-center gap-3.5 min-w-0">
                                             <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 bg-indigo-50 text-indigo-500 border border-indigo-100">
@@ -330,14 +466,27 @@ export default function AprovacoesPrestacoesPage() {
                                         </div>
 
                                         <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
-                                            <p className={`text-xs font-black tracking-tight ${saldo === 0 ? "text-green-600" : saldo > 0 ? "text-amber-600" : "text-rose-600"}`}>
-                                                {saldo === 0 ? "R$ 0,00" : `${saldo > 0 ? '+' : '-'} R$ ${Math.abs(saldo).toFixed(2)}`}
-                                            </p>
-                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border ${
-                                                saldo === 0 ? 'bg-green-50 border-green-100 text-green-600' : saldo > 0 ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-rose-50 border-rose-100 text-rose-600'
-                                            }`}>
-                                                {saldo === 0 ? 'Zerado' : saldo > 0 ? 'Devolver' : 'Reembolsar'}
-                                            </span>
+                                            {activeTab === "APROVACAO" ? (
+                                                <>
+                                                    <p className={`text-xs font-black tracking-tight ${saldo === 0 ? "text-green-600" : saldo > 0 ? "text-amber-600" : "text-rose-600"}`}>
+                                                        {saldo === 0 ? "R$ 0,00" : `${saldo > 0 ? '+' : '-'} R$ ${Math.abs(saldo).toFixed(2)}`}
+                                                    </p>
+                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border ${
+                                                        saldo === 0 ? 'bg-green-50 border-green-100 text-green-600' : saldo > 0 ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-rose-50 border-rose-100 text-rose-600'
+                                                    }`}>
+                                                        {saldo === 0 ? 'Zerado' : saldo > 0 ? 'Devolver' : 'Reembolsar'}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="text-xs font-black tracking-tight text-amber-600">
+                                                        R$ {Number(item.valorSolicitado).toFixed(2)}
+                                                    </p>
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border bg-amber-50 border-amber-100 text-amber-600">
+                                                        Em Aberto
+                                                    </span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 )
@@ -563,29 +712,31 @@ export default function AprovacoesPrestacoesPage() {
                                 >
                                     Fechar
                                 </Button>
-                                <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-                                    <Button
-                                        onClick={() => {
-                                            openDecisionModal(detailItem, "REPROVAR")
-                                            setDetailItem(null)
-                                        }}
-                                        variant="outline"
-                                        className="h-10 px-6 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold uppercase tracking-wider text-[10px] gap-1.5 w-full sm:w-auto cursor-pointer"
-                                    >
-                                        <XCircle className="h-4 w-4" />
-                                        <span>Devolver</span>
-                                    </Button>
-                                    <Button
-                                        onClick={() => {
-                                            openDecisionModal(detailItem, "APROVAR")
-                                            setDetailItem(null)
-                                        }}
-                                        className="h-10 px-6 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-1.5 shadow-sm w-full sm:w-auto cursor-pointer"
-                                    >
-                                        <CheckCircle className="h-4 w-4" />
-                                        <span>Aprovar</span>
-                                    </Button>
-                                </div>
+                                {detailItem.status !== 'AGUARDANDO_PRESTACAO' && (
+                                    <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+                                        <Button
+                                            onClick={() => {
+                                                openDecisionModal(detailItem, "REPROVAR")
+                                                setDetailItem(null)
+                                            }}
+                                            variant="outline"
+                                            className="h-10 px-6 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold uppercase tracking-wider text-[10px] gap-1.5 w-full sm:w-auto cursor-pointer"
+                                        >
+                                            <XCircle className="h-4 w-4" />
+                                            <span>Devolver</span>
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                openDecisionModal(detailItem, "APROVAR")
+                                                setDetailItem(null)
+                                            }}
+                                            className="h-10 px-6 rounded-xl bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] gap-1.5 shadow-sm w-full sm:w-auto cursor-pointer"
+                                        >
+                                            <CheckCircle className="h-4 w-4" />
+                                            <span>Aprovar</span>
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
