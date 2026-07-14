@@ -114,8 +114,17 @@ export async function POST(
             itemsToCreate
         )
 
-        // Prestações de contas sempre passam pela aprovação superior do gestor antes da conciliação final do financeiro
-        const novoStatus = 'AGUARDANDO_APROVACAO'
+        // Buscar o centro de custo do solicitante para roteamento de níveis de aprovação
+        const solicitanteUser = await prisma.user.findUnique({
+            where: { id: despesa.solicitanteId },
+            include: {
+                centroCusto: true
+            }
+        })
+        const hasN1 = solicitanteUser?.centroCusto?.aprovadorN1Id ? true : false
+
+        // Prestações de contas passam pela aprovação superior de níveis N1 ou N2 antes da conciliação final
+        const novoStatus = hasN1 ? 'AGUARDANDO_APROVACAO_N1' : 'AGUARDANDO_APROVACAO_N2'
  
         const despesaAtualizada = await prisma.$transaction(async (tx) => {
             // Limpar itens anteriores de adiantamento (estimativas)

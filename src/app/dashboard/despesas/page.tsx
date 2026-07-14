@@ -123,7 +123,7 @@ export default function MinhasDespesasPage() {
 
     const fetchDespesas = async () => {
         try {
-            const res = await fetch("/api/despesas")
+            const res = await fetch("/api/despesas?scope=proprias")
             if (!res.ok) throw new Error()
             const data = await res.json()
             setDespesas(data)
@@ -922,8 +922,10 @@ export default function MinhasDespesasPage() {
                                     <h3 className="text-3xl font-black text-slate-900 tracking-tight">
                                         {formatCurrency(detailDespesa.valorSolicitado)}
                                     </h3>
-                                    <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold pt-0.5">
+                                    <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold pt-0.5 flex-wrap">
                                         <span>Criado em: {formatDate(detailDespesa.createdAt)}</span>
+                                        <span>•</span>
+                                        <span>Solicitado por: <span className="font-bold text-slate-600">{detailDespesa.solicitante.nome}</span></span>
                                         <span>•</span>
                                         <span>Status:</span>
                                         {getStatusBadge(detailDespesa.status)}

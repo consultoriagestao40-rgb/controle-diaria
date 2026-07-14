@@ -62,7 +62,7 @@ export async function PATCH(
         let novoStatus: any = 'RASCUNHO'
 
         if (action === 'APROVAR') {
-            if (despesa.status === 'AGUARDANDO_APROVACAO_N1' && despesa.centroCusto?.aprovadorN2Id) {
+            if (despesa.status === 'AGUARDANDO_APROVACAO_N1') {
                 novoStatus = 'AGUARDANDO_APROVACAO_N2'
             } else {
                 novoStatus = isPrestacao ? 'AGUARDANDO_CONCILIACAO' : 'APROVADO'

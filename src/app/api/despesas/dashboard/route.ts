@@ -33,7 +33,7 @@ export async function GET() {
                 solicitanteId: user.id,
                 tipo: 'ADIANTAMENTO',
                 status: {
-                    in: ['AGUARDANDO_PRESTACAO', 'AGUARDANDO_CONCILIACAO', 'AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2']
+                    in: ['AGUARDANDO_PRESTACAO', 'AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2']
                 },
                 saldoFinal: {
                     gt: 0

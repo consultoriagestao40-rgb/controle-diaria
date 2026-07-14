@@ -11,11 +11,12 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const tipo = searchParams.get("tipo") // REEMBOLSO ou ADIANTAMENTO
     const status = searchParams.get("status")
+    const scope = searchParams.get("scope")
 
     try {
         const isAdminOrFinance = ['ADMIN', 'FINANCEIRO', 'APROVADOR', 'APROVADOR_N1', 'APROVADOR_N2'].includes(user.role)
         
-        const filter: any = isAdminOrFinance ? {} : { solicitanteId: user.id }
+        const filter: any = (isAdminOrFinance && scope !== 'proprias') ? {} : { solicitanteId: user.id }
         
         if (tipo) filter.tipo = tipo
         if (status) {
@@ -59,6 +60,7 @@ export async function GET(req: Request) {
                     }
                     
                     if (d.status === 'AGUARDANDO_APROVACAO_N2') {
+                        if (user.role === 'APROVADOR_N2') return true
                         return d.centroCusto?.aprovadorN2Id === user.id
                     }
                     
@@ -179,10 +181,9 @@ export async function POST(req: Request) {
             if (needsApproval) {
                 if (hasN1) {
                     statusInicial = 'AGUARDANDO_APROVACAO_N1'
-                } else if (hasN2) {
-                    statusInicial = 'AGUARDANDO_APROVACAO_N2'
                 } else {
-                    statusInicial = 'AGUARDANDO_APROVACAO'
+                    // Se não tiver N1, vai direto para N2 (independente de hasN2 estar ativo ou não)
+                    statusInicial = 'AGUARDANDO_APROVACAO_N2'
                 }
             } else {
                 statusInicial = 'APROVADO'
