@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DollarSign, Loader2, AlertCircle, Calendar, Receipt, FileText, CheckCircle, Wallet, ArrowRightLeft, X, XCircle, Search } from "lucide-react"
+import { DollarSign, Loader2, AlertCircle, Calendar, Receipt, FileText, CheckCircle, Wallet, ArrowRightLeft, X, XCircle, Search, CheckSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,7 +21,7 @@ interface Despesa {
     valorComprovado: number | null
     saldoFinal: number | null
     createdAt: string
-    solicitante: { nome: string, email: string; role?: string }
+    solicitante: { id?: string; nome: string, email: string; role?: string }
     anexos: any[]
     alertaAuditoria: string | null
     itens?: any[]
@@ -46,6 +46,11 @@ export default function FinanceiroDespesasPage() {
     const [motivoSelecionado, setMotivoSelecionado] = useState("")
     const [submitting, setSubmitting] = useState(false)
 
+    // Controle do Modal de Agrupamento
+    const [agrupadoModalOpen, setAgrupadoModalOpen] = useState(false)
+    const [selectedColaboradorNome, setSelectedColaboradorNome] = useState("")
+    const [selectedColaboradorItens, setSelectedColaboradorItens] = useState<Despesa[]>([])
+
     // Filtros de Pesquisa e Agrupador
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedColaborador, setSelectedColaborador] = useState("")
@@ -69,6 +74,52 @@ export default function FinanceiroDespesasPage() {
         
         return matchesSearch && matchesColaborador
     })
+
+    // Agrupamento por colaborador para Pagamentos
+    const pagamentosAgrupados = Array.from(
+        filteredPagamentos.reduce((acc, curr) => {
+            const key = curr.solicitante.nome
+            if (!acc.has(key)) {
+                acc.set(key, {
+                    colaboradorNome: curr.solicitante.nome,
+                    colaboradorRole: curr.solicitante.role || "Colaborador",
+                    colaboradorEmail: curr.solicitante.email,
+                    totalValor: 0,
+                    itens: [] as Despesa[]
+                })
+            }
+            const group = acc.get(key)!
+            group.totalValor += Number(curr.valorSolicitado)
+            group.itens.push(curr)
+            return acc
+        }, new Map<string, { colaboradorNome: string; colaboradorRole: string; colaboradorEmail: string; totalValor: number; itens: Despesa[] }>())
+        .values()
+    ).sort((a, b) => b.totalValor - a.totalValor)
+
+    // Agrupamento por colaborador para Conciliações
+    const conciliacoesAgrupadas = Array.from(
+        filteredConciliacoes.reduce((acc, curr) => {
+            const key = curr.solicitante.nome
+            if (!acc.has(key)) {
+                acc.set(key, {
+                    colaboradorNome: curr.solicitante.nome,
+                    colaboradorRole: curr.solicitante.role || "Colaborador",
+                    colaboradorEmail: curr.solicitante.email,
+                    totalValor: 0,
+                    totalComprovado: 0,
+                    totalSaldo: 0,
+                    itens: [] as Despesa[]
+                })
+            }
+            const group = acc.get(key)!
+            group.totalValor += Number(curr.valorSolicitado)
+            group.totalComprovado += Number(curr.valorComprovado || 0)
+            group.totalSaldo += Number(curr.saldoFinal || 0)
+            group.itens.push(curr)
+            return acc
+        }, new Map<string, { colaboradorNome: string; colaboradorRole: string; colaboradorEmail: string; totalValor: number; totalComprovado: number; totalSaldo: number; itens: Despesa[] }>())
+        .values()
+    ).sort((a, b) => b.totalValor - a.totalValor)
 
     // Filtragem dinâmica de conciliações
     const filteredConciliacoes = despesasPendentesPrestacao.filter(d => {
@@ -318,7 +369,7 @@ export default function FinanceiroDespesasPage() {
                 ) : (
                     <>
                         {activeSection === "PAGAMENTOS" ? (
-                            filteredPagamentos.length === 0 ? (
+                            pagamentosAgrupados.length === 0 ? (
                                 <Card className="glass-card border-dashed border-2 py-32 flex flex-col items-center justify-center bg-white opacity-85">
                                     <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center mb-6">
                                         <DollarSign className="h-10 w-10 text-slate-300" />
@@ -334,45 +385,39 @@ export default function FinanceiroDespesasPage() {
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                    <th className="py-4.5 px-6">Data</th>
-                                                    <th className="py-4.5 px-6">Tipo</th>
-                                                    <th className="py-4.5 px-6">Colaborador</th>
-                                                    <th className="py-4.5 px-6">Descrição</th>
-                                                    <th className="py-4.5 px-6 text-right">Valor</th>
+                                                    <th className="py-4.5 px-6">Colaborador / Solicitante</th>
+                                                    <th className="py-4.5 px-6">E-mail</th>
+                                                    <th className="py-4.5 px-6">Lançamentos Pendentes</th>
+                                                    <th className="py-4.5 px-6 text-right">Valor Total Consolidado</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100/60">
-                                                {filteredPagamentos.map(item => (
+                                                {pagamentosAgrupados.map(group => (
                                                     <tr
-                                                        key={item.id}
-                                                        onClick={() => openActionModal(item)}
-                                                        className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
+                                                        key={group.colaboradorNome}
+                                                        onClick={() => {
+                                                            setSelectedColaboradorNome(group.colaboradorNome)
+                                                            setSelectedColaboradorItens(group.itens)
+                                                            setAgrupadoModalOpen(true)
+                                                        }}
+                                                        className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700 font-semibold"
                                                     >
                                                         <td className="py-4.5 px-6">
-                                                            <div className="flex items-center gap-2">
-                                                                <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                                                                <span className="font-semibold text-slate-700">
-                                                                    {new Date(item.createdAt).toLocaleDateString('pt-BR')}
-                                                                </span>
-                                                            </div>
+                                                            <div className="font-bold text-slate-900">{group.colaboradorNome}</div>
+                                                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                                                                {group.colaboradorRole}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4.5 px-6 text-slate-500 font-medium">
+                                                            {group.colaboradorEmail}
                                                         </td>
                                                         <td className="py-4.5 px-6">
-                                                            <Badge className={`border-0 font-bold px-2.5 py-0.5 rounded-lg text-xs ${
-                                                                item.tipo === "REEMBOLSO"
-                                                                    ? "bg-rose-100 text-rose-800"
-                                                                    : "bg-emerald-100 text-emerald-800"
-                                                            }`}>
-                                                                {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
-                                                            </Badge>
+                                                            <span className="inline-flex items-center px-2 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border">
+                                                                {group.itens.length} {group.itens.length === 1 ? 'solicitação' : 'solicitações'}
+                                                            </span>
                                                         </td>
-                                                        <td className="py-4.5 px-6 font-bold text-slate-900">
-                                                            {item.solicitante.nome}
-                                                        </td>
-                                                        <td className="py-4.5 px-6 max-w-xs truncate text-slate-600 font-medium">
-                                                            {item.descricao}
-                                                        </td>
-                                                        <td className="py-4.5 px-6 text-right font-black text-slate-900 tracking-tight text-base">
-                                                            {formatCurrency(item.valorSolicitado)}
+                                                        <td className="py-4.5 px-6 text-right font-black text-slate-900 text-base">
+                                                            R$ {group.totalValor.toFixed(2)}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -382,38 +427,33 @@ export default function FinanceiroDespesasPage() {
 
                                     {/* Mobile Extrato List View */}
                                     <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
-                                        {filteredPagamentos.map((item, idx) => (
+                                        {pagamentosAgrupados.map((group, idx) => (
                                             <div
-                                                key={item.id}
-                                                onClick={() => openActionModal(item)}
-                                                className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== filteredPagamentos.length - 1 ? 'border-b border-slate-100/80' : ''}`}
+                                                key={group.colaboradorNome}
+                                                onClick={() => {
+                                                    setSelectedColaboradorNome(group.colaboradorNome)
+                                                    setSelectedColaboradorItens(group.itens)
+                                                    setAgrupadoModalOpen(true)
+                                                }}
+                                                className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== pagamentosAgrupados.length - 1 ? 'border-b border-slate-100/80' : ''}`}
                                             >
                                                 <div className="flex items-center gap-3.5 min-w-0">
-                                                    <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
-                                                        item.tipo === "REEMBOLSO" 
-                                                            ? "bg-rose-50 text-rose-500 border border-rose-100" 
-                                                            : "bg-emerald-50 text-emerald-500 border border-emerald-100"
-                                                    }`}>
-                                                        {item.tipo === "REEMBOLSO" ? <Receipt className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                                                    <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 bg-slate-100 text-slate-600 border border-slate-200">
+                                                        <CheckSquare className="h-4.5 w-4.5" />
                                                     </div>
                                                     
                                                     <div className="min-w-0 space-y-0.5">
-                                                        <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
+                                                        <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{group.colaboradorNome}</p>
                                                         <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
-                                                            {item.solicitante.nome} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
+                                                            {group.itens.length} {group.itens.length === 1 ? 'Pendência' : 'Pendências'}
                                                         </p>
                                                     </div>
                                                 </div>
 
                                                 <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
                                                     <p className="text-xs font-black text-slate-900 tracking-tight">
-                                                        {formatCurrency(item.valorSolicitado)}
+                                                        R$ {group.totalValor.toFixed(2)}
                                                     </p>
-                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border ${
-                                                        item.tipo === 'REEMBOLSO' ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                                                    }`}>
-                                                        {item.tipo === 'REEMBOLSO' ? 'Reembolso' : 'Adiantamento'}
-                                                    </span>
                                                 </div>
                                             </div>
                                         ))}
@@ -421,7 +461,7 @@ export default function FinanceiroDespesasPage() {
                                 </>
                             )
                         ) : (
-                            filteredConciliacoes.length === 0 ? (
+                            conciliacoesAgrupadas.length === 0 ? (
                                 <Card className="glass-card border-dashed border-2 py-32 flex flex-col items-center justify-center bg-white opacity-85">
                                     <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center mb-6">
                                         <DollarSign className="h-10 w-10 text-slate-300" />
@@ -437,92 +477,88 @@ export default function FinanceiroDespesasPage() {
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                    <th className="py-4.5 px-6">Data</th>
-                                                    <th className="py-4.5 px-6">Tipo</th>
-                                                    <th className="py-4.5 px-6">Colaborador</th>
-                                                    <th className="py-4.5 px-6">Descrição</th>
-                                                    <th className="py-4.5 px-6 text-right">Comprovado</th>
-                                                    <th className="py-4.5 px-6 text-right">Diferença</th>
-                                                    <th className="py-4.5 px-6 text-right">Valor Inicial</th>
+                                                    <th className="py-4.5 px-6">Colaborador / Solicitante</th>
+                                                    <th className="py-4.5 px-6">E-mail</th>
+                                                    <th className="py-4.5 px-6">Lançamentos</th>
+                                                    <th className="py-4.5 px-6 text-right">Adiantado</th>
+                                                    <th className="py-4.5 px-6 text-right">Gasto Comprovado</th>
+                                                    <th className="py-4.5 px-6 text-right">Diferença Consolidada</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100/60">
-                                                {filteredConciliacoes.map(item => {
-                                                    const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
-                                                    return (
-                                                        <tr
-                                                            key={item.id}
-                                                            onClick={() => openActionModal(item)}
-                                                            className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
-                                                        >
-                                                            <td className="py-4.5 px-6">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                                                                    <span className="font-semibold text-slate-700">
-                                                                        {new Date(item.createdAt).toLocaleDateString('pt-BR')}
-                                                                    </span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-4.5 px-6">
-                                                                <Badge className="border-0 font-bold px-2.5 py-0.5 rounded-lg text-xs bg-orange-100 text-orange-800">
-                                                                    Prestação
-                                                                </Badge>
-                                                            </td>
-                                                            <td className="py-4.5 px-6 font-bold text-slate-900">
-                                                                {item.solicitante.nome}
-                                                            </td>
-                                                            <td className="py-4.5 px-6 max-w-xs truncate text-slate-600 font-medium">
-                                                                {item.descricao}
-                                                            </td>
-                                                            <td className="py-4.5 px-6 text-right text-slate-700 font-semibold">
-                                                                {formatCurrency(item.valorComprovado || 0)}
-                                                            </td>
-                                                            <td className={`py-4.5 px-6 text-right font-bold text-xs ${
-                                                                saldo > 0 ? "text-amber-600" : "text-rose-600"
-                                                            }`}>
-                                                                {saldo > 0 ? `Devolver ${formatCurrency(saldo)}` : `Pagar ${formatCurrency(Math.abs(saldo))}`}
-                                                            </td>
-                                                            <td className="py-4.5 px-6 text-right font-black text-slate-900 tracking-tight text-base">
-                                                                {formatCurrency(item.valorSolicitado)}
-                                                            </td>
-                                                        </tr>
-                                                    )
-                                                })}
+                                                {conciliacoesAgrupadas.map(group => (
+                                                    <tr
+                                                        key={group.colaboradorNome}
+                                                        onClick={() => {
+                                                            setSelectedColaboradorNome(group.colaboradorNome)
+                                                            setSelectedColaboradorItens(group.itens)
+                                                            setAgrupadoModalOpen(true)
+                                                        }}
+                                                        className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700 font-semibold"
+                                                    >
+                                                        <td className="py-4.5 px-6">
+                                                            <div className="font-bold text-slate-900">{group.colaboradorNome}</div>
+                                                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                                                                {group.colaboradorRole}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4.5 px-6 text-slate-500 font-medium">
+                                                            {group.colaboradorEmail}
+                                                        </td>
+                                                        <td className="py-4.5 px-6">
+                                                            <span className="inline-flex items-center px-2 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border">
+                                                                {group.itens.length} {group.itens.length === 1 ? 'item' : 'itens'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4.5 px-6 text-right text-slate-700">
+                                                            {formatCurrency(group.totalValor)}
+                                                        </td>
+                                                        <td className="py-4.5 px-6 text-right font-bold text-indigo-600">
+                                                            {formatCurrency(group.totalComprovado)}
+                                                        </td>
+                                                        <td className={`py-4.5 px-6 text-right font-black ${
+                                                            group.totalSaldo > 0 ? "text-amber-600" : "text-rose-600"
+                                                        }`}>
+                                                            {group.totalSaldo > 0 ? `Receber ${formatCurrency(group.totalSaldo)}` : `Pagar ${formatCurrency(Math.abs(group.totalSaldo))}`}
+                                                        </td>
+                                                    </tr>
+                                                ))}
                                             </tbody>
                                         </table>
                                     </div>
 
                                     {/* Mobile Extrato List View */}
                                     <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
-                                        {filteredConciliacoes.map((item, idx) => {
-                                            const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
-                                            return (
-                                                <div
-                                                    key={item.id}
-                                                    onClick={() => openActionModal(item)}
-                                                    className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${
-                                                        idx !== filteredConciliacoes.length - 1 ? 'border-b border-slate-100/80' : ''
-                                                    }`}
-                                                >
-                                                    <div className="min-w-0 space-y-1">
-                                                        <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
-                                                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
-                                                            Prestação &bull; {item.solicitante.nome} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
-                                                        </p>
+                                        {conciliacoesAgrupadas.map((group, idx) => (
+                                            <div
+                                                key={group.colaboradorNome}
+                                                onClick={() => {
+                                                    setSelectedColaboradorNome(group.colaboradorNome)
+                                                    setSelectedColaboradorItens(group.itens)
+                                                    setAgrupadoModalOpen(true)
+                                                }}
+                                                className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${
+                                                    idx !== conciliacoesAgrupadas.length - 1 ? 'border-b border-slate-100/80' : ''
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3.5 min-w-0">
+                                                    <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 bg-slate-100 text-slate-600 border border-slate-200">
+                                                        <CheckSquare className="h-4.5 w-4.5" />
                                                     </div>
-                                                    <div className="text-right shrink-0 ml-3">
-                                                        <p className="text-sm font-black text-slate-900 tracking-tight">
-                                                            {formatCurrency(item.valorSolicitado)}
+                                                    <div className="min-w-0 space-y-0.5">
+                                                        <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{group.colaboradorNome}</p>
+                                                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
+                                                            {group.itens.length} {group.itens.length === 1 ? 'Conciliação' : 'Conciliações'}
                                                         </p>
-                                                        <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md ${
-                                                            saldo > 0 ? "text-amber-700 bg-amber-50" : "text-rose-700 bg-rose-50"
-                                                        }`}>
-                                                            {saldo > 0 ? `Devolver: ${formatCurrency(saldo)}` : `Pagar: ${formatCurrency(Math.abs(saldo))}`}
-                                                        </span>
                                                     </div>
                                                 </div>
-                                            )
-                                        })}
+                                                <div className="text-right shrink-0 ml-3">
+                                                    <p className="text-sm font-black text-slate-900 tracking-tight">
+                                                        {formatCurrency(group.totalValor)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </>
                             )
@@ -530,6 +566,87 @@ export default function FinanceiroDespesasPage() {
                     </>
                 )}
             </div>
+
+            {/* Modal Intermediário de Agrupamento */}
+            {agrupadoModalOpen && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] flex flex-col">
+                        <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                            <div>
+                                <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">
+                                    {activeSection === "PAGAMENTOS" ? "Lançamentos Pendentes de Pagamento" : "Conciliações Pendentes"}
+                                </h3>
+                                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider pt-0.5">
+                                    {selectedColaboradorNome} &bull; {selectedColaboradorItens.length} lançamentos
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setAgrupadoModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600 font-black text-lg p-2 hover:bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center transition-all cursor-pointer"
+                            >
+                                &times;
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1 divide-y divide-slate-100 bg-white">
+                            {selectedColaboradorItens.map((item) => {
+                                const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
+                                return (
+                                    <div
+                                        key={item.id}
+                                        onClick={() => {
+                                            openActionModal(item)
+                                            setAgrupadoModalOpen(false)
+                                        }}
+                                        className="py-4 flex items-center justify-between hover:bg-slate-50/50 cursor-pointer transition-all px-2 rounded-xl"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                                                item.tipo === "REEMBOLSO" 
+                                                    ? "bg-rose-50 text-rose-500 border border-rose-100" 
+                                                    : "bg-emerald-50 text-emerald-500 border border-emerald-100"
+                                            }`}>
+                                                {item.tipo === "REEMBOLSO" ? <Receipt className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-bold text-slate-900 truncate italic">"{item.descricao}"</p>
+                                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider pt-0.5">
+                                                    {new Date(item.createdAt).toLocaleDateString('pt-BR')} &bull; {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0 ml-3 flex flex-col items-end">
+                                            {activeSection === "PAGAMENTOS" ? (
+                                                <span className="text-xs font-black text-slate-900">
+                                                    {formatCurrency(item.valorSolicitado)}
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    <span className="text-xs font-bold text-slate-400">
+                                                        Solicitado: {formatCurrency(item.valorSolicitado)}
+                                                    </span>
+                                                    <span className={`text-[8px] font-black uppercase tracking-wider pt-0.5 ${
+                                                        saldo > 0 ? "text-amber-600" : "text-rose-600"
+                                                    }`}>
+                                                        {saldo > 0 ? `Devolver: ${formatCurrency(saldo)}` : `Pagar: ${formatCurrency(Math.abs(saldo))}`}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
+                            <Button
+                                onClick={() => setAgrupadoModalOpen(false)}
+                                className="h-10 px-6 rounded-xl font-bold uppercase tracking-wider text-[10px] bg-slate-900 hover:bg-slate-800 text-white cursor-pointer"
+                            >
+                                Fechar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal Unificado de Detalhes e Baixa Financeira */}
             <Dialog open={actionModalOpen && !!selectedDespesa} onOpenChange={(open) => !open && setActionModalOpen(false)}>

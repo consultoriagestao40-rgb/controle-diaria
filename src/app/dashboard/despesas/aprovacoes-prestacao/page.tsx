@@ -68,6 +68,36 @@ export default function AprovacoesPrestacoesPage() {
         return matchesSearch && matchesSolicitante
     })
 
+    // Controle do Modal de Agrupamento
+    const [agrupadoModalOpen, setAgrupadoModalOpen] = useState(false)
+    const [selectedColaboradorNome, setSelectedColaboradorNome] = useState("")
+    const [selectedColaboradorItens, setSelectedColaboradorItens] = useState<Despesa[]>([])
+
+    // Agrupamento por colaborador para a tabela principal
+    const despesasAgrupadas = Array.from(
+        filteredDespesas.reduce((acc, curr) => {
+            const key = curr.solicitante.nome
+            if (!acc.has(key)) {
+                acc.set(key, {
+                    colaboradorNome: curr.solicitante.nome,
+                    colaboradorRole: curr.solicitante.role || "Colaborador",
+                    colaboradorEmail: curr.solicitante.email,
+                    totalValor: 0,
+                    totalComprovado: 0,
+                    totalSaldo: 0,
+                    itens: [] as Despesa[]
+                })
+            }
+            const group = acc.get(key)!
+            group.totalValor += Number(curr.valorSolicitado)
+            group.totalComprovado += Number(curr.valorComprovado || 0)
+            group.totalSaldo += Number(curr.saldoFinal || 0)
+            group.itens.push(curr)
+            return acc
+        }, new Map<string, { colaboradorNome: string; colaboradorRole: string; colaboradorEmail: string; totalValor: number; totalComprovado: number; totalSaldo: number; itens: Despesa[] }>())
+        .values()
+    ).sort((a, b) => b.totalValor - a.totalValor)
+
     // Totais calculados dinamicamente com base nas despesas filtradas (Aba Aprovação)
     const totalGastoReal = filteredDespesas.reduce((acc, curr) => acc + Number(curr.valorComprovado || 0), 0)
     const totalAdiantado = filteredDespesas.reduce((acc, curr) => acc + Number(curr.valorSolicitado), 0)
@@ -368,7 +398,7 @@ export default function AprovacoesPrestacoesPage() {
                 ) : (
                     <>
                         {/* Desktop Table View */}
-                        {filteredDespesas.length === 0 ? (
+                        {despesasAgrupadas.length === 0 ? (
                             <div className="bg-white border rounded-3xl p-16 text-center space-y-3">
                                 <CheckCircle className="h-10 w-10 text-slate-300 mx-auto" />
                                 <h3 className="font-bold text-slate-800 text-sm">Nenhum resultado encontrado</h3>
@@ -379,13 +409,14 @@ export default function AprovacoesPrestacoesPage() {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            <th className="py-4.5 px-6">Data</th>
-                                            <th className="py-4.5 px-6">Solicitante</th>
-                                            <th className="py-4.5 px-6">Descrição / Adiantamento</th>
+                                            <th className="py-4.5 px-6">Colaborador / Solicitante</th>
+                                            <th className="py-4.5 px-6">E-mail</th>
+                                            <th className="py-4.5 px-6">Lançamentos</th>
                                             {activeTab === "APROVACAO" ? (
                                                 <>
-                                                    <th className="py-4.5 px-6 text-right">Valor Gasto</th>
-                                                    <th className="py-4.5 px-6 text-right">Saldo de Acerto</th>
+                                                    <th className="py-4.5 px-6 text-right">Adiantado</th>
+                                                    <th className="py-4.5 px-6 text-right">Gasto Comprovado</th>
+                                                    <th className="py-4.5 px-6 text-right">Saldo Consolidado</th>
                                                 </>
                                             ) : (
                                                 <th className="py-4.5 px-6 text-right">Valor Em Aberto</th>
@@ -393,112 +424,170 @@ export default function AprovacoesPrestacoesPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100/60">
-                                        {filteredDespesas.map(item => {
-                                            const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
-                                            return (
-                                                <tr
-                                                    key={item.id}
-                                                    onClick={() => setDetailItem(item)}
-                                                    className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
-                                                >
+                                        {despesasAgrupadas.map(group => (
+                                            <tr
+                                                key={group.colaboradorNome}
+                                                onClick={() => {
+                                                    setSelectedColaboradorNome(group.colaboradorNome)
+                                                    setSelectedColaboradorItens(group.itens)
+                                                    setAgrupadoModalOpen(true)
+                                                }}
+                                                className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700 font-semibold"
+                                            >
                                                 <td className="py-4.5 px-6">
-                                                    <div className="flex items-center gap-2">
-                                                        <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                                                        <span className="font-semibold text-slate-700">
-                                                            {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4.5 px-6">
-                                                    <div className="font-bold text-slate-900">{item.solicitante.nome}</div>
+                                                    <div className="font-bold text-slate-900">{group.colaboradorNome}</div>
                                                     <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
-                                                        {item.solicitante.role}
+                                                        {group.colaboradorRole}
                                                     </span>
                                                 </td>
-                                                <td className="py-4.5 px-6 truncate max-w-xs">
-                                                    <div className="text-slate-900 font-bold">{item.descricao}</div>
-                                                    <span className="text-[10px] text-slate-400 font-medium block">
-                                                        Valor Adiantado: R$ {Number(item.valorSolicitado).toFixed(2)}
+                                                <td className="py-4.5 px-6 text-slate-500 font-medium">
+                                                    {group.colaboradorEmail}
+                                                </td>
+                                                <td className="py-4.5 px-6">
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border">
+                                                        {group.itens.length} {group.itens.length === 1 ? 'item' : 'itens'}
                                                     </span>
                                                 </td>
                                                 {activeTab === "APROVACAO" ? (
                                                     <>
-                                                        <td className="py-4.5 px-6 text-right font-black text-slate-900">
-                                                            R$ {Number(item.valorComprovado || 0).toFixed(2)}
+                                                        <td className="py-4.5 px-6 text-right text-slate-700">
+                                                            R$ {group.totalValor.toFixed(2)}
                                                         </td>
-                                                        <td className={`py-4.5 px-6 text-right font-bold ${saldo === 0 ? "text-green-600" : saldo > 0 ? "text-amber-600" : "text-rose-600"}`}>
-                                                            {saldo === 0 ? "Zerado" : saldo > 0 ? `Devolver R$ ${saldo.toFixed(2)}` : `Reembolsar R$ ${Math.abs(saldo).toFixed(2)}`}
+                                                        <td className="py-4.5 px-6 text-right text-indigo-600 font-black">
+                                                            R$ {group.totalComprovado.toFixed(2)}
+                                                        </td>
+                                                        <td className={`py-4.5 px-6 text-right font-black ${
+                                                            group.totalSaldo === 0 ? "text-green-600" : group.totalSaldo > 0 ? "text-amber-600" : "text-rose-600"
+                                                        }`}>
+                                                            {group.totalSaldo === 0 ? "Zerado" : group.totalSaldo > 0 ? `Devolver R$ ${group.totalSaldo.toFixed(2)}` : `Reembolsar R$ ${Math.abs(group.totalSaldo).toFixed(2)}`}
                                                         </td>
                                                     </>
                                                 ) : (
                                                     <td className="py-4.5 px-6 text-right font-black text-amber-600">
-                                                        R$ {Number(item.valorSolicitado).toFixed(2)}
+                                                        R$ {group.totalValor.toFixed(2)}
                                                     </td>
                                                 )}
                                             </tr>
-                                        )
-                                    })}
-                                </tbody>
+                                        ))}
+                                    </tbody>
                                 </table>
                             </div>
                         )}
-
                         {/* Mobile Extrato List View */}
-                        {filteredDespesas.length > 0 && (
+                        {despesasAgrupadas.length > 0 && (
                             <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
-                                {filteredDespesas.map((item, idx) => {
-                                    const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
-                                    return (
+                                {despesasAgrupadas.map((group, idx) => (
                                     <div
-                                        key={item.id}
-                                        onClick={() => setDetailItem(item)}
-                                        className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== activeList.length - 1 ? 'border-b border-slate-100/80' : ''}`}
+                                        key={group.colaboradorNome}
+                                        onClick={() => {
+                                            setSelectedColaboradorNome(group.colaboradorNome)
+                                            setSelectedColaboradorItens(group.itens)
+                                            setAgrupadoModalOpen(true)
+                                        }}
+                                        className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== despesasAgrupadas.length - 1 ? 'border-b border-slate-100/80' : ''}`}
                                     >
                                         <div className="flex items-center gap-3.5 min-w-0">
-                                            <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 bg-indigo-50 text-indigo-500 border border-indigo-100">
-                                                <FileText className="h-4 w-4" />
+                                            <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 bg-slate-100 text-slate-600 border border-slate-200">
+                                                <CheckSquare className="h-4.5 w-4.5" />
                                             </div>
                                             
                                             <div className="min-w-0 space-y-0.5">
-                                                <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
+                                                <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{group.colaboradorNome}</p>
                                                 <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
-                                                    {item.solicitante.nome} &bull; Gasto: R$ {Number(item.valorComprovado || 0).toFixed(2)}
+                                                    {group.itens.length} {group.itens.length === 1 ? 'Lançamento' : 'Lançamentos'}
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
-                                            {activeTab === "APROVACAO" ? (
-                                                <>
-                                                    <p className={`text-xs font-black tracking-tight ${saldo === 0 ? "text-green-600" : saldo > 0 ? "text-amber-600" : "text-rose-600"}`}>
-                                                        {saldo === 0 ? "R$ 0,00" : `${saldo > 0 ? '+' : '-'} R$ ${Math.abs(saldo).toFixed(2)}`}
-                                                    </p>
-                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border ${
-                                                        saldo === 0 ? 'bg-green-50 border-green-100 text-green-600' : saldo > 0 ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-rose-50 border-rose-100 text-rose-600'
-                                                    }`}>
-                                                        {saldo === 0 ? 'Zerado' : saldo > 0 ? 'Devolver' : 'Reembolsar'}
-                                                    </span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <p className="text-xs font-black tracking-tight text-amber-600">
-                                                        R$ {Number(item.valorSolicitado).toFixed(2)}
-                                                    </p>
-                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border bg-amber-50 border-amber-100 text-amber-600">
-                                                        Em Aberto
-                                                    </span>
-                                                </>
-                                            )}
+                                            <p className="text-xs font-black text-slate-900 tracking-tight">
+                                                R$ {group.totalValor.toFixed(2)}
+                                            </p>
                                         </div>
                                     </div>
-                                )
-                            })}
+                                ))}
                             </div>
                         )}
                     </>
                 )}
             </div>
 
+            {/* Modal Intermediário de Agrupamento */}
+            {agrupadoModalOpen && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] flex flex-col">
+                        <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                            <div>
+                                <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">
+                                    {activeTab === "APROVACAO" ? "Prestações Pendentes" : "Adiantamentos em Aberto"}
+                                </h3>
+                                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider pt-0.5">
+                                    {selectedColaboradorNome} &bull; {selectedColaboradorItens.length} lançamentos
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setAgrupadoModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600 font-black text-lg p-2 hover:bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center transition-all cursor-pointer"
+                            >
+                                &times;
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1 divide-y divide-slate-100 bg-white">
+                            {selectedColaboradorItens.map((item) => {
+                                const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
+                                return (
+                                    <div
+                                        key={item.id}
+                                        onClick={() => {
+                                            setDetailItem(item)
+                                            setAgrupadoModalOpen(false)
+                                        }}
+                                        className="py-4 flex items-center justify-between hover:bg-slate-50/50 cursor-pointer transition-all px-2 rounded-xl"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 bg-indigo-50 text-indigo-500 border border-indigo-100">
+                                                <FileText className="h-4 w-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-bold text-slate-900 truncate italic">"{item.descricao}"</p>
+                                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider pt-0.5">
+                                                    Adiantado: R$ {Number(item.valorSolicitado).toFixed(2)} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0 ml-3 flex flex-col items-end">
+                                            {activeTab === "APROVACAO" ? (
+                                                <>
+                                                    <span className="text-xs font-black text-slate-900">
+                                                        Gasto: R$ {Number(item.valorComprovado || 0).toFixed(2)}
+                                                    </span>
+                                                    <span className={`text-[8px] font-black uppercase tracking-wider pt-0.5 ${
+                                                        saldo === 0 ? "text-green-600" : saldo > 0 ? "text-amber-600" : "text-rose-600"
+                                                    }`}>
+                                                        {saldo === 0 ? "Zerado" : saldo > 0 ? `Devolver R$ ${saldo.toFixed(2)}` : `Reembolsar R$ ${Math.abs(saldo).toFixed(2)}`}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className="text-xs font-black text-amber-600">
+                                                    R$ {Number(item.valorSolicitado).toFixed(2)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
+                            <Button
+                                onClick={() => setAgrupadoModalOpen(false)}
+                                className="h-10 px-6 rounded-xl font-bold uppercase tracking-wider text-[10px] bg-slate-900 hover:bg-slate-800 text-white cursor-pointer"
+                            >
+                                Fechar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {decisionModalOpen && selectedDespesa && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] flex flex-col">
