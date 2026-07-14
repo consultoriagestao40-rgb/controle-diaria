@@ -75,6 +75,7 @@ export function MobileNav({ user, logoUrl, acessoDespesas = true, acessoCobertur
             
             if (["ADMIN", "APROVADOR", "APROVADOR_N1", "APROVADOR_N2"].includes(role)) {
                 despesasItems.push({ label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare })
+                despesasItems.push({ label: "Aprovar Prestações", href: "/dashboard/despesas/aprovacoes-prestacao", icon: FileText })
             }
             
             if (["ADMIN", "FINANCEIRO", "APROVADOR_N2"].includes(role)) {

@@ -27,7 +27,7 @@ interface Despesa {
     centroCusto?: { id: string, nome: string } | null
 }
 
-export default function AprovacoesDespesasPage() {
+export default function AprovacoesPrestacoesPage() {
     const [despesas, setDespesas] = useState<Despesa[]>([])
     const [loading, setLoading] = useState(true)
     const [detailItem, setDetailItem] = useState<Despesa | null>(null)
@@ -67,11 +67,11 @@ export default function AprovacoesDespesasPage() {
             const res = await fetch("/api/despesas?status=AGUARDANDO_APROVACAO")
             if (!res.ok) throw new Error()
             const data = await res.json()
-            // Filtrar apenas despesas comuns (Reembolsos e Adiantamentos iniciais que não têm valor comprovado)
-            const solicitacoesNormais = data.filter((d: any) => !(d.tipo === 'ADIANTAMENTO' && d.valorComprovado !== null))
-            setDespesas(solicitacoesNormais)
+            // Filtrar apenas prestações de contas (adiantamentos com valor comprovado)
+            const prestacoesContas = data.filter((d: any) => d.tipo === 'ADIANTAMENTO' && d.valorComprovado !== null)
+            setDespesas(prestacoesContas)
         } catch {
-            toast.error("Erro ao carregar solicitações pendentes")
+            toast.error("Erro ao carregar prestações pendentes")
         } finally {
             setLoading(false)
         }
@@ -116,10 +116,8 @@ export default function AprovacoesDespesasPage() {
 
             toast.success(
                 actionType === "APROVAR"
-                    ? "Solicitação aprovada com sucesso!"
-                    : selectedDespesa.tipo === "ADIANTAMENTO" && selectedDespesa.valorComprovado !== null
-                        ? "Prestação devolvida para correção!"
-                        : "Solicitação reprovada com sucesso."
+                    ? "Prestação aprovada com sucesso!"
+                    : "Prestação devolvida para correção!"
             )
             setDecisionModalOpen(false)
             fetchAprovacoes()
@@ -133,35 +131,40 @@ export default function AprovacoesDespesasPage() {
     return (
         <div className="space-y-10 pb-32 max-w-5xl mx-auto pt-4 relative">
             {/* Header / Top Banner */}
-            <div className="relative -mt-8 -mx-4 md:mt-0 md:mx-0 p-6 md:p-0 bg-slate-950 md:bg-transparent text-white md:text-slate-900 border-b md:border-none border-emerald-500/20 overflow-hidden shadow-lg md:shadow-none md:space-y-1 md:block flex flex-col justify-center">
-                {/* Glows for App View */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -z-10 md:hidden" />
+            <div className="relative -mt-8 -mx-4 md:mt-0 md:mx-0 p-6 md:p-0 bg-slate-950 md:bg-transparent text-white md:text-slate-900 border-b md:border-none border-indigo-500/20 overflow-hidden shadow-lg md:shadow-none md:space-y-1 md:block flex flex-col justify-center">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -z-10 md:hidden" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -z-10 md:hidden" />
                 
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight text-white md:text-slate-900">
-                    Aprovação de <span className="text-emerald-400 md:text-primary italic">Despesas</span>
+                    Aprovação de <span className="text-indigo-400 md:text-primary italic">Prestações</span>
                 </h1>
-                <p className="text-emerald-500/60 md:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-1 md:mt-0">
-                    Valide e aprove reembolsos e adiantamentos pendentes
+                <p className="text-indigo-500/60 md:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-1 md:mt-0">
+                    Valide e aprove prestações de contas pendentes
                 </p>
             </div>
 
             {/* Listagem de pendentes */}
             <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                    <div className="h-8 w-1 bg-primary rounded-full" />
-                    <h2 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">Solicitações Aguardando Seu Parecer</h2>
+                    <div className="h-8 w-1 bg-indigo-600 rounded-full" />
+                    <h2 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">Prestações Aguardando Seu Parecer</h2>
                 </div>
 
                 {loading ? (
                     <div className="flex flex-col items-center justify-center p-32 gap-6">
                         <div className="relative h-16 w-16">
                             <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
-                            <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                            <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
                         </div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Carregando pendências...</p>
                     </div>
-                                ) : (
+                ) : despesas.length === 0 ? (
+                    <div className="bg-white border rounded-3xl p-16 text-center space-y-3">
+                        <CheckCircle className="h-10 w-10 text-slate-300 mx-auto" />
+                        <h3 className="font-bold text-slate-800 text-sm">Tudo em dia!</h3>
+                        <p className="text-xs text-slate-400 max-w-xs mx-auto">Nenhuma prestação de contas pendente de validação no momento.</p>
+                    </div>
+                ) : (
                     <>
                         {/* Desktop Table View */}
                         <div className="hidden md:block bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
@@ -169,93 +172,90 @@ export default function AprovacoesDespesasPage() {
                                 <thead>
                                     <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                         <th className="py-4.5 px-6">Data</th>
-                                        <th className="py-4.5 px-6">Tipo</th>
                                         <th className="py-4.5 px-6">Solicitante</th>
-                                        <th className="py-4.5 px-6">Descrição</th>
-                                        <th className="py-4.5 px-6 text-right">Valor</th>
+                                        <th className="py-4.5 px-6">Descrição / Adiantamento</th>
+                                        <th className="py-4.5 px-6 text-right">Valor Gasto</th>
+                                        <th className="py-4.5 px-6 text-right">Saldo de Acerto</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100/60">
-                                    {despesas.map(item => (
-                                        <tr
-                                            key={item.id}
-                                            onClick={() => setDetailItem(item)}
-                                            className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
-                                        >
-                                            <td className="py-4.5 px-6">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                                                    <span className="font-semibold text-slate-700">
-                                                        {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                    {despesas.map(item => {
+                                        const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
+                                        return (
+                                            <tr
+                                                key={item.id}
+                                                onClick={() => setDetailItem(item)}
+                                                className="hover:bg-slate-50/80 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700"
+                                            >
+                                                <td className="py-4.5 px-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+                                                        <span className="font-semibold text-slate-700">
+                                                            {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4.5 px-6">
+                                                    <div className="font-bold text-slate-900">{item.solicitante.nome}</div>
+                                                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                                                        {item.solicitante.role}
                                                     </span>
-                                                </div>
-                                            </td>
-                                            <td className="py-4.5 px-6">
-                                                <Badge className={`border-0 font-bold px-2.5 py-0.5 rounded-lg text-xs ${
-                                                    item.tipo === "REEMBOLSO"
-                                                        ? "bg-rose-100 text-rose-800"
-                                                        : "bg-emerald-100 text-emerald-800"
-                                                }`}>
-                                                    {item.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
-                                                </Badge>
-                                            </td>
-                                            <td className="py-4.5 px-6">
-                                                <div className="font-bold text-slate-900">{item.solicitante.nome}</div>
-                                                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
-                                                    {item.solicitante.role}
-                                                </span>
-                                            </td>
-                                            <td className="py-4.5 px-6 truncate max-w-xs">
-                                                <span className="text-slate-600 font-medium">{item.descricao}</span>
-                                            </td>
-                                            <td className="py-4.5 px-6 text-right">
-                                                <span className="font-black text-slate-900 tracking-tight text-base">
-                                                    R$ {Number(item.valorSolicitado).toFixed(2)}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                                <td className="py-4.5 px-6 truncate max-w-xs">
+                                                    <div className="text-slate-900 font-bold">{item.descricao}</div>
+                                                    <span className="text-[10px] text-slate-400 font-medium block">
+                                                        Valor Adiantado: R$ {Number(item.valorSolicitado).toFixed(2)}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4.5 px-6 text-right font-black text-slate-900">
+                                                    R$ {Number(item.valorComprovado || 0).toFixed(2)}
+                                                </td>
+                                                <td className={`py-4.5 px-6 text-right font-bold ${saldo === 0 ? "text-green-600" : saldo > 0 ? "text-amber-600" : "text-rose-600"}`}>
+                                                    {saldo === 0 ? "Zerado" : saldo > 0 ? `Devolver R$ ${saldo.toFixed(2)}` : `Reembolsar R$ ${Math.abs(saldo).toFixed(2)}`}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
                                 </tbody>
                             </table>
                         </div>
 
                         {/* Mobile Extrato List View */}
                         <div className="block md:hidden bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden mx-1">
-                            {despesas.map((item, idx) => (
-                                <div
-                                    key={item.id}
-                                    onClick={() => setDetailItem(item)}
-                                    className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== despesas.length - 1 ? 'border-b border-slate-100/80' : ''}`}
-                                >
-                                    <div className="flex items-center gap-3.5 min-w-0">
-                                        <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
-                                            item.tipo === "REEMBOLSO" 
-                                                ? "bg-rose-50 text-rose-500 border border-rose-100" 
-                                                : "bg-emerald-50 text-emerald-500 border border-emerald-100"
-                                        }`}>
-                                            {item.tipo === "REEMBOLSO" ? <Receipt className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                            {despesas.map((item, idx) => {
+                                const saldo = item.saldoFinal ? Number(item.saldoFinal) : 0
+                                return (
+                                    <div
+                                        key={item.id}
+                                        onClick={() => setDetailItem(item)}
+                                        className={`flex items-center justify-between p-4 hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer ${idx !== despesas.length - 1 ? 'border-b border-slate-100/80' : ''}`}
+                                    >
+                                        <div className="flex items-center gap-3.5 min-w-0">
+                                            <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 bg-indigo-50 text-indigo-500 border border-indigo-100">
+                                                <FileText className="h-4 w-4" />
+                                            </div>
+                                            
+                                            <div className="min-w-0 space-y-0.5">
+                                                <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
+                                                <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
+                                                    {item.solicitante.nome} &bull; Gasto: R$ {Number(item.valorComprovado || 0).toFixed(2)}
+                                                </p>
+                                            </div>
                                         </div>
-                                        
-                                        <div className="min-w-0 space-y-0.5">
-                                            <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{item.descricao}</p>
-                                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider truncate">
-                                                {item.solicitante.nome} &bull; {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
-                                            </p>
-                                        </div>
-                                    </div>
 
-                                    <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
-                                        <p className="text-xs font-black text-slate-900 tracking-tight">
-                                            R$ {Number(item.valorSolicitado).toFixed(2)}
-                                        </p>
-                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border ${
-                                            item.tipo === 'REEMBOLSO' ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                                        }`}>
-                                            {item.tipo === 'REEMBOLSO' ? 'Reembolso' : 'Adiantamento'}
-                                        </span>
+                                        <div className="text-right shrink-0 ml-3 flex flex-col items-end gap-1">
+                                            <p className={`text-xs font-black tracking-tight ${saldo === 0 ? "text-green-600" : saldo > 0 ? "text-amber-600" : "text-rose-600"}`}>
+                                                {saldo === 0 ? "R$ 0,00" : `${saldo > 0 ? '+' : '-'} R$ ${Math.abs(saldo).toFixed(2)}`}
+                                            </p>
+                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-wider border ${
+                                                saldo === 0 ? 'bg-green-50 border-green-100 text-green-600' : saldo > 0 ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-rose-50 border-rose-100 text-rose-600'
+                                            }`}>
+                                                {saldo === 0 ? 'Zerado' : saldo > 0 ? 'Devolver' : 'Reembolsar'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     </>
                 )}
@@ -270,11 +270,9 @@ export default function AprovacoesDespesasPage() {
                                 <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">
                                     {actionType === "APROVAR" 
                                         ? "Confirmar Aprovação" 
-                                        : selectedDespesa.tipo === "ADIANTAMENTO" && selectedDespesa.valorComprovado !== null
-                                            ? "Devolver Prestação de Contas" 
-                                            : "Confirmar Reprovação"}
+                                        : "Devolver Prestação de Contas"}
                                 </h3>
-                                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider pt-0.5">Solicitação de R$ {Number(selectedDespesa.valorSolicitado).toFixed(2)}</p>
+                                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider pt-0.5">Gasto Real: R$ {Number(selectedDespesa.valorComprovado || 0).toFixed(2)}</p>
                             </div>
                             <button
                                 onClick={() => setDecisionModalOpen(false)}
@@ -365,10 +363,8 @@ export default function AprovacoesDespesasPage() {
                                         )}
                                         <span>
                                             {actionType === "APROVAR" 
-                                                ? "Aprovar Solicitação" 
-                                                : selectedDespesa.tipo === "ADIANTAMENTO" && selectedDespesa.valorComprovado !== null
-                                                    ? "Devolver para Correção" 
-                                                    : "Reprovar Solicitação"}
+                                                ? "Aprovar Prestação" 
+                                                : "Devolver para Correção"}
                                         </span>
                                     </>
                                 )}
@@ -387,12 +383,8 @@ export default function AprovacoesDespesasPage() {
                             <div className="bg-white p-6 border-b border-slate-100 flex flex-col gap-2 shrink-0 relative">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <Badge className={`border-0 font-bold px-3 py-1 rounded-lg ${
-                                            detailItem.tipo === "REEMBOLSO"
-                                                ? "bg-rose-100 text-rose-800"
-                                                : "bg-emerald-100 text-emerald-800"
-                                        }`}>
-                                            {detailItem.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}
+                                        <Badge className="border-0 font-bold px-3 py-1 rounded-lg bg-indigo-100 text-indigo-800">
+                                            Prestação de Contas
                                         </Badge>
                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                             ID: {detailItem.id.slice(0, 8)}
@@ -404,11 +396,13 @@ export default function AprovacoesDespesasPage() {
                                 </div>
                                 <div className="space-y-1">
                                     <h3 className="text-3xl font-black text-slate-900 tracking-tight">
-                                        R$ {Number(detailItem.valorSolicitado).toFixed(2)}
+                                        R$ {Number(detailItem.valorComprovado || 0).toFixed(2)}
                                     </h3>
-                                    <p className="text-xs text-slate-400 font-semibold pt-0.5">
-                                        Solicitado por: <span className="text-slate-700">{detailItem.solicitante.nome}</span> ({detailItem.solicitante.role})
-                                    </p>
+                                    <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold pt-0.5">
+                                        <span>Adiantamento: R$ {Number(detailItem.valorSolicitado).toFixed(2)}</span>
+                                        <span>•</span>
+                                        <span>Solicitado por: <span className="text-slate-700">{detailItem.solicitante.nome}</span></span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -493,7 +487,7 @@ export default function AprovacoesDespesasPage() {
                                         className="h-10 px-6 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold uppercase tracking-wider text-[10px] gap-1.5 w-full sm:w-auto cursor-pointer"
                                     >
                                         <XCircle className="h-4 w-4" />
-                                        <span>Reprovar</span>
+                                        <span>Devolver</span>
                                     </Button>
                                     <Button
                                         onClick={() => {

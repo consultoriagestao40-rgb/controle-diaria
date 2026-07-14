@@ -174,19 +174,13 @@ export async function POST(req: Request) {
         const hasN1 = dbUser?.centroCusto?.aprovadorN1Id ? true : false
         const hasN2 = dbUser?.centroCusto?.aprovadorN2Id ? true : false
 
-        // Define status inicial: adiantamentos sempre vão para aprovação. Reembolsos dependem da política.
+        // Define status inicial: adiantamentos e reembolsos sempre passam por aprovação de níveis (N1/N2)
         let statusInicial: any = 'RASCUNHO'
         if (enviarParaAprovacao) {
-            const needsApproval = tipo === 'ADIANTAMENTO' || auditResult.hasProhibitedItems
-            if (needsApproval) {
-                if (hasN1) {
-                    statusInicial = 'AGUARDANDO_APROVACAO_N1'
-                } else {
-                    // Se não tiver N1, vai direto para N2 (independente de hasN2 estar ativo ou não)
-                    statusInicial = 'AGUARDANDO_APROVACAO_N2'
-                }
+            if (hasN1) {
+                statusInicial = 'AGUARDANDO_APROVACAO_N1'
             } else {
-                statusInicial = 'APROVADO'
+                statusInicial = 'AGUARDANDO_APROVACAO_N2'
             }
         }
  
