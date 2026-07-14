@@ -79,7 +79,11 @@ export async function PATCH(
                     aprovadorId: user.id,
                     dataAprovacao: action === 'APROVAR' ? new Date() : despesa.dataAprovacao,
                     justificativaAprovacao: action === 'APROVAR' ? (justificativa || null) : despesa.justificativaAprovacao,
-                    justificativaReprovacao: action === 'REPROVAR' ? justificativa : despesa.justificativaReprovacao
+                    justificativaReprovacao: action === 'REPROVAR' ? justificativa : despesa.justificativaReprovacao,
+                    ...(action === 'REPROVAR' && isPrestacao ? {
+                        valorComprovado: null,
+                        saldoFinal: null
+                    } : {})
                 }
             })
 

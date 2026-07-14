@@ -73,6 +73,7 @@ export default function MinhasDespesasPage() {
     const [anexosPrestacao, setAnexosPrestacao] = useState<any[]>([])
     const [submittingPrestacao, setSubmittingPrestacao] = useState(false)
     const [uploadingComprovante, setUploadingComprovante] = useState(false)
+    const [prestacaoParcial, setPrestacaoParcial] = useState(false)
 
     // Estados para Modais de Lançamento
     const [isReembolsoOpen, setIsReembolsoOpen] = useState(false)
@@ -205,6 +206,7 @@ export default function MinhasDespesasPage() {
     const openPrestacaoModal = (despesa: Despesa) => {
         setSelectedDespesa(despesa)
         setValorComprovado("")
+        setPrestacaoParcial(false)
         
         // Carrega os itens e anexos já existentes na despesa, se houver
         const existingItens = despesa.itens ? despesa.itens.map((item: any) => {
@@ -310,7 +312,8 @@ export default function MinhasDespesasPage() {
                     valorComprovado: totalComprovadoItens,
                     anexos: anexosPrestacao,
                     itens: itensPrestacao,
-                    observacao: `Prestação de contas detalhada por item. Total comprovado: R$ ${totalComprovadoItens.toFixed(2)}`
+                    prestacaoParcial,
+                    observacao: `Prestação de contas detalhada por item. Total comprovado: R$ ${totalComprovadoItens.toFixed(2)}. ${prestacaoParcial ? "Prestação parcial." : ""}`
                 })
             })
 
@@ -751,6 +754,20 @@ export default function MinhasDespesasPage() {
                                                 ) : (
                                                     <span className="text-rose-600 font-black">Reembolsar {formatCurrency(Math.abs(Number(selectedDespesa.valorSolicitado) - totalComprovadoItens))}</span>
                                                 )}
+                                            </div>
+                                        )}
+                                        {selectedDespesa && Number(selectedDespesa.valorSolicitado) - totalComprovadoItens > 0 && (
+                                            <div className="flex items-center gap-2.5 pt-2.5 border-t border-dashed text-slate-700">
+                                                <input
+                                                    type="checkbox"
+                                                    id="prestacao-parcial-checkbox"
+                                                    checked={prestacaoParcial}
+                                                    onChange={(e) => setPrestacaoParcial(e.target.checked)}
+                                                    className="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                />
+                                                <label htmlFor="prestacao-parcial-checkbox" className="text-[10px] font-black uppercase tracking-wider text-slate-400 cursor-pointer select-none hover:text-slate-600">
+                                                    Fazer Prestação Parcial (manter saldo remanescente em aberto)
+                                                </label>
                                             </div>
                                         )}
                                     </div>

@@ -47,7 +47,7 @@ export async function POST(
         }
  
         const body = await req.json()
-        const { valorComprovado, anexos, observacao, itens } = body
+        const { valorComprovado, anexos, observacao, itens, prestacaoParcial } = body
 
         // Processar itens detalhados da prestação de contas
         let itemsToCreate: any[] = []
@@ -166,20 +166,48 @@ export async function POST(
                 })
             }
  
+            // Se for prestação parcial e houver saldo positivo restante:
+            let valorSolicitadoFinal = valorSolicitado
+            let saldoFinalCalculado = saldo
+            let cloneCriado = null
+
+            if (prestacaoParcial && saldo > 0) {
+                valorSolicitadoFinal = valorComp
+                saldoFinalCalculado = 0
+
+                // Criamos o lançamento clone com o saldo restante
+                cloneCriado = await tx.despesa.create({
+                    data: {
+                        tipo: 'ADIANTAMENTO',
+                        status: 'AGUARDANDO_PRESTACAO',
+                        descricao: `[SALDO RESTANTE] ${despesa.descricao}`,
+                        valorSolicitado: saldo,
+                        solicitanteId: despesa.solicitanteId,
+                        centroCustoId: despesa.centroCustoId,
+                        financeiroId: despesa.financeiroId,
+                        dataPagamento: despesa.dataPagamento || new Date(),
+                        observacao: `Saldo remanescente de R$ ${saldo.toFixed(2)} desmembrado do adiantamento original (ID ${despesa.id}) de R$ ${despesa.valorSolicitado.toFixed(2)}.`
+                    }
+                })
+            }
+
             // Atualiza dados da despesa
             const atualizada = await tx.despesa.update({
                 where: { id },
                 data: {
                     status: novoStatus,
+                    valorSolicitado: valorSolicitadoFinal,
                     valorComprovado: valorComp,
-                    saldoFinal: saldo,
+                    saldoFinal: saldoFinalCalculado,
                     observacao: observacao || null,
                     alertaAuditoria: auditResult.alertMessage
                 }
             })
  
             // Histórico de auditoria
-            let historicoObs = `Prestação de contas enviada por ${user.nome}. Gasto real: R$ ${valorComp.toFixed(2)}. Direcionado para aprovação superior do gestor.`
+            let historicoObs = prestacaoParcial && saldo > 0
+                ? `Prestação de contas PARCIAL enviada por ${user.nome}. Gasto real comprovado: R$ ${valorComp.toFixed(2)}. Saldo restante de R$ ${saldo.toFixed(2)} desmembrado em um novo adiantamento.`
+                : `Prestação de contas enviada por ${user.nome}. Gasto real: R$ ${valorComp.toFixed(2)}. Direcionado para aprovação superior do gestor.`
  
             await tx.historicoDespesa.create({
                 data: {
@@ -190,6 +218,18 @@ export async function POST(
                     observacao: historicoObs
                 }
             })
+
+            if (cloneCriado) {
+                await tx.historicoDespesa.create({
+                    data: {
+                        despesaId: cloneCriado.id,
+                        deStatus: 'NOVO',
+                        paraStatus: 'AGUARDANDO_PRESTACAO',
+                        usuarioId: user.id,
+                        observacao: `Adiantamento de saldo remanescente criado a partir do desmembramento do adiantamento original (ID ${despesa.id}).`
+                    }
+                })
+            }
  
             return atualizada
         })
