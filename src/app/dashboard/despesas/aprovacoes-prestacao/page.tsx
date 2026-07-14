@@ -342,7 +342,8 @@ export default function AprovacoesPrestacoesPage() {
                                     </div>
                                 )
                             })}
-                        </div>
+                            </div>
+                        )}
                     </>
                 )}
             {decisionModalOpen && selectedDespesa && (
