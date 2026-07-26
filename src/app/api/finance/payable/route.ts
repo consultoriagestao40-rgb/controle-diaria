@@ -104,7 +104,7 @@ export async function POST(req: Request) {
                     { status: 403, headers: { "Content-Type": "application/json" } }
                 )
             }
-            const isPasswordCorrect = await bcrypt.compare(confirmacaoSenha, dbUser.password)
+            const isPasswordCorrect = confirmacaoSenha === dbUser.password
             if (!isPasswordCorrect) {
                 return new NextResponse(
                     JSON.stringify({ error: "Assinatura Eletrônica incorreta. O pagamento Pix foi cancelado." }),
