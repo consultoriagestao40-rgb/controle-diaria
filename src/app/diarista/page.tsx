@@ -237,7 +237,9 @@ export default function DiaristaDashboardPage() {
                     <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl h-10 w-10">
                         <LogOut className="h-5 w-5" />
                     </Button>
-                             {/* 1. SEÇÃO DE SALDOS (DESKTOP: GRID DE 3 COLUNAS / MOBILE: TAB SALDOS OU GRID COMPACTO) */}
+                </div>
+
+                {/* 1. SEÇÃO DE SALDOS (DESKTOP: GRID DE 3 COLUNAS / MOBILE: TAB SALDOS OU GRID COMPACTO) */}
                 <div className={`${activeTab === "SALDOS" ? "block" : "hidden sm:grid sm:grid-cols-3"} gap-3 space-y-3 sm:space-y-0`}>
                     {/* Total Sacado (Já Recebeu no Pix) */}
                     <Card className="bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/30 text-white rounded-2xl shadow-lg">
