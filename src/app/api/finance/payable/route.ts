@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { writeFile } from "fs/promises"
 import { join } from "path"
-import bcrypt from "bcrypt"
+import bcrypt from "bcryptjs"
 import { sendPixTransfer } from "@/lib/asaas"
 
 // GET: List items waiting for payment (Status = APROVADO) + Payment Methods
