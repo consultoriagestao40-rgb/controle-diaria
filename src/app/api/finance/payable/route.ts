@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { writeFile } from "fs/promises"
 import { join } from "path"
+import bcrypt from "bcrypt"
+import { sendPixTransfer } from "@/lib/asaas"
 
 // GET: List items waiting for payment (Status = APROVADO) + Payment Methods
 export async function GET(req: Request) {
@@ -74,6 +76,8 @@ export async function POST(req: Request) {
         const meioPagamentoId = formData.get("meioPagamentoId") as string
         const justificativa = formData.get("justificativa") as string
         const file = formData.get("comprovante") as File | null
+        const pagarComAsaas = formData.get("pagarComAsaas") === "true"
+        const confirmacaoSenha = formData.get("confirmacaoSenha") as string | null
 
         if (!id) {
             return new NextResponse("Missing id", { status: 400 })
@@ -81,6 +85,81 @@ export async function POST(req: Request) {
 
         if (acao === 'PAGO' && (!dataPagamento || !meioPagamentoId)) {
             return new NextResponse("Missing fields for payment", { status: 400 })
+        }
+
+        // Se for pagar com Asaas, exige senha e valida com o bcrypt
+        if (acao === 'PAGO' && pagarComAsaas) {
+            if (!confirmacaoSenha) {
+                return new NextResponse(
+                    JSON.stringify({ error: "Confirmação de senha obrigatória para pagamentos Asaas." }),
+                    { status: 400, headers: { "Content-Type": "application/json" } }
+                )
+            }
+            const dbUser = await prisma.user.findUnique({
+                where: { id: user.id }
+            })
+            if (!dbUser || !dbUser.password) {
+                return new NextResponse(
+                    JSON.stringify({ error: "Usuário não autorizado ou senha não cadastrada." }),
+                    { status: 403, headers: { "Content-Type": "application/json" } }
+                )
+            }
+            const isPasswordCorrect = await bcrypt.compare(confirmacaoSenha, dbUser.password)
+            if (!isPasswordCorrect) {
+                return new NextResponse(
+                    JSON.stringify({ error: "Assinatura Eletrônica incorreta. O pagamento Pix foi cancelado." }),
+                    { status: 400, headers: { "Content-Type": "application/json" } }
+                )
+            }
+        }
+
+        // Buscar dados da cobertura e do diarista para validação Asaas
+        const cobertura = await prisma.cobertura.findUnique({
+            where: { id },
+            include: {
+                diarista: true,
+                posto: true
+            }
+        })
+
+        if (!cobertura) {
+            return new NextResponse(
+                JSON.stringify({ error: "Cobertura não encontrada." }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
+        let asaasTransferId = ""
+        if (acao === 'PAGO' && pagarComAsaas) {
+            if (!cobertura.diarista.chavePix) {
+                return new NextResponse(
+                    JSON.stringify({ error: `O diarista ${cobertura.diarista.nome} não possui Chave Pix cadastrada.` }),
+                    { status: 400, headers: { "Content-Type": "application/json" } }
+                )
+            }
+            if (!cobertura.diarista.cpf) {
+                return new NextResponse(
+                    JSON.stringify({ error: `O diarista ${cobertura.diarista.nome} não possui CPF cadastrado.` }),
+                    { status: 400, headers: { "Content-Type": "application/json" } }
+                )
+            }
+
+            // Envia o Pix pelo Asaas
+            const asaasResult = await sendPixTransfer({
+                valor: Number(cobertura.valor),
+                chavePix: cobertura.diarista.chavePix,
+                cpf: cobertura.diarista.cpf,
+                nome: cobertura.diarista.nome,
+                descricao: `Pgto Cobertura: ${cobertura.posto.nome} - Ref. ${new Date(cobertura.data).toLocaleDateString('pt-BR')}`
+            })
+
+            if (!asaasResult.success) {
+                return new NextResponse(
+                    JSON.stringify({ error: `Erro no Asaas: ${asaasResult.error}` }),
+                    { status: 400, headers: { "Content-Type": "application/json" } }
+                )
+            }
+            asaasTransferId = asaasResult.transferId || ""
         }
 
         // Handle File Upload if present
@@ -105,11 +184,12 @@ export async function POST(req: Request) {
         let historyParaStatus: any = 'PAGO'
 
         if (acao === 'PAGO') {
+            const logAsaas = asaasTransferId ? ` [Asaas Pix ID: ${asaasTransferId}]` : ""
             updateData = {
                 status: 'PAGO',
                 dataPagamento: new Date(dataPagamento),
                 meioPagamentoEfetivadoId: meioPagamentoId,
-                justificativaPagamento: justificativa,
+                justificativaPagamento: justificativa ? `${justificativa}${logAsaas}` : (logAsaas ? `Pagamento automático Asaas.${logAsaas}` : null),
                 financeiroId: user.id,
                 anexos: anexoData
             }

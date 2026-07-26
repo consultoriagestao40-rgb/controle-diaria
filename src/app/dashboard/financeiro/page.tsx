@@ -89,6 +89,11 @@ export default function FinanceDashboard() {
     const [actionType, setActionType] = useState<'REPROVAR' | 'AJUSTE' | null>(null)
     const [actionJustification, setActionJustification] = useState("")
 
+    // Estados de integração do Asaas
+    const [confirmacaoSenha, setConfirmacaoSenha] = useState("")
+    const [senhaModalOpen, setSenhaModalOpen] = useState(false)
+    const [isPagarComAsaas, setIsPagarComAsaas] = useState(false)
+
     // Export Dialog State
     const [exportOpen, setExportOpen] = useState(false)
     const [exportDates, setExportDates] = useState({
@@ -168,7 +173,7 @@ export default function FinanceDashboard() {
         setFile(null)
     }
 
-    const submitPayment = async () => {
+    const submitPayment = async (pagarComAsaas: boolean = false, senhaConfirmacao: string = "") => {
         if (!selectedItem && (!batchItemsToPay || batchItemsToPay.length === 0)) return
         setProcessing(true)
 
@@ -193,6 +198,10 @@ export default function FinanceDashboard() {
                 formData.append("dataPagamento", payData.date)
                 formData.append("meioPagamentoId", payData.methodId)
                 formData.append("justificativa", payData.obs)
+                if (pagarComAsaas) {
+                    formData.append("pagarComAsaas", "true")
+                    formData.append("confirmacaoSenha", senhaConfirmacao)
+                }
                 if (fileToUpload) {
                     formData.append("comprovante", fileToUpload)
                 }
@@ -201,9 +210,14 @@ export default function FinanceDashboard() {
                     method: "POST",
                     body: formData
                 })
+
                 if (res.ok) {
                     successCount++
                 } else {
+                    const errorData = await res.json().catch(() => ({}))
+                    if (errorData.error) {
+                        toast.error(errorData.error)
+                    }
                     failCount++
                 }
             } catch {
@@ -820,20 +834,103 @@ export default function FinanceDashboard() {
                                 placeholder="Ex: Código do comprovante..."
                             />
                         </div>
+
+                        {/* Validação de Chaves Pix para Asaas */}
+                        {(() => {
+                            const itemsToProcess = batchItemsToPay ? batchItemsToPay : (selectedItem ? [selectedItem] : [])
+                            const diaristasSemDados = itemsToProcess.filter(i => !i.diarista.chavePix || !i.diarista.cpf)
+                            if (diaristasSemDados.length > 0) {
+                                return (
+                                    <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold space-y-1 mt-2">
+                                        <p className="font-bold">⚠️ {diaristasSemDados.length} diaristas sem chave Pix ou CPF cadastrados:</p>
+                                        <ul className="list-disc list-inside space-y-0.5 pt-1 text-[11px] text-red-600">
+                                            {Array.from(new Set(diaristasSemDados.map(i => i.diarista.nome))).map(nome => (
+                                                <li key={nome}>{nome}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )
+                            }
+                            return null
+                        })()}
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="gap-2 sm:gap-0">
                         <Button variant="ghost" onClick={() => {
                             setSelectedItem(null)
                             setBatchItemsToPay(null)
                         }}>Cancelar</Button>
+
+                        {(() => {
+                            const itemsToProcess = batchItemsToPay ? batchItemsToPay : (selectedItem ? [selectedItem] : [])
+                            const hasSemDados = itemsToProcess.some(i => !i.diarista.chavePix || !i.diarista.cpf)
+                            if (!hasSemDados && itemsToProcess.length > 0) {
+                                return (
+                                    <Button
+                                        onClick={() => {
+                                            setIsPagarComAsaas(true)
+                                            setConfirmacaoSenha("")
+                                            setSenhaModalOpen(true)
+                                        }}
+                                        disabled={processing}
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                                    >
+                                        Pagar via Pix Asaas
+                                    </Button>
+                                )
+                            }
+                            return null
+                        })()}
+
                         <Button
-                            onClick={submitPayment}
+                            onClick={() => submitPayment(false)}
                             disabled={processing}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 text-white font-bold"
                         >
                             {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Confirmar
+                            Confirmar Baixa Manual
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Assinatura Eletrônica (Senha) */}
+            <Dialog open={senhaModalOpen} onOpenChange={setSenhaModalOpen}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-indigo-900 font-black">
+                            🔒 Confirmar Assinatura Eletrônica
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4 text-xs font-medium">
+                        <p className="text-slate-500 leading-relaxed font-semibold">
+                            Para autorizar o pagamento Pix de <span className="text-indigo-600 font-bold">{formatCurrency((batchItemsToPay ? batchItemsToPay : (selectedItem ? [selectedItem] : [])).reduce((acc, i) => acc + Number(i.valor), 0))}</span> via Asaas, por favor insira a sua senha de acesso.
+                        </p>
+                        
+                        <div className="space-y-1.5 pt-1">
+                            <Label className="font-bold text-slate-700">Sua Senha de Login *</Label>
+                            <Input
+                                type="password"
+                                value={confirmacaoSenha}
+                                onChange={e => setConfirmacaoSenha(e.target.value)}
+                                placeholder="Digite sua senha..."
+                                className="h-11 rounded-xl bg-slate-50"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0 border-t border-slate-100 pt-4 mt-2">
+                        <Button variant="ghost" onClick={() => setSenhaModalOpen(false)}>Cancelar</Button>
+                        <Button
+                            onClick={() => {
+                                setSenhaModalOpen(false)
+                                submitPayment(true, confirmacaoSenha)
+                            }}
+                            disabled={!confirmacaoSenha || processing}
+                            className="bg-indigo-600 hover:bg-indigo-700 font-bold"
+                        >
+                            Confirmar Envio Pix
                         </Button>
                     </DialogFooter>
                 </DialogContent>
