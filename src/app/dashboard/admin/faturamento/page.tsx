@@ -410,40 +410,82 @@ export default function FaturamentoClientesPage() {
     const selectedItemsList = filteredItems.filter(i => selectedIds.includes(i.id))
     const totalSelecionadoFatura = selectedItemsList.reduce((acc, i) => acc + i.valorFaturaCliente, 0)
 
+    // Execução da impressora / Salvar PDF com Regra de Nome: Fatura_[Nº]_[Cliente]_[Período].pdf
     const handleExecutarImpressaoPDF = () => {
-        window.print()
+        if (faturaDetalhe) {
+            const tituloOriginal = document.title
+            const clienteClean = faturaDetalhe.empresaNome.replace(/[^a-zA-Z0-9]/g, '_')
+            const pInicioClean = faturaDetalhe.periodoInicio.replace(/\//g, '-')
+            const pFimClean = faturaDetalhe.periodoFim.replace(/\//g, '-')
+
+            const nomeArquivoPDF = `Fatura_${faturaDetalhe.numeroFatura}_${clienteClean}_Periodo_${pInicioClean}_a_${pFimClean}`
+            document.title = nomeArquivoPDF
+
+            window.print()
+
+            setTimeout(() => {
+                document.title = tituloOriginal
+            }, 1000)
+        } else {
+            window.print()
+        }
     }
 
     return (
         <>
-            {/* CSS EXCLUSIVO DE IMPRESSÃO A4 DE ALTA QUALIDADE */}
+            {/* CSS EXCLUSIVO DE IMPRESSÃO PAISAGEM MULTI-PÁGINAS A4 */}
             <style jsx global>{`
                 @media print {
-                    /* Esconde todo o layout do dashboard e modais */
-                    body * {
-                        visibility: hidden !important;
+                    /* Orientação A4 Paisagem (Landscape) com margens otimizadas */
+                    @page {
+                        size: A4 landscape !important;
+                        margin: 8mm 10mm !important;
                     }
-                    /* Exibe somente o container oficial do documento de fatura */
-                    #documento-fatura-oficial-a4,
-                    #documento-fatura-oficial-a4 * {
-                        visibility: visible !important;
+
+                    /* Libera o overflow e altura para permitir MÚLTIPLAS PÁGINAS sem cortar nenhuma linha */
+                    html, body {
+                        height: auto !important;
+                        min-height: auto !important;
+                        overflow: visible !important;
+                        background: #ffffff !important;
+                        color: #0f172a !important;
                     }
+
+                    /* Esconde todo o layout de tela, botões e modais */
+                    body > *:not(#documento-fatura-oficial-a4) {
+                        display: none !important;
+                    }
+                    
+                    [role="dialog"], [data-radix-portal], .print\:hidden {
+                        display: none !important;
+                    }
+
+                    /* Exibe o documento da fatura com fluxo natural multi-páginas */
                     #documento-fatura-oficial-a4 {
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
+                        display: block !important;
+                        position: relative !important;
                         width: 100% !important;
+                        height: auto !important;
+                        overflow: visible !important;
                         margin: 0 !important;
                         padding: 0 !important;
                         background: #ffffff !important;
-                        color: #0f172a !important;
-                        font-family: inherit !important;
-                        box-shadow: none !important;
-                        border: none !important;
                     }
-                    @page {
-                        size: A4 portrait;
-                        margin: 8mm 10mm;
+
+                    /* Repete o cabeçalho da tabela em TODAS as páginas do PDF */
+                    thead {
+                        display: table-header-group !important;
+                    }
+
+                    /* Evita quebras no meio de uma linha da tabela */
+                    tr {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+
+                    .evitar-quebra {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                     }
                 }
             `}</style>
@@ -463,7 +505,7 @@ export default function FaturamentoClientesPage() {
                                 Fechamento & Faturamento de Clientes
                             </h1>
                             <p className="text-sm text-slate-500 font-medium">
-                                Selecione as diárias prestadas e emita a Fatura Oficial de Fechamento para o cliente contratante.
+                                Selecione as diárias prestadas e emita a Fatura Oficial de Fechamento em formato A4 Paisagem.
                             </p>
                         </div>
                     </div>
@@ -928,7 +970,7 @@ export default function FaturamentoClientesPage() {
                     </Card>
                 )}
 
-                {/* MODAL DA FATURA PARA VISUALIZAÇÃO EM TELA */}
+                {/* MODAL DA FATURA PARA VISUALIZAÇÃO EM TELA (PREVIEW) */}
                 <Dialog open={faturaModalOpen} onOpenChange={setFaturaModalOpen}>
                     <DialogContent showCloseButton={false} className="max-w-4xl rounded-3xl border-none shadow-2xl p-0 overflow-hidden bg-white max-h-[90vh] flex flex-col print:hidden">
                         <DialogHeader className="p-6 bg-slate-900 text-white flex flex-row items-center justify-between border-b border-slate-800 shrink-0">
@@ -948,7 +990,7 @@ export default function FaturamentoClientesPage() {
 
                             <div className="flex items-center gap-2">
                                 <Button onClick={handleExecutarImpressaoPDF} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs cursor-pointer shadow-md">
-                                    <Printer className="h-4 w-4 mr-1.5" /> Imprimir / Exportar PDF A4
+                                    <Printer className="h-4 w-4 mr-1.5" /> Exportar PDF Paisagem (A4)
                                 </Button>
                                 <Button variant="ghost" onClick={() => setFaturaModalOpen(false)} className="text-slate-400 hover:text-white rounded-xl h-9 w-9 p-0">
                                     <X className="h-5 w-5" />
@@ -992,7 +1034,7 @@ export default function FaturamentoClientesPage() {
                                     </div>
                                 </div>
 
-                                {/* Tabela Discriminada de Plantões Faturados com TODOS os Registros */}
+                                {/* Tabela Discriminada de Plantões Faturados */}
                                 <div className="border border-slate-200 rounded-2xl overflow-hidden">
                                     <table className="w-full text-left border-collapse text-xs">
                                         <thead>
@@ -1046,7 +1088,7 @@ export default function FaturamentoClientesPage() {
 
                         <DialogFooter className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center shrink-0">
                             <Button onClick={handleExecutarImpressaoPDF} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-md">
-                                <Printer className="h-4 w-4 mr-1.5" /> Exportar PDF A4
+                                <Printer className="h-4 w-4 mr-1.5" /> Exportar PDF Paisagem (A4)
                             </Button>
                             <Button onClick={() => setFaturaModalOpen(false)} className="bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs cursor-pointer">
                                 Fechar
@@ -1056,114 +1098,114 @@ export default function FaturamentoClientesPage() {
                 </Dialog>
             </div>
 
-            {/* DOCUMENTO OFICIAL A4 DE ALTA QUALIDADE DESTINADO EXCLUSIVAMENTE À IMPRESSÃO / GERADOR DE PDF */}
+            {/* DOCUMENTO OFICIAL A4 PAISAGEM MULTI-PÁGINAS DESTINADO EXCLUSIVAMENTE À IMPRESSÃO / SALVAR PDF */}
             {faturaDetalhe && (
-                <div id="documento-fatura-oficial-a4" className="hidden print:block bg-white text-slate-900 font-sans p-6">
+                <div id="documento-fatura-oficial-a4" className="hidden print:block bg-white text-slate-900 font-sans p-4">
                     {/* Header Institucional da Fatura */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: '12px', marginBottom: '16px' }}>
                         <div>
-                            <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '-0.5px', margin: 0 }}>
+                            <h1 style={{ fontSize: '20px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '-0.5px', margin: 0 }}>
                                 JVS FACILITIES & GESTÃO DE SERVIÇOS
                             </h1>
-                            <p style={{ fontSize: '11px', color: '#475569', fontWeight: '600', marginTop: '4px', margin: 0 }}>
+                            <p style={{ fontSize: '10px', color: '#475569', fontWeight: '600', marginTop: '2px', margin: 0 }}>
                                 Prestação e Intermediação de Serviços de Cobertura e Diárias
                             </p>
-                            <p style={{ fontSize: '10px', color: '#64748b', marginTop: '4px', margin: 0 }}>
+                            <p style={{ fontSize: '9px', color: '#64748b', marginTop: '2px', margin: 0 }}>
                                 CNPJ: 00.000.000/0001-00 &bull; Curitiba - PR &bull; Contato: financeiro@jvsfacilities.com.br
                             </p>
                         </div>
 
-                        <div style={{ textAlign: 'right', backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', minWidth: '220px' }}>
+                        <div style={{ textAlign: 'right', backgroundColor: '#f8fafc', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', minWidth: '220px' }}>
                             <span style={{ fontSize: '9px', fontWeight: '900', textTransform: 'uppercase', color: '#64748b', display: 'block' }}>FATURA DE FECHAMENTO</span>
-                            <span style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', fontFamily: 'monospace', display: 'block', margin: '2px 0' }}>
+                            <span style={{ fontSize: '16px', fontWeight: '900', color: '#0f172a', fontFamily: 'monospace', display: 'block', margin: '2px 0' }}>
                                 {faturaDetalhe.numeroFatura}
                             </span>
-                            <span style={{ fontSize: '10px', color: '#334155', fontWeight: '700', display: 'block' }}>Data Emissão: {faturaDetalhe.geradaEm}</span>
-                            <span style={{ fontSize: '10px', color: '#059669', fontWeight: '800', display: 'block' }}>Vencimento: {faturaDetalhe.vencimentoEm}</span>
+                            <span style={{ fontSize: '9px', color: '#334155', fontWeight: '700', display: 'block' }}>Data Emissão: {faturaDetalhe.geradaEm}</span>
+                            <span style={{ fontSize: '9px', color: '#059669', fontWeight: '800', display: 'block' }}>Vencimento: {faturaDetalhe.vencimentoEm}</span>
                         </div>
                     </div>
 
                     {/* Bloco Sacado / Cliente & Período de Apuração */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '14px 18px', borderRadius: '12px', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '10px 14px', borderRadius: '10px', marginBottom: '16px' }}>
                         <div>
-                            <span style={{ fontSize: '9px', fontWeight: '900', textTransform: 'uppercase', color: '#64748b', display: 'block' }}>CLIENTE / SACADO</span>
-                            <h2 style={{ fontSize: '16px', fontWeight: '900', color: '#0f172a', margin: '2px 0 0 0' }}>{faturaDetalhe.empresaNome}</h2>
+                            <span style={{ fontSize: '8px', fontWeight: '900', textTransform: 'uppercase', color: '#64748b', display: 'block' }}>CLIENTE / SACADO</span>
+                            <h2 style={{ fontSize: '15px', fontWeight: '900', color: '#0f172a', margin: '2px 0 0 0' }}>{faturaDetalhe.empresaNome}</h2>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                            <span style={{ fontSize: '9px', fontWeight: '900', textTransform: 'uppercase', color: '#64748b', display: 'block' }}>PERÍODO DE APURAÇÃO</span>
-                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a', display: 'block', marginTop: '2px' }}>
+                            <span style={{ fontSize: '8px', fontWeight: '900', textTransform: 'uppercase', color: '#64748b', display: 'block' }}>PERÍODO DE APURAÇÃO</span>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#0f172a', display: 'block', marginTop: '2px' }}>
                                 De {faturaDetalhe.periodoInicio} até {faturaDetalhe.periodoFim}
                             </span>
-                            <span style={{ fontSize: '10px', color: '#059669', fontWeight: '800', display: 'block', marginTop: '2px' }}>
-                                Total de {faturaDetalhe.items.length} plantão(ões) discriminados
+                            <span style={{ fontSize: '9px', color: '#059669', fontWeight: '800', display: 'block', marginTop: '2px' }}>
+                                Total de {faturaDetalhe.items.length} plantão(ões) faturados
                             </span>
                         </div>
                     </div>
 
-                    {/* Tabela Estruturada de Alta Resolução com TODOS os Registros e Colunas */}
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', marginBottom: '20px' }}>
+                    {/* Tabela Estruturada de Alta Resolução Paisagem com TODOS os Registros Sem Limite de Páginas */}
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', marginBottom: '16px' }}>
                         <thead>
                             <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', textTransform: 'uppercase', fontSize: '8px', letterSpacing: '0.5px' }}>
-                                <th style={{ padding: '8px 10px', textAlign: 'left', border: '1px solid #1e293b' }}>Data</th>
-                                <th style={{ padding: '8px 10px', textAlign: 'left', border: '1px solid #1e293b' }}>Posto de Trabalho</th>
-                                <th style={{ padding: '8px 10px', textAlign: 'left', border: '1px solid #1e293b' }}>Quem Faltou</th>
-                                <th style={{ padding: '8px 10px', textAlign: 'left', border: '1px solid #1e293b' }}>Quem Cobriu</th>
-                                <th style={{ padding: '8px 10px', textAlign: 'left', border: '1px solid #1e293b' }}>Motivo</th>
-                                <th style={{ padding: '8px 10px', textAlign: 'left', border: '1px solid #1e293b' }}>Presença (Ponto GPS)</th>
-                                <th style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #1e293b' }}>Valor Diária</th>
-                                <th style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #1e293b' }}>Taxa ({faturaDetalhe.taxaServicoPercentual}%)</th>
-                                <th style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #1e293b' }}>Total Item</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #1e293b', width: '80px' }}>Data</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #1e293b' }}>Posto de Trabalho</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #1e293b' }}>Quem Faltou</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #1e293b' }}>Quem Cobriu</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #1e293b' }}>Motivo</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #1e293b', width: '110px' }}>Presença (Ponto GPS)</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #1e293b', width: '80px' }}>Valor Diária</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #1e293b', width: '80px' }}>Taxa ({faturaDetalhe.taxaServicoPercentual}%)</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #1e293b', width: '85px' }}>Total Item</th>
                             </tr>
                         </thead>
                         <tbody>
                             {faturaDetalhe.items.map((item, idx) => (
                                 <tr key={item.id} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                                    <td style={{ padding: '7px 10px', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                                    <td style={{ padding: '6px 8px', fontWeight: '700', whiteSpace: 'nowrap' }}>
                                         {new Date(item.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                                     </td>
-                                    <td style={{ padding: '7px 10px', fontWeight: '700', color: '#0f172a' }}>{item.postoNome}</td>
-                                    <td style={{ padding: '7px 10px', color: '#581c87', fontWeight: '600' }}>{item.quemFaltou}</td>
-                                    <td style={{ padding: '7px 10px', color: '#0f172a', fontWeight: '600' }}>{item.quemCobriu}</td>
-                                    <td style={{ padding: '7px 10px', color: '#475569' }}>{item.motivo}</td>
-                                    <td style={{ padding: '7px 10px', color: '#059669', fontFamily: 'monospace', fontSize: '9px' }}>{item.pontoInfo}</td>
-                                    <td style={{ padding: '7px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(item.valorDiaria)}</td>
-                                    <td style={{ padding: '7px 10px', textAlign: 'right', color: '#059669', fontWeight: '700', whiteSpace: 'nowrap' }}>+{formatCurrency(item.valorTaxaServico)}</td>
-                                    <td style={{ padding: '7px 10px', textAlign: 'right', fontWeight: '900', color: '#0f172a', whiteSpace: 'nowrap' }}>{formatCurrency(item.valorFaturaCliente)}</td>
+                                    <td style={{ padding: '6px 8px', fontWeight: '700', color: '#0f172a' }}>{item.postoNome}</td>
+                                    <td style={{ padding: '6px 8px', color: '#581c87', fontWeight: '600' }}>{item.quemFaltou}</td>
+                                    <td style={{ padding: '6px 8px', color: '#0f172a', fontWeight: '600' }}>{item.quemCobriu}</td>
+                                    <td style={{ padding: '6px 8px', color: '#475569' }}>{item.motivo}</td>
+                                    <td style={{ padding: '6px 8px', color: '#059669', fontFamily: 'monospace', fontSize: '8.5px', whiteSpace: 'nowrap' }}>{item.pontoInfo}</td>
+                                    <td style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(item.valorDiaria)}</td>
+                                    <td style={{ padding: '6px 8px', textAlign: 'right', color: '#059669', fontWeight: '700', whiteSpace: 'nowrap' }}>+{formatCurrency(item.valorTaxaServico)}</td>
+                                    <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: '900', color: '#0f172a', whiteSpace: 'nowrap' }}>{formatCurrency(item.valorFaturaCliente)}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
 
-                    {/* Bloco de Resumo Financeiro & Totais */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
-                        <div style={{ width: '320px', backgroundColor: '#0f172a', color: '#ffffff', padding: '16px', borderRadius: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '6px', color: '#94a3b8' }}>
+                    {/* Bloco de Resumo Financeiro & Totais (Evitando quebra no final) */}
+                    <div className="evitar-quebra" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+                        <div style={{ width: '300px', backgroundColor: '#0f172a', color: '#ffffff', padding: '14px', borderRadius: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '4px', color: '#94a3b8' }}>
                                 <span>Subtotal Diárias:</span>
                                 <span style={{ fontWeight: '700', color: '#ffffff' }}>{formatCurrency(faturaDetalhe.totalDiarias)}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '10px', color: '#34d399' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '8px', color: '#34d399' }}>
                                 <span>Taxa de Serviço ({faturaDetalhe.taxaServicoPercentual}%):</span>
                                 <span style={{ fontWeight: '700' }}>+{formatCurrency(faturaDetalhe.totalTaxa)}</span>
                             </div>
-                            <div style={{ borderTop: '1px solid #334155', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '12px', fontWeight: '900', textTransform: 'uppercase' }}>VALOR TOTAL DA FATURA:</span>
-                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#34d399' }}>{formatCurrency(faturaDetalhe.totalFatura)}</span>
+                            <div style={{ borderTop: '1px solid #334155', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>VALOR TOTAL DA FATURA:</span>
+                                <span style={{ fontSize: '16px', fontWeight: '900', color: '#34d399' }}>{formatCurrency(faturaDetalhe.totalFatura)}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Instruções de Pagamento e Assinaturas */}
-                    <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 16px', borderRadius: '12px', marginBottom: '40px', fontSize: '10px', color: '#166534' }}>
+                    <div className="evitar-quebra" style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 14px', borderRadius: '10px', marginBottom: '30px', fontSize: '9.5px', color: '#166534' }}>
                         <span style={{ fontWeight: '900', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>💰 DADOS PARA PAGAMENTO VIA PIX</span>
                         <p style={{ margin: '2px 0' }}>Chave PIX / CNPJ JVS Facilities: <strong>00.000.000/0001-00</strong></p>
-                        <p style={{ margin: '2px 0', fontSize: '9px', color: '#15803d' }}>Após efetuar o pagamento, favor enviar o comprovante informando o número desta fatura ({faturaDetalhe.numeroFatura}).</p>
+                        <p style={{ margin: '2px 0', fontSize: '8.5px', color: '#15803d' }}>Após efetuar o pagamento, favor enviar o comprovante informando o número desta fatura ({faturaDetalhe.numeroFatura}).</p>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '60px', paddingTop: '16px' }}>
-                        <div style={{ width: '45%', borderTop: '1px solid #94a3b8', textAlign: 'center', fontSize: '10px', color: '#475569', paddingTop: '6px' }}>
+                    <div className="evitar-quebra" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '40px', paddingTop: '12px' }}>
+                        <div style={{ width: '45%', borderTop: '1px solid #94a3b8', textAlign: 'center', fontSize: '9px', color: '#475569', paddingTop: '4px' }}>
                             Assinatura do Responsável (Prestadora)
                         </div>
-                        <div style={{ width: '45%', borderTop: '1px solid #94a3b8', textAlign: 'center', fontSize: '10px', color: '#475569', paddingTop: '6px' }}>
+                        <div style={{ width: '45%', borderTop: '1px solid #94a3b8', textAlign: 'center', fontSize: '9px', color: '#475569', paddingTop: '4px' }}>
                             Carimbo / Assinatura de Recebimento (Cliente)
                         </div>
                     </div>
