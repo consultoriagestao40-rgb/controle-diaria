@@ -101,8 +101,15 @@ export default function DiaristaLoginPage() {
                                         type="text"
                                         placeholder="000.000.000-00"
                                         value={cpf}
-                                        onChange={e => setCpf(e.target.value)}
-                                        className="pl-11 bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-white placeholder:text-slate-600 h-12 rounded-xl text-base"
+                                        onChange={e => {
+                                            const raw = e.target.value.replace(/\D/g, "").slice(0, 11)
+                                            let formatted = raw
+                                            if (raw.length > 9) formatted = `${raw.slice(0,3)}.${raw.slice(3,6)}.${raw.slice(6,9)}-${raw.slice(9)}`
+                                            else if (raw.length > 6) formatted = `${raw.slice(0,3)}.${raw.slice(3,6)}.${raw.slice(6)}`
+                                            else if (raw.length > 3) formatted = `${raw.slice(0,3)}.${raw.slice(3)}`
+                                            setCpf(formatted)
+                                        }}
+                                        className="pl-11 bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-white placeholder:text-slate-600 h-12 rounded-xl text-base font-mono tracking-wider"
                                         required
                                     />
                                 </div>

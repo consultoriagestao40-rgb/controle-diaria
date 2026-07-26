@@ -93,6 +93,14 @@ export default function LoginPage() {
                             {loading ? <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Verificando...</div> : "Entrar no Sistema"}
                         </Button>
                     </form>
+
+                    {/* Botão de Atalho para o Diarista / Prestador */}
+                    <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+                        <p className="text-xs text-slate-400 font-medium mb-2.5">É prestador de serviço ou diarista?</p>
+                        <a href="/diarista/login" className="inline-flex items-center justify-center gap-2 w-full h-11 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 font-black text-xs rounded-xl border border-emerald-500/30 transition-all">
+                            <span>📱 Portal do Diarista (Acesso por CPF)</span>
+                        </a>
+                    </div>
                 </CardContent>
                 <CardFooter className="justify-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] pt-4">
                     &copy; 2026 Grupo JVS &bull; Versão 2.5
