@@ -214,13 +214,19 @@ export default function FinanceDashboard() {
                 if (res.ok) {
                     successCount++
                 } else {
-                    const errorData = await res.json().catch(() => ({}))
-                    if (errorData.error) {
-                        toast.error(errorData.error)
+                    const errorText = await res.text().catch(() => "")
+                    let errorMsg = "Erro no processamento do pagamento."
+                    try {
+                        const errorData = JSON.parse(errorText)
+                        if (errorData.error) errorMsg = errorData.error
+                    } catch {
+                        if (errorText && errorText.length < 100) errorMsg = errorText
                     }
+                    toast.error(errorMsg)
                     failCount++
                 }
-            } catch {
+            } catch (err: any) {
+                toast.error(`Erro de conexão: ${err.message || "Verifique sua rede."}`)
                 failCount++
             }
         }
