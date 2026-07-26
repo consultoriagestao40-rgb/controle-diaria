@@ -4,13 +4,27 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
     UserCheck, Wallet, ArrowUpRight, Clock, MapPin, CheckCircle2,
-    PlayCircle, StopCircle, Zap, LogOut, Loader2, Sparkles, AlertCircle, RefreshCw, X, Percent
+    PlayCircle, StopCircle, Zap, LogOut, Loader2, Sparkles, AlertCircle, RefreshCw, X, Percent, Check, FileText, ArrowDownLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { toast } from "sonner"
+
+interface ExtratoItem {
+    id: string
+    dataPlantao: string
+    dataVencimento: string
+    postoNome: string
+    valorBruto: number
+    taxaAntecipacao: number
+    valorLiquidoAntecipado: number
+    statusExtrato: "RECEBIDO" | "A_VENCER" | "EM_ANALISE" | "ANTECIPACAO_SOLICITADA"
+    statusExtratoRotulo: string
+    pontoStatus: string | null
+    podeAntecipar: boolean
+}
 
 interface DiaristaData {
     diarista: {
@@ -21,9 +35,15 @@ interface DiaristaData {
         telefone: string
     }
     saldos: {
-        disponivel: number
-        aReceber: number
-        jaPago: number
+        totalSacado: number
+        totalAVencer: number
+        totalEmAnalise: number
+    }
+    configTaxa: number
+    politicaVencimento: {
+        tipo: string
+        dias: number
+        descricao: string
     }
     plantaoHoje: {
         id: string
@@ -33,6 +53,7 @@ interface DiaristaData {
         postoRaio: number
         valor: number
         data: string
+        dataVencimento: string
         horaInicio: string | null
         horaFim: string | null
         ponto: {
@@ -42,24 +63,7 @@ interface DiaristaData {
             status: "EM_ANDAMENTO" | "CONCLUIDO"
         } | null
     } | null
-    historico: Array<{
-        id: string
-        data: string
-        postoNome: string
-        valor: number
-        status: string
-        pontoStatus: string | null
-        podeAntecipar: boolean
-    }>
-    antecipacoes: Array<{
-        id: string
-        coberturaId: string
-        postoNome: string
-        valorOriginal: number
-        valorSolicitado: number
-        status: string
-        solicitadoEm: string
-    }>
+    extrato: ExtratoItem[]
 }
 
 export default function DiaristaDashboardPage() {
@@ -70,8 +74,7 @@ export default function DiaristaDashboardPage() {
 
     // Modal de Antecipação
     const [antecipacaoModalOpen, setAntecipacaoModalOpen] = useState(false)
-    const [selectedItemForAntecipacao, setSelectedItemForAntecipacao] = useState<{ id: string, postoNome: string, valor: number } | null>(null)
-    const taxaPercentualDefault = 5.0 // Taxa estimada em %
+    const [selectedItemForAntecipacao, setSelectedItemForAntecipacao] = useState<ExtratoItem | null>(null)
 
     const fetchDashboardData = async () => {
         const savedDiarista = localStorage.getItem("reembolsa_diarista")
@@ -111,7 +114,7 @@ export default function DiaristaDashboardPage() {
         return new Date(dateStr).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
     }
 
-    // Registra o Ponto com Geolocalização GPS
+    // Registra o Ponto com GPS
     const handlePonto = async (acao: "CHECK_IN" | "CHECK_OUT") => {
         if (!data?.plantaoHoje) return
         setActionLoading(true)
@@ -122,9 +125,7 @@ export default function DiaristaDashboardPage() {
                     const { latitude, longitude } = position.coords
                     await submitPonto(acao, latitude, longitude)
                 },
-                async (error) => {
-                    console.warn("GPS Indisponível, registrando sem coordenadas:", error)
-                    toast.warning("Registrando ponto sem GPS estrito...")
+                async () => {
                     await submitPonto(acao, null, null)
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
@@ -164,12 +165,12 @@ export default function DiaristaDashboardPage() {
         }
     }
 
-    const openAntecipacaoModal = (item: { id: string, postoNome: string, valor: number }) => {
+    const openAntecipacaoModal = (item: ExtratoItem) => {
         setSelectedItemForAntecipacao(item)
         setAntecipacaoModalOpen(true)
     }
 
-    // Confirma a Antecipação com o cálculo exato da taxa
+    // Confirma a Antecipação
     const confirmSolicitarAntecipacao = async () => {
         if (!data || !selectedItemForAntecipacao) return
         setActionLoading(true)
@@ -181,7 +182,7 @@ export default function DiaristaDashboardPage() {
                 body: JSON.stringify({
                     coberturaId: selectedItemForAntecipacao.id,
                     diaristaId: data.diarista.id,
-                    justificativa: "Solicitado com concordância de taxa via Portal do Diarista"
+                    justificativa: "Solicitação via extrato do portal do prestador"
                 })
             })
 
@@ -206,31 +207,27 @@ export default function DiaristaDashboardPage() {
         return (
             <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4 space-y-4">
                 <Loader2 className="h-10 w-10 text-emerald-400 animate-spin" />
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Carregando seu portal...</p>
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Carregando seu extrato...</p>
             </div>
         )
     }
 
-    const valorOriginalModal = selectedItemForAntecipacao?.valor || 0
-    const taxaValorModal = Number((valorOriginalModal * (taxaPercentualDefault / 100)).toFixed(2))
-    const valorLiquidoModal = Number((valorOriginalModal - taxaValorModal).toFixed(2))
-
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 pb-24 relative overflow-hidden">
-            {/* Ambient Background Blur */}
+            {/* Ambient Lighting */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
 
-            <div className="max-w-lg mx-auto space-y-6 relative z-10">
+            <div className="max-w-md md:max-w-2xl mx-auto space-y-6 relative z-10">
 
-                {/* Top User Bar */}
-                <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-4 rounded-2xl backdrop-blur-xl">
+                {/* Top User Header Bar */}
+                <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-4 rounded-2xl backdrop-blur-xl shadow-xl">
                     <div className="flex items-center gap-3">
                         <div className="h-11 w-11 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center font-black text-slate-950 text-lg shadow-lg shadow-emerald-500/20">
                             {data?.diarista.nome?.substring(0, 2).toUpperCase() || "DI"}
                         </div>
                         <div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 block">Prestador Conectado</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 block">Portal do Prestador</span>
                             <h2 className="text-base font-bold text-white leading-tight">{data?.diarista.nome}</h2>
                         </div>
                     </div>
@@ -239,41 +236,57 @@ export default function DiaristaDashboardPage() {
                     </Button>
                 </div>
 
-                {/* Balance Cards */}
-                <div className="grid grid-cols-2 gap-3">
-                    <Card className="bg-gradient-to-br from-emerald-950/60 to-slate-900 border-emerald-500/30 text-white rounded-2xl shadow-xl">
-                        <CardContent className="p-4 space-y-2">
+                {/* 3 CARDS DE VISÃO CLARA DOS SALDOS */}
+                <div className="grid grid-cols-3 gap-2.5">
+                    {/* Total Sacado (Já Recebeu no Pix) */}
+                    <Card className="bg-emerald-950/40 border-emerald-500/30 text-white rounded-2xl shadow-lg">
+                        <CardContent className="p-3.5 space-y-1">
                             <div className="flex items-center justify-between text-emerald-400">
-                                <span className="text-[10px] font-black uppercase tracking-wider">Disponível</span>
-                                <Wallet className="h-4 w-4" />
+                                <span className="text-[9px] font-black uppercase tracking-wider">Total Sacado</span>
+                                <ArrowDownLeft className="h-3.5 w-3.5" />
                             </div>
-                            <div className="text-2xl font-black tracking-tight text-emerald-400">
-                                {formatCurrency(data?.saldos.disponivel || 0)}
+                            <div className="text-lg md:text-xl font-black text-emerald-400 tracking-tight">
+                                {formatCurrency(data?.saldos.totalSacado || 0)}
                             </div>
-                            <p className="text-[10px] text-slate-400">Liberado para saque</p>
+                            <p className="text-[9px] text-slate-400 leading-none">Já pago no Pix</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-slate-900/90 border-slate-800 text-white rounded-2xl shadow-xl">
-                        <CardContent className="p-4 space-y-2">
-                            <div className="flex items-center justify-between text-cyan-400">
-                                <span className="text-[10px] font-black uppercase tracking-wider">A Receber</span>
-                                <Clock className="h-4 w-4" />
+                    {/* A Vencer (Pronto para Antecipar) */}
+                    <Card className="bg-amber-950/30 border-amber-500/30 text-white rounded-2xl shadow-lg">
+                        <CardContent className="p-3.5 space-y-1">
+                            <div className="flex items-center justify-between text-amber-400">
+                                <span className="text-[9px] font-black uppercase tracking-wider">A Vencer</span>
+                                <Zap className="h-3.5 w-3.5 fill-amber-400" />
                             </div>
-                            <div className="text-2xl font-black tracking-tight text-slate-200">
-                                {formatCurrency(data?.saldos.aReceber || 0)}
+                            <div className="text-lg md:text-xl font-black text-amber-400 tracking-tight">
+                                {formatCurrency(data?.saldos.totalAVencer || 0)}
                             </div>
-                            <p className="text-[10px] text-slate-400">Plantões em análise</p>
+                            <p className="text-[9px] text-slate-400 leading-none">Pode antecipar</p>
+                        </CardContent>
+                    </Card>
+
+                    {/* Em Análise (Aguardando Supervisor/N1/N2) */}
+                    <Card className="bg-slate-900/90 border-slate-800 text-white rounded-2xl shadow-lg">
+                        <CardContent className="p-3.5 space-y-1">
+                            <div className="flex items-center justify-between text-slate-400">
+                                <span className="text-[9px] font-black uppercase tracking-wider">Em Análise</span>
+                                <Clock className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="text-lg md:text-xl font-black text-slate-200 tracking-tight">
+                                {formatCurrency(data?.saldos.totalEmAnalise || 0)}
+                            </div>
+                            <p className="text-[9px] text-slate-400 leading-none">Validação supervisor</p>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Section: Plantão do Dia & Ponto GPS */}
+                {/* Section: Plantão de Hoje com Check-in GPS */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
                             <MapPin className="h-3.5 w-3.5 text-emerald-400" />
-                            <span>Plantão de Hoje</span>
+                            <span>Plantão Escalado para Hoje</span>
                         </h3>
                         <Button variant="ghost" size="sm" onClick={fetchDashboardData} className="h-7 text-xs text-slate-400 hover:text-white p-0">
                             <RefreshCw className="h-3.5 w-3.5 mr-1" /> Atualizar
@@ -288,7 +301,7 @@ export default function DiaristaDashboardPage() {
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                                     </span>
-                                    <span className="text-xs font-black uppercase tracking-widest text-emerald-400">Plantão Escalado</span>
+                                    <span className="text-xs font-black uppercase tracking-widest text-emerald-400">Em Aberto Hoje</span>
                                 </div>
                                 <span className="text-sm font-black text-white">{formatCurrency(data.plantaoHoje.valor)}</span>
                             </div>
@@ -301,7 +314,6 @@ export default function DiaristaDashboardPage() {
                                     </p>
                                 </div>
 
-                                {/* Status do Ponto de Hoje */}
                                 {data.plantaoHoje.ponto ? (
                                     <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl space-y-3">
                                         <div className="flex items-center justify-between">
@@ -337,11 +349,6 @@ export default function DiaristaDashboardPage() {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs text-slate-400 flex items-center gap-2">
-                                            <AlertCircle className="h-4 w-4 text-emerald-400 shrink-0" />
-                                            <span>Faça Check-in assim que chegar no posto de trabalho para iniciar seu plantão.</span>
-                                        </div>
-
                                         <Button
                                             onClick={() => handlePonto("CHECK_IN")}
                                             disabled={actionLoading}
@@ -359,79 +366,113 @@ export default function DiaristaDashboardPage() {
                             </CardContent>
                         </Card>
                     ) : (
-                        <Card className="bg-slate-900/60 border-slate-800 rounded-2xl text-center p-6 space-y-2">
-                            <CheckCircle2 className="h-8 w-8 text-slate-600 mx-auto" />
-                            <p className="text-sm font-bold text-slate-400">Nenhum plantão agendado para hoje.</p>
-                            <p className="text-xs text-slate-500">Acompanhe seu histórico de diárias concluídas abaixo.</p>
+                        <Card className="bg-slate-900/60 border-slate-800 rounded-2xl text-center p-5 space-y-1">
+                            <CheckCircle2 className="h-6 w-6 text-slate-600 mx-auto" />
+                            <p className="text-xs font-bold text-slate-400">Nenhum plantão escalado para hoje.</p>
                         </Card>
                     )}
                 </div>
 
-                {/* Section: Histórico & Antecipação de Saque */}
+                {/* EXTRATO BANCÁRIO LINHA A LINHA */}
                 <div className="space-y-3">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 px-1 flex items-center gap-1.5">
-                        <Zap className="h-3.5 w-3.5 text-amber-400" />
-                        <span>Histórico e Antecipações</span>
-                    </h3>
+                    <div className="flex items-center justify-between px-1">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-emerald-400" />
+                            <span>Extrato de Diárias (Movimentação)</span>
+                        </h3>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase">{data?.politicaVencimento.descricao}</span>
+                    </div>
 
-                    {data?.historico && data.historico.length > 0 ? (
-                        <div className="space-y-2.5">
-                            {data.historico.map(item => (
-                                <div key={item.id} className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex items-center justify-between gap-3">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs font-black text-white">{item.postoNome}</span>
-                                            <Badge variant="outline" className="text-[10px] bg-slate-950 border-slate-800 text-slate-400">
-                                                {formatDate(item.data)}
-                                            </Badge>
+                    {data?.extrato && data.extrato.length > 0 ? (
+                        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl divide-y divide-slate-800/80 overflow-hidden shadow-2xl">
+                            {data.extrato.map(item => (
+                                <div key={item.id} className="p-4 hover:bg-slate-800/30 transition-colors flex items-center justify-between gap-3">
+                                    {/* Esquerda: Icone de Status + Dados */}
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ${item.statusExtrato === "RECEBIDO"
+                                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                                                : item.statusExtrato === "A_VENCER"
+                                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                                                    : item.statusExtrato === "ANTECIPACAO_SOLICITADA"
+                                                        ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
+                                                        : "bg-slate-800 text-slate-400 border border-slate-700"
+                                            }`}>
+                                            {item.statusExtrato === "RECEBIDO" && <CheckCircle2 className="h-5 w-5" />}
+                                            {item.statusExtrato === "A_VENCER" && <Zap className="h-5 w-5 fill-amber-400" />}
+                                            {item.statusExtrato === "ANTECIPACAO_SOLICITADA" && <Clock className="h-5 w-5" />}
+                                            {item.statusExtrato === "EM_ANALISE" && <Clock className="h-5 w-5" />}
                                         </div>
 
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-bold text-emerald-400">{formatCurrency(item.valor)}</span>
-                                            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">
-                                                • {item.status}
-                                            </span>
+                                        <div className="space-y-0.5 min-w-0">
+                                            <h4 className="font-bold text-white text-sm truncate">{item.postoNome}</h4>
+                                            <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                <span>Plantão: {formatDate(item.dataPlantao)}</span>
+                                            </div>
+                                            {item.statusExtrato !== "RECEBIDO" && (
+                                                <div className="text-[10px] text-amber-400/90 font-medium">
+                                                    📅 Pagamento Previsto: {formatDate(item.dataVencimento)}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <div>
-                                        {item.status === "PAGO" ? (
-                                            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30">Pago</Badge>
-                                        ) : item.podeAntecipar ? (
+                                    {/* Direita: Valor e Status/Ação */}
+                                    <div className="text-right shrink-0 space-y-1">
+                                        <span className={`text-base font-black tracking-tight block ${item.statusExtrato === "RECEBIDO" ? "text-emerald-400" : "text-white"
+                                            }`}>
+                                            {formatCurrency(item.valorBruto)}
+                                        </span>
+
+                                        {item.statusExtrato === "RECEBIDO" && (
+                                            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]">
+                                                Recebido Pix
+                                            </Badge>
+                                        )}
+
+                                        {item.statusExtrato === "ANTECIPACAO_SOLICITADA" && (
+                                            <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/30 text-[10px]">
+                                                Em Análise
+                                            </Badge>
+                                        )}
+
+                                        {item.statusExtrato === "EM_ANALISE" && (
+                                            <Badge variant="outline" className="text-slate-500 border-slate-800 text-[10px]">
+                                                Em Validação
+                                            </Badge>
+                                        )}
+
+                                        {item.podeAntecipar && (
                                             <Button
                                                 size="sm"
                                                 onClick={() => openAntecipacaoModal(item)}
-                                                disabled={actionLoading}
-                                                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 text-xs font-bold rounded-xl h-8"
+                                                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-[11px] h-7 px-2.5 rounded-lg shadow-md"
                                             >
-                                                <Zap className="h-3 w-3 mr-1 fill-amber-400" /> Antecipar
+                                                <Zap className="h-3 w-3 mr-1 fill-slate-950" /> Antecipar Hoje
                                             </Button>
-                                        ) : (
-                                            <Badge variant="outline" className="text-slate-500 border-slate-800">Em Análise</Badge>
                                         )}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-slate-900/40 p-4 rounded-2xl border border-slate-800 text-center text-xs text-slate-500">
-                            Nenhum histórico encontrado.
+                        <div className="bg-slate-900/40 p-6 rounded-2xl border border-slate-800 text-center text-xs text-slate-500">
+                            Nenhum registro de movimentação no extrato.
                         </div>
                     )}
                 </div>
 
             </div>
 
-            {/* Modal de Confirmação com Discriminativo da Taxa de Antecipação */}
+            {/* Modal de Antecipação */}
             <Dialog open={antecipacaoModalOpen} onOpenChange={setAntecipacaoModalOpen}>
                 <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md rounded-3xl p-6">
                     <DialogHeader className="space-y-2">
                         <div className="h-10 w-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
                             <Zap className="h-5 w-5 fill-amber-400" />
                         </div>
-                        <DialogTitle className="text-xl font-black text-white">Confirmar Antecipação de Saque</DialogTitle>
+                        <DialogTitle className="text-xl font-black text-white">Solicitar Antecipação de Saque</DialogTitle>
                         <DialogDescription className="text-slate-400 text-xs">
-                            Confira o resumo financeiro da antecipação da diária do posto <strong className="text-white">{selectedItemForAntecipacao?.postoNome}</strong>.
+                            Confira o valor líquido a receber antecipado para a diária do posto <strong className="text-white">{selectedItemForAntecipacao?.postoNome}</strong>.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -439,26 +480,27 @@ export default function DiaristaDashboardPage() {
                         <div className="space-y-4 py-3">
                             <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl space-y-3 text-sm">
                                 <div className="flex justify-between items-center text-slate-300">
-                                    <span>Valor Original da Diária:</span>
-                                    <span className="font-bold">{formatCurrency(valorOriginalModal)}</span>
+                                    <span>Valor Bruto da Diária:</span>
+                                    <span className="font-bold">{formatCurrency(selectedItemForAntecipacao.valorBruto)}</span>
                                 </div>
 
                                 <div className="flex justify-between items-center text-amber-400 text-xs">
                                     <span className="flex items-center gap-1">
-                                        <Percent className="h-3.5 w-3.5" /> Taxa de Antecipação ({taxaPercentualDefault}%):
+                                        <Percent className="h-3.5 w-3.5" /> Taxa de Antecipação ({data?.configTaxa || 5}%):
                                     </span>
-                                    <span className="font-bold">- {formatCurrency(taxaValorModal)}</span>
+                                    <span className="font-bold">- {formatCurrency(selectedItemForAntecipacao.taxaAntecipacao)}</span>
                                 </div>
 
                                 <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-base font-black text-emerald-400">
                                     <span>Valor Líquido no Pix:</span>
-                                    <span className="text-lg">{formatCurrency(valorLiquidoModal)}</span>
+                                    <span className="text-lg">{formatCurrency(selectedItemForAntecipacao.valorLiquidoAntecipado)}</span>
                                 </div>
                             </div>
 
-                            <p className="text-[11px] text-slate-500 text-center leading-relaxed">
-                                Ao confirmar, o valor líquido de <strong className="text-slate-300">{formatCurrency(valorLiquidoModal)}</strong> será enviado para sua Chave Pix cadastrada após a aprovação do gestor.
-                            </p>
+                            <div className="text-[11px] text-slate-400 bg-slate-950/40 p-3 rounded-xl border border-slate-800/80">
+                                📅 **Vencimento Normal**: {formatDate(selectedItemForAntecipacao.dataVencimento)} (sem taxas).<br />
+                                ⚡ **Antecipando hoje**: Seu Pix de <strong className="text-emerald-400">{formatCurrency(selectedItemForAntecipacao.valorLiquidoAntecipado)}</strong> é liberado após aprovação!
+                            </div>
 
                             <div className="flex gap-2 pt-2">
                                 <Button variant="ghost" onClick={() => setAntecipacaoModalOpen(false)} className="flex-1 text-slate-400 hover:text-white rounded-xl">

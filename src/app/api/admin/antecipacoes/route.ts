@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-// Listar todas as solicitações de antecipação + taxa configurada
+// Listar antecipações + configurações de taxa e vencimentos
 export async function GET() {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
@@ -28,41 +28,50 @@ export async function GET() {
 
         return NextResponse.json({
             antecipacoes,
-            taxaPercentual: config?.taxaAntecipacaoPercentual ?? 5.0
+            taxaPercentual: config?.taxaAntecipacaoPercentual ?? 5.0,
+            politicaVencimentoTipo: config?.politicaVencimentoTipo ?? "TODA_SEXTA",
+            politicaVencimentoDias: config?.politicaVencimentoDias ?? 7
         })
     } catch (error) {
         return NextResponse.json({ error: "Erro ao buscar antecipações." }, { status: 500 })
     }
 }
 
-// Aprovar/Reprovar solicitação ou atualizar a taxa de antecipação (%)
+// Salvar ações ou configurações de taxa e política de vencimento
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
 
     try {
         const body = await req.json()
-        const { antecipacaoId, acao, justificativa, novaTaxaPercentual } = body
+        const { antecipacaoId, acao, justificativa, novaTaxaPercentual, politicaVencimentoTipo, politicaVencimentoDias } = body
 
-        // Se for atualização de taxa de antecipação (%) pelo gestor
-        if (novaTaxaPercentual !== undefined) {
+        // Se for atualização de configurações (taxa ou vencimento)
+        if (novaTaxaPercentual !== undefined || politicaVencimentoTipo !== undefined) {
             const configExistente = await prisma.configuracaoAuditoria.findFirst({ where: { ativo: true } })
+
+            const updateData: any = {}
+            if (novaTaxaPercentual !== undefined) updateData.taxaAntecipacaoPercentual = Number(novaTaxaPercentual)
+            if (politicaVencimentoTipo !== undefined) updateData.politicaVencimentoTipo = politicaVencimentoTipo
+            if (politicaVencimentoDias !== undefined) updateData.politicaVencimentoDias = Number(politicaVencimentoDias)
 
             if (configExistente) {
                 await prisma.configuracaoAuditoria.update({
                     where: { id: configExistente.id },
-                    data: { taxaAntecipacaoPercentual: Number(novaTaxaPercentual) }
+                    data: updateData
                 })
             } else {
                 await prisma.configuracaoAuditoria.create({
                     data: {
                         palavrasProibidas: "cerveja,energetico,bebida",
-                        taxaAntecipacaoPercentual: Number(novaTaxaPercentual)
+                        taxaAntecipacaoPercentual: Number(novaTaxaPercentual ?? 5.0),
+                        politicaVencimentoTipo: politicaVencimentoTipo ?? "TODA_SEXTA",
+                        politicaVencimentoDias: Number(politicaVencimentoDias ?? 7)
                     }
                 })
             }
 
-            return NextResponse.json({ success: true, message: `Taxa de antecipação atualizada para ${novaTaxaPercentual}%!` })
+            return NextResponse.json({ success: true, message: "Políticas e taxas salvas com sucesso!" })
         }
 
         if (!antecipacaoId || !acao) {
@@ -93,7 +102,7 @@ export async function POST(req: NextRequest) {
                 where: { id: antecipacao.coberturaId },
                 data: {
                     status: "APROVADO",
-                    valor: antecipacao.valorSolicitado // Atualiza o valor a ser pago para o valor líquido com o desconto da taxa
+                    valor: antecipacao.valorSolicitado
                 }
             })
 

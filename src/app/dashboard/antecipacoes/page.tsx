@@ -43,6 +43,8 @@ interface Antecipacao {
 export default function GestaoAntecipacoesPage() {
     const [antecipacoes, setAntecipacoes] = useState<Antecipacao[]>([])
     const [taxaPercentual, setTaxaPercentual] = useState<number>(5.0)
+    const [politicaVencimentoTipo, setPoliticaVencimentoTipo] = useState<string>("TODA_SEXTA")
+    const [politicaVencimentoDias, setPoliticaVencimentoDias] = useState<number>(7)
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
@@ -56,9 +58,9 @@ export default function GestaoAntecipacoesPage() {
             if (!res.ok) throw new Error()
             const data = await res.json()
             setAntecipacoes(data.antecipacoes || [])
-            if (data.taxaPercentual !== undefined) {
-                setTaxaPercentual(data.taxaPercentual)
-            }
+            if (data.taxaPercentual !== undefined) setTaxaPercentual(data.taxaPercentual)
+            if (data.politicaVencimentoTipo) setPoliticaVencimentoTipo(data.politicaVencimentoTipo)
+            if (data.politicaVencimentoDias !== undefined) setPoliticaVencimentoDias(data.politicaVencimentoDias)
         } catch {
             toast.error("Erro ao carregar solicitações de antecipação.")
         } finally {
@@ -70,25 +72,29 @@ export default function GestaoAntecipacoesPage() {
         fetchAntecipacoes()
     }, [])
 
-    const handleSalvarTaxa = async () => {
+    const handleSalvarPoliticas = async () => {
         setSavingTaxa(true)
         try {
             const res = await fetch("/api/admin/antecipacoes", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ novaTaxaPercentual: taxaPercentual })
+                body: JSON.stringify({
+                    novaTaxaPercentual: taxaPercentual,
+                    politicaVencimentoTipo,
+                    politicaVencimentoDias
+                })
             })
 
             if (!res.ok) throw new Error()
-            toast.success(`Taxa de antecipação atualizada para ${taxaPercentual}%!`)
+            toast.success(`Políticas de antecipação e vencimento salvas com sucesso!`)
         } catch {
-            toast.error("Erro ao salvar taxa.")
+            toast.error("Erro ao salvar políticas.")
         } finally {
             setSavingTaxa(false)
         }
     }
 
-    const handleAcao = async (antecipacaoId: string, acao: "APROVAR" | "REPROVAR") => {
+    const handleAcao = async (antecipacaoId: string, acao: "APROVAR" | "REPROVADO") => {
         setActionLoading(true)
         try {
             const res = await fetch("/api/admin/antecipacoes", {

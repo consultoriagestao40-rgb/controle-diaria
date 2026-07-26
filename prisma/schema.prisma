@@ -209,6 +209,7 @@ model Cobertura {
   justificativaAprovacaoN1 String? // Parecer do Aprovador N1
   justificativaAprovacaoN2 String? // Parecer do Aprovador N2
 
+  dataVencimento DateTime?
   createdAt     DateTime @default(now())
   horaInicio    String?
   horaFim       String?
@@ -346,6 +347,8 @@ model ConfiguracaoAuditoria {
   palavrasProibidas        String   // CSV: "cerveja,energetico,preservativo,chiclete,bala,doce,bebida"
   motivosRejeicao         String   @default("Fora da política,Despesas não autorizada,Comprovante ilegível,Outros")
   taxaAntecipacaoPercentual Float   @default(5.0) // Taxa de antecipação padrão (%)
+  politicaVencimentoTipo   String   @default("TODA_SEXTA") // TODA_SEXTA | DIAS_APOS_DIARIA
+  politicaVencimentoDias   Int      @default(7)
   logoPersonalizado        String?
   ativo                   Boolean  @default(true)
   updatedAt               DateTime @updatedAt
