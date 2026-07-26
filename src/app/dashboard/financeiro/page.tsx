@@ -227,18 +227,17 @@ export default function FinanceDashboard() {
 
         if (successCount > 0) {
             toast.success(`${successCount} pagamentos registrados com sucesso!`)
+            setSelectedItem(null)
+            setBatchItemsToPay(null)
+            setSelectedGroup(null)
+            setSelectedItemIds([])
+            setSelectedItemIdsForBatch([])
+            setFile(null)
+            fetchItems()
         }
         if (failCount > 0) {
-            toast.error(`Erro ao registrar ${failCount} pagamentos.`)
+            toast.error(`Erro ao registrar ${failCount} pagamentos. Verifique as credenciais ou dados.`)
         }
-
-        setSelectedItem(null)
-        setBatchItemsToPay(null)
-        setSelectedGroup(null)
-        setSelectedItemIds([])
-        setSelectedItemIdsForBatch([])
-        setFile(null)
-        fetchItems()
         setProcessing(false)
     }
 
