@@ -237,46 +237,53 @@ export default function DiaristaDashboardPage() {
                 </div>
 
                 {/* 3 CARDS DE VISÃO CLARA DOS SALDOS */}
-                <div className="grid grid-cols-3 gap-2.5">
+                {/* 3 CARDS DE VISÃO CLARA DOS SALDOS (RESPONSIVO VERTICAL NO CELULAR) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {/* Total Sacado (Já Recebeu no Pix) */}
-                    <Card className="bg-emerald-950/40 border-emerald-500/30 text-white rounded-2xl shadow-lg">
-                        <CardContent className="p-3.5 space-y-1">
-                            <div className="flex items-center justify-between text-emerald-400">
-                                <span className="text-[9px] font-black uppercase tracking-wider">Total Sacado</span>
-                                <ArrowDownLeft className="h-3.5 w-3.5" />
+                    <Card className="bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/30 text-white rounded-2xl shadow-lg">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">Total Sacado</span>
+                                <div className="text-2xl font-black text-emerald-400 tracking-tight">
+                                    {formatCurrency(data?.saldos.totalSacado || 0)}
+                                </div>
+                                <p className="text-[10px] text-slate-400">Já pago no Pix</p>
                             </div>
-                            <div className="text-lg md:text-xl font-black text-emerald-400 tracking-tight">
-                                {formatCurrency(data?.saldos.totalSacado || 0)}
+                            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                                <ArrowDownLeft className="h-5 w-5" />
                             </div>
-                            <p className="text-[9px] text-slate-400 leading-none">Já pago no Pix</p>
                         </CardContent>
                     </Card>
 
                     {/* A Vencer (Pronto para Antecipar) */}
-                    <Card className="bg-amber-950/30 border-amber-500/30 text-white rounded-2xl shadow-lg">
-                        <CardContent className="p-3.5 space-y-1">
-                            <div className="flex items-center justify-between text-amber-400">
-                                <span className="text-[9px] font-black uppercase tracking-wider">A Vencer</span>
-                                <Zap className="h-3.5 w-3.5 fill-amber-400" />
+                    <Card className="bg-gradient-to-r from-amber-950/80 to-slate-900 border border-amber-500/30 text-white rounded-2xl shadow-lg">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">A Vencer</span>
+                                <div className="text-2xl font-black text-amber-400 tracking-tight">
+                                    {formatCurrency(data?.saldos.totalAVencer || 0)}
+                                </div>
+                                <p className="text-[10px] text-slate-400">Liberado para antecipar</p>
                             </div>
-                            <div className="text-lg md:text-xl font-black text-amber-400 tracking-tight">
-                                {formatCurrency(data?.saldos.totalAVencer || 0)}
+                            <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                                <Zap className="h-5 w-5 fill-amber-400" />
                             </div>
-                            <p className="text-[9px] text-slate-400 leading-none">Pode antecipar</p>
                         </CardContent>
                     </Card>
 
                     {/* Em Análise (Aguardando Supervisor/N1/N2) */}
-                    <Card className="bg-slate-900/90 border-slate-800 text-white rounded-2xl shadow-lg">
-                        <CardContent className="p-3.5 space-y-1">
-                            <div className="flex items-center justify-between text-slate-400">
-                                <span className="text-[9px] font-black uppercase tracking-wider">Em Análise</span>
-                                <Clock className="h-3.5 w-3.5" />
+                    <Card className="bg-slate-900/90 border border-slate-800 text-white rounded-2xl shadow-lg">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Em Análise</span>
+                                <div className="text-2xl font-black text-slate-200 tracking-tight">
+                                    {formatCurrency(data?.saldos.totalEmAnalise || 0)}
+                                </div>
+                                <p className="text-[10px] text-slate-400">Validação do supervisor</p>
                             </div>
-                            <div className="text-lg md:text-xl font-black text-slate-200 tracking-tight">
-                                {formatCurrency(data?.saldos.totalEmAnalise || 0)}
+                            <div className="h-10 w-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                                <Clock className="h-5 w-5" />
                             </div>
-                            <p className="text-[9px] text-slate-400 leading-none">Validação supervisor</p>
                         </CardContent>
                     </Card>
                 </div>
