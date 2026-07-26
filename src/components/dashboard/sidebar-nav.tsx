@@ -116,7 +116,8 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                     { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
                     { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
                     { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
-                    { label: "Antecipações", href: "/dashboard/antecipacoes", icon: Zap }
+                    { label: "Antecipações", href: "/dashboard/antecipacoes", icon: Zap },
+                    { label: "Faturamento Cliente", href: "/dashboard/admin/faturamento", icon: Receipt }
                 )
             } else if (role === "SUPERVISOR") {
                 coberturasItems.push(

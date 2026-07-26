@@ -347,6 +347,7 @@ model ConfiguracaoAuditoria {
   palavrasProibidas        String   // CSV: "cerveja,energetico,preservativo,chiclete,bala,doce,bebida"
   motivosRejeicao         String   @default("Fora da política,Despesas não autorizada,Comprovante ilegível,Outros")
   taxaAntecipacaoPercentual Float   @default(5.0) // Taxa de antecipação padrão (%)
+  taxaServicoClientePercentual Float @default(10.0) // Taxa de serviço/gestão cobrada do cliente (%)
   politicaVencimentoTipo   String   @default("TODA_SEXTA") // TODA_SEXTA | DIAS_APOS_DIARIA
   politicaVencimentoDias   Int      @default(7)
   logoPersonalizado        String?
