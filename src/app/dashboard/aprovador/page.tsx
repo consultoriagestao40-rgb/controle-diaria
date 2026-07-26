@@ -32,9 +32,12 @@ interface Item {
         id: string
         status: string
         checkInAt: string
+        checkInLat: number | null
+        checkInLng: number | null
         checkOutAt: string | null
-        latitude: number | null
-        longitude: number | null
+        checkOutLat: number | null
+        checkOutLng: number | null
+        observacao?: string | null
     } | null
     motivo: { descricao: string }
     reserva: { nome: string }
@@ -862,37 +865,62 @@ export default function ApproverDashboard() {
                                 </div>
                             </div>
 
-                            {/* Card: Registro de Ponto GPS (Presença Confirmada) */}
+                            {/* Card: Registro de Ponto GPS & Geolocalização (Presença Confirmada) */}
                             <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-xs space-y-3.5">
                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-slate-100">
                                     <MapPin className="h-3.5 w-3.5 text-emerald-600" />
-                                    Registro de Ponto GPS & Horários (Presença Confirmada)
+                                    Registro de Ponto GPS & Geolocalização (Presença Confirmada)
                                 </h4>
                                 {detailItem.ponto ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 space-y-1">
+                                        {/* Check-in Box */}
+                                        <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-2">
                                             <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider block">✅ Horário de Check-in</span>
                                             <span className="font-bold text-slate-800 text-sm block font-mono">
                                                 {new Date(detailItem.ponto.checkInAt).toLocaleDateString('pt-BR')} às {new Date(detailItem.ponto.checkInAt).toLocaleTimeString('pt-BR')}
                                             </span>
-                                            {detailItem.ponto.latitude && detailItem.ponto.longitude && (
-                                                <span className="text-[10px] text-emerald-600 block">
-                                                    📍 GPS: {detailItem.ponto.latitude.toFixed(6)}, {detailItem.ponto.longitude.toFixed(6)}
+
+                                            {detailItem.ponto.checkInLat && detailItem.ponto.checkInLng ? (
+                                                <a
+                                                    href={`https://maps.google.com/?q=${detailItem.ponto.checkInLat},${detailItem.ponto.checkInLng}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 hover:text-emerald-950 underline mt-1 bg-emerald-100/90 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-xs"
+                                                >
+                                                    <MapPin className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+                                                    <span>Ver no Mapa GPS ({detailItem.ponto.checkInLat.toFixed(5)}, {detailItem.ponto.checkInLng.toFixed(5)}) ↗</span>
+                                                </a>
+                                            ) : (
+                                                <span className="text-[10px] text-slate-500 italic block mt-1">
+                                                    📍 GPS não capturado (Dispositivo sem permissão)
                                                 </span>
                                             )}
                                         </div>
 
-                                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                                        {/* Check-out Box */}
+                                        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                                             <span className="text-[9px] font-black text-slate-600 uppercase tracking-wider block">🏁 Horário de Check-out</span>
                                             {detailItem.ponto.checkOutAt ? (
                                                 <>
                                                     <span className="font-bold text-slate-800 text-sm block font-mono">
                                                         {new Date(detailItem.ponto.checkOutAt).toLocaleDateString('pt-BR')} às {new Date(detailItem.ponto.checkOutAt).toLocaleTimeString('pt-BR')}
                                                     </span>
-                                                    <span className="text-[10px] text-emerald-600 font-bold block">Status: Concluído</span>
+                                                    {detailItem.ponto.checkOutLat && detailItem.ponto.checkOutLng ? (
+                                                        <a
+                                                            href={`https://maps.google.com/?q=${detailItem.ponto.checkOutLat},${detailItem.ponto.checkOutLng}`}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-800 hover:text-blue-950 underline mt-1 bg-blue-100/90 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-xs"
+                                                        >
+                                                            <MapPin className="h-3.5 w-3.5 text-blue-700 shrink-0" />
+                                                            <span>Ver no Mapa GPS ({detailItem.ponto.checkOutLat.toFixed(5)}, {detailItem.ponto.checkOutLng.toFixed(5)}) ↗</span>
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-[10px] text-emerald-600 font-bold block mt-1">Status: Concluído</span>
+                                                    )}
                                                 </>
                                             ) : (
-                                                <span className="font-bold text-amber-600 text-xs block italic">
+                                                <span className="font-bold text-amber-600 text-xs block italic mt-1">
                                                     ⚠️ Plantão ainda em serviço (sem check-out registrado)
                                                 </span>
                                             )}
