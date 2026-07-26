@@ -72,9 +72,6 @@ export default function DiaristaDashboardPage() {
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState(false)
 
-    // Modal de Saldos (Menu 3 barrinhas)
-    const [saldosModalOpen, setSaldosModalOpen] = useState(false)
-
     // Modal de Antecipação
     const [antecipacaoModalOpen, setAntecipacaoModalOpen] = useState(false)
     const [selectedItemForAntecipacao, setSelectedItemForAntecipacao] = useState<ExtratoItem | null>(null)
@@ -235,21 +232,79 @@ export default function DiaristaDashboardPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        {/* Botão de 3 Barrinhas no Menu Superior Direiro para Ver Saldos */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSaldosModalOpen(true)}
-                            className="bg-slate-800/90 hover:bg-slate-800 border-slate-700 text-emerald-400 font-bold text-xs gap-2 rounded-xl h-10 px-3 shadow-md active:scale-95 transition-all"
-                        >
-                            <Menu className="h-4 w-4 text-emerald-400" />
-                            <span className="font-black">Saldos</span>
-                        </Button>
+                    <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl h-10 w-10">
+                        <LogOut className="h-5 w-5" />
+                    </Button>
+                </div>
 
-                        <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl h-10 w-10">
-                            <LogOut className="h-5 w-5" />
-                        </Button>
+                {/* VISÃO DOS SALDOS: NO DESKTOP (3 COLUNAS) E NO MOBILE (3 PILULAS COMPACTAS EM 1 LINHA) */}
+                
+                {/* 1. VISÃO DESKTOP (FULL CARDS EM GRID DE 3 COLUNAS) */}
+                <div className="hidden sm:grid sm:grid-cols-3 gap-3">
+                    {/* Total Sacado (Já Recebeu no Pix) */}
+                    <Card className="bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/30 text-white rounded-2xl shadow-lg">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">Total Sacado</span>
+                                <div className="text-xl lg:text-2xl font-black text-emerald-400 tracking-tight">
+                                    {formatCurrency(data?.saldos.totalSacado || 0)}
+                                </div>
+                                <p className="text-[10px] text-slate-400">Já pago no Pix</p>
+                            </div>
+                            <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                                <ArrowDownLeft className="h-5 w-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* A Vencer (Pronto para Antecipar) */}
+                    <Card className="bg-gradient-to-r from-amber-950/80 to-slate-900 border border-amber-500/30 text-white rounded-2xl shadow-lg">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">A Vencer</span>
+                                <div className="text-xl lg:text-2xl font-black text-amber-400 tracking-tight">
+                                    {formatCurrency(data?.saldos.totalAVencer || 0)}
+                                </div>
+                                <p className="text-[10px] text-slate-400">Liberado para antecipar</p>
+                            </div>
+                            <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                                <Zap className="h-5 w-5 fill-amber-400" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Em Análise (Aguardando Supervisor/N1/N2) */}
+                    <Card className="bg-slate-900/90 border border-slate-800 text-white rounded-2xl shadow-lg">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Em Análise</span>
+                                <div className="text-xl lg:text-2xl font-black text-slate-200 tracking-tight">
+                                    {formatCurrency(data?.saldos.totalEmAnalise || 0)}
+                                </div>
+                                <p className="text-[10px] text-slate-400">Validação do supervisor</p>
+                            </div>
+                            <div className="h-9 w-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                                <Clock className="h-5 w-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* 2. VISÃO MOBILE (3 MINI-PILULAS COMPACTAS EM 1 ÚNICA LINHA, SEM OCUPAR A TELA) */}
+                <div className="grid sm:hidden grid-cols-3 gap-1.5 bg-slate-900/80 p-2 rounded-2xl border border-slate-800 backdrop-blur-md">
+                    <div className="bg-slate-950/60 border border-emerald-500/20 p-2 rounded-xl text-center space-y-0.5 min-w-0">
+                        <span className="text-[8px] font-black uppercase tracking-wider text-emerald-400 block truncate">Sacado</span>
+                        <span className="text-xs font-black text-emerald-400 block truncate">{formatCurrency(data?.saldos.totalSacado || 0)}</span>
+                    </div>
+
+                    <div className="bg-slate-950/60 border border-amber-500/20 p-2 rounded-xl text-center space-y-0.5 min-w-0">
+                        <span className="text-[8px] font-black uppercase tracking-wider text-amber-400 block truncate">A Vencer</span>
+                        <span className="text-xs font-black text-amber-400 block truncate">{formatCurrency(data?.saldos.totalAVencer || 0)}</span>
+                    </div>
+
+                    <div className="bg-slate-950/60 border border-slate-700/40 p-2 rounded-xl text-center space-y-0.5 min-w-0">
+                        <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 block truncate">Em Análise</span>
+                        <span className="text-xs font-black text-slate-200 block truncate">{formatCurrency(data?.saldos.totalEmAnalise || 0)}</span>
                     </div>
                 </div>
 
@@ -488,79 +543,6 @@ export default function DiaristaDashboardPage() {
                             </div>
                         </div>
                     )}
-                </DialogContent>
-            </Dialog>
-
-            {/* Modal de Saldos (Menu 3 Barrinhas Superior) */}
-            <Dialog open={saldosModalOpen} onOpenChange={setSaldosModalOpen}>
-                <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md rounded-3xl p-6">
-                    <DialogHeader className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                                <Wallet className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <DialogTitle className="text-lg font-black text-white">Resumo Financeiro & Saldos</DialogTitle>
-                                <DialogDescription className="text-slate-400 text-xs">
-                                    Valores acumulados das suas diárias
-                                </DialogDescription>
-                            </div>
-                        </div>
-                    </DialogHeader>
-
-                    <div className="space-y-3 py-3">
-                        {/* Total Sacado (Já Recebeu no Pix) */}
-                        <Card className="bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/30 text-white rounded-2xl shadow-lg">
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">Total Sacado</span>
-                                    <div className="text-2xl font-black text-emerald-400 tracking-tight">
-                                        {formatCurrency(data?.saldos.totalSacado || 0)}
-                                    </div>
-                                    <p className="text-[10px] text-slate-400">Já pago no Pix</p>
-                                </div>
-                                <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-                                    <ArrowDownLeft className="h-5 w-5" />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* A Vencer (Pronto para Antecipar) */}
-                        <Card className="bg-gradient-to-r from-amber-950/80 to-slate-900 border border-amber-500/30 text-white rounded-2xl shadow-lg">
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">A Vencer</span>
-                                    <div className="text-2xl font-black text-amber-400 tracking-tight">
-                                        {formatCurrency(data?.saldos.totalAVencer || 0)}
-                                    </div>
-                                    <p className="text-[10px] text-slate-400">Liberado para antecipar</p>
-                                </div>
-                                <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                                    <Zap className="h-5 w-5 fill-amber-400" />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Em Análise (Aguardando Supervisor/N1/N2) */}
-                        <Card className="bg-slate-900/90 border border-slate-800 text-white rounded-2xl shadow-lg">
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Em Análise</span>
-                                    <div className="text-2xl font-black text-slate-200 tracking-tight">
-                                        {formatCurrency(data?.saldos.totalEmAnalise || 0)}
-                                    </div>
-                                    <p className="text-[10px] text-slate-400">Validação do supervisor</p>
-                                </div>
-                                <div className="h-10 w-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
-                                    <Clock className="h-5 w-5" />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Button onClick={() => setSaldosModalOpen(false)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl h-11 mt-2">
-                            Fechar
-                        </Button>
-                    </div>
                 </DialogContent>
             </Dialog>
 
