@@ -145,6 +145,7 @@ export async function GET(req: NextRequest) {
                     include: {
                         posto: true,
                         diarista: true,
+                        reserva: true,
                         motivo: true,
                         ponto: true
                     }
