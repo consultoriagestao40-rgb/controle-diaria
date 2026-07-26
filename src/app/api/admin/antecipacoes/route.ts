@@ -97,12 +97,11 @@ export async function POST(req: NextRequest) {
                 }
             })
 
-            // Atualiza status da cobertura para APROVADO com o valor líquido a ser pago
+            // Atualiza status da cobertura para APROVADO mantendo o valor bruto original
             await prisma.cobertura.update({
                 where: { id: antecipacao.coberturaId },
                 data: {
-                    status: "APROVADO",
-                    valor: antecipacao.valorSolicitado
+                    status: "APROVADO"
                 }
             })
 
