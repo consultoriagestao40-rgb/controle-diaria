@@ -89,7 +89,7 @@ export default function DiaristaDashboardPage() {
             setData(result)
         } catch {
             toast.error("Erro ao carregar dados do seu painel.")
-        } fontally {
+        } finally {
             setLoading(false)
         }
     }
