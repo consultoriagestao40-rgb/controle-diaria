@@ -31,7 +31,7 @@ interface Item {
     horaInicio?: string
     horaFim?: string
     posto: { nome: string }
-    diarista: { nome: string; chavePix?: string }
+    diarista: { nome: string; chavePix?: string; cpf?: string }
     motivo: { descricao: string }
     valor: string
     supervisor: { nome: string }
