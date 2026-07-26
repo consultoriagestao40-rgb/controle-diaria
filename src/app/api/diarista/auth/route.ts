@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 /**
- * Autenticação / Identificação Simplificada do Diarista
- * Permite entrar com o CPF (ou Telefone/E-mail) e Senha
+ * Autenticação Segura do Diarista
+ * 1º Acesso: O prestador informa CPF e cadastra sua senha de acesso.
+ * Acessos posteriores: Exige obrigatoriamente a senha cadastrada.
  */
 export async function POST(req: NextRequest) {
     try {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
 
         const cleanCpf = cpf.replace(/\D/g, "")
 
-        // Busca o diarista pelo CPF limpo ou formatado
+        // Busca o diarista pelo CPF
         const diarista = await prisma.diarista.findFirst({
             where: {
                 OR: [
@@ -27,20 +28,44 @@ export async function POST(req: NextRequest) {
         })
 
         if (!diarista) {
-            return NextResponse.json({ error: "Diarista não encontrado com este CPF." }, { status: 444 })
+            return NextResponse.json({ error: "Diarista não encontrado com este CPF. Verifique se seu cadastro foi aprovado pelo supervisor." }, { status: 404 })
         }
 
-        // Se o diarista já tiver senha cadastrada, valida. Se não tiver, permite definir ou faz acesso inicial.
-        if (diarista.senha && senha && diarista.senha !== senha) {
-            return NextResponse.json({ error: "Senha incorreta." }, { status: 401 })
-        }
+        // Se o diarista NÃO possui senha cadastrada (Primeiro Acesso)
+        if (!diarista.senha) {
+            if (!senha || senha.length < 4) {
+                return NextResponse.json({
+                    primeiroAcesso: true,
+                    error: "Este é seu 1º acesso! Crie uma senha de segurança (mínimo 4 dígitos) para proteger sua conta."
+                }, { status: 202 })
+            }
 
-        // Se não tinha senha cadastrada e enviou uma senha, salva como a senha dele
-        if (!diarista.senha && senha) {
+            // Cadastra a nova senha do diarista
             await prisma.diarista.update({
                 where: { id: diarista.id },
                 data: { senha }
             })
+
+            return NextResponse.json({
+                success: true,
+                message: "Senha cadastrada com sucesso!",
+                diarista: {
+                    id: diarista.id,
+                    nome: diarista.nome,
+                    cpf: diarista.cpf,
+                    chavePix: diarista.chavePix,
+                    telefone: diarista.telefone
+                }
+            })
+        }
+
+        // Se JÁ possui senha cadastrada, a verificação de senha é OBRIGATÓRIA
+        if (!senha) {
+            return NextResponse.json({ error: "Senha de acesso é obrigatória." }, { status: 401 })
+        }
+
+        if (diarista.senha !== senha) {
+            return NextResponse.json({ error: "Senha incorreta. Tente novamente." }, { status: 401 })
         }
 
         return NextResponse.json({

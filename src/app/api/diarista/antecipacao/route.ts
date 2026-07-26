@@ -28,24 +28,38 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Já existe uma solicitação de antecipação pendente para esta diária." }, { status: 400 })
         }
 
-        const valor = Number(cobertura.valor)
+        // Busca a taxa de antecipação configurada no sistema (ou 5.0% padrão)
+        const config = await prisma.configuracaoAuditoria.findFirst({
+            where: { ativo: true }
+        })
+        const taxaPercentual = config?.taxaAntecipacaoPercentual ?? 5.0
+
+        const valorOriginal = Number(cobertura.valor)
+        const taxaServico = Number((valorOriginal * (taxaPercentual / 100)).toFixed(2))
+        const valorSolicitado = Number((valorOriginal - taxaServico).toFixed(2))
 
         const antecipacao = await prisma.solicitacaoAntecipacao.create({
             data: {
                 coberturaId,
                 diaristaId,
-                valorOriginal: valor,
-                valorSolicitado: valor,
-                taxaServico: 0,
+                valorOriginal,
+                valorSolicitado,
+                taxaServico,
                 status: "PENDENTE",
-                justificativa: justificativa || "Solicitação de antecipação via Portal do Diarista"
+                justificativa: justificativa || `Solicitação de antecipação com taxa de ${taxaPercentual}%`
             }
         })
 
         return NextResponse.json({
             success: true,
-            message: "Solicitação de antecipação enviada com sucesso! O supervisor/financeiro analisará em breve.",
-            antecipacao
+            message: `Solicitação de antecipação enviada com sucesso! Valor original: R$ ${valorOriginal.toFixed(2)} | Taxa (${taxaPercentual}%): -R$ ${taxaServico.toFixed(2)} | Líquido no Pix: R$ ${valorSolicitado.toFixed(2)}`,
+            antecipacao: {
+                ...antecipacao,
+                valorOriginal,
+                valorSolicitado,
+                taxaServico,
+                taxaPercentual
+            }
         })
 
     } catch (error: any) {

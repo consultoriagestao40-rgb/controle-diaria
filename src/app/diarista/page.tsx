@@ -4,11 +4,12 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
     UserCheck, Wallet, ArrowUpRight, Clock, MapPin, CheckCircle2,
-    PlayCircle, StopCircle, Zap, LogOut, Loader2, Sparkles, AlertCircle, RefreshCw
+    PlayCircle, StopCircle, Zap, LogOut, Loader2, Sparkles, AlertCircle, RefreshCw, X, Percent
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { toast } from "sonner"
 
 interface DiaristaData {
@@ -67,6 +68,11 @@ export default function DiaristaDashboardPage() {
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState(false)
 
+    // Modal de Antecipação
+    const [antecipacaoModalOpen, setAntecipacaoModalOpen] = useState(false)
+    const [selectedItemForAntecipacao, setSelectedItemForAntecipacao] = useState<{ id: string, postoNome: string, valor: number } | null>(null)
+    const taxaPercentualDefault = 5.0 // Taxa estimada em %
+
     const fetchDashboardData = async () => {
         const savedDiarista = localStorage.getItem("reembolsa_diarista")
         if (!savedDiarista) {
@@ -83,7 +89,7 @@ export default function DiaristaDashboardPage() {
             setData(result)
         } catch {
             toast.error("Erro ao carregar dados do seu painel.")
-        } finally {
+        } fontally {
             setLoading(false)
         }
     }
@@ -105,12 +111,11 @@ export default function DiaristaDashboardPage() {
         return new Date(dateStr).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
     }
 
-    // Registra o Ponto com Geolocalização GPS do dispositivo
+    // Registra o Ponto com Geolocalização GPS
     const handlePonto = async (acao: "CHECK_IN" | "CHECK_OUT") => {
         if (!data?.plantaoHoje) return
         setActionLoading(true)
 
-        // Tenta capturar a localização GPS do celular/navegador
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
@@ -119,7 +124,7 @@ export default function DiaristaDashboardPage() {
                 },
                 async (error) => {
                     console.warn("GPS Indisponível, registrando sem coordenadas:", error)
-                    toast.warning("Não foi possível obter sua localização GPS exata. Registrando ponto padrão...")
+                    toast.warning("Registrando ponto sem GPS estrito...")
                     await submitPonto(acao, null, null)
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
@@ -153,15 +158,20 @@ export default function DiaristaDashboardPage() {
             fetchDashboardData()
 
         } catch {
-            toast.error("Erro de conexão ao tentar registrar ponto.")
+            toast.error("Erro de conexão ao registrar ponto.")
         } finally {
             setActionLoading(false)
         }
     }
 
-    // Solicita Antecipação de Saque para uma diária
-    const handleSolicitarAntecipacao = async (coberturaId: string) => {
-        if (!data) return
+    const openAntecipacaoModal = (item: { id: string, postoNome: string, valor: number }) => {
+        setSelectedItemForAntecipacao(item)
+        setAntecipacaoModalOpen(true)
+    }
+
+    // Confirma a Antecipação com o cálculo exato da taxa
+    const confirmSolicitarAntecipacao = async () => {
+        if (!data || !selectedItemForAntecipacao) return
         setActionLoading(true)
 
         try {
@@ -169,9 +179,9 @@ export default function DiaristaDashboardPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    coberturaId,
+                    coberturaId: selectedItemForAntecipacao.id,
                     diaristaId: data.diarista.id,
-                    justificativa: "Solicitado pelo diarista no portal"
+                    justificativa: "Solicitado com concordância de taxa via Portal do Diarista"
                 })
             })
 
@@ -182,6 +192,8 @@ export default function DiaristaDashboardPage() {
             }
 
             toast.success(resData.message)
+            setAntecipacaoModalOpen(false)
+            setSelectedItemForAntecipacao(null)
             fetchDashboardData()
         } catch {
             toast.error("Erro ao solicitar antecipação.")
@@ -198,6 +210,10 @@ export default function DiaristaDashboardPage() {
             </div>
         )
     }
+
+    const valorOriginalModal = selectedItemForAntecipacao?.valor || 0
+    const taxaValorModal = Number((valorOriginalModal * (taxaPercentualDefault / 100)).toFixed(2))
+    const valorLiquidoModal = Number((valorOriginalModal - taxaValorModal).toFixed(2))
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 pb-24 relative overflow-hidden">
@@ -247,7 +263,7 @@ export default function DiaristaDashboardPage() {
                             <div className="text-2xl font-black tracking-tight text-slate-200">
                                 {formatCurrency(data?.saldos.aReceber || 0)}
                             </div>
-                            <p className="text-[10px] text-slate-400">Plantões pendentes</p>
+                            <p className="text-[10px] text-slate-400">Plantões em análise</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -384,7 +400,7 @@ export default function DiaristaDashboardPage() {
                                         ) : item.podeAntecipar ? (
                                             <Button
                                                 size="sm"
-                                                onClick={() => handleSolicitarAntecipacao(item.id)}
+                                                onClick={() => openAntecipacaoModal(item)}
                                                 disabled={actionLoading}
                                                 className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 text-xs font-bold rounded-xl h-8"
                                             >
@@ -405,6 +421,62 @@ export default function DiaristaDashboardPage() {
                 </div>
 
             </div>
+
+            {/* Modal de Confirmação com Discriminativo da Taxa de Antecipação */}
+            <Dialog open={antecipacaoModalOpen} onOpenChange={setAntecipacaoModalOpen}>
+                <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md rounded-3xl p-6">
+                    <DialogHeader className="space-y-2">
+                        <div className="h-10 w-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                            <Zap className="h-5 w-5 fill-amber-400" />
+                        </div>
+                        <DialogTitle className="text-xl font-black text-white">Confirmar Antecipação de Saque</DialogTitle>
+                        <DialogDescription className="text-slate-400 text-xs">
+                            Confira o resumo financeiro da antecipação da diária do posto <strong className="text-white">{selectedItemForAntecipacao?.postoNome}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedItemForAntecipacao && (
+                        <div className="space-y-4 py-3">
+                            <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl space-y-3 text-sm">
+                                <div className="flex justify-between items-center text-slate-300">
+                                    <span>Valor Original da Diária:</span>
+                                    <span className="font-bold">{formatCurrency(valorOriginalModal)}</span>
+                                </div>
+
+                                <div className="flex justify-between items-center text-amber-400 text-xs">
+                                    <span className="flex items-center gap-1">
+                                        <Percent className="h-3.5 w-3.5" /> Taxa de Antecipação ({taxaPercentualDefault}%):
+                                    </span>
+                                    <span className="font-bold">- {formatCurrency(taxaValorModal)}</span>
+                                </div>
+
+                                <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-base font-black text-emerald-400">
+                                    <span>Valor Líquido no Pix:</span>
+                                    <span className="text-lg">{formatCurrency(valorLiquidoModal)}</span>
+                                </div>
+                            </div>
+
+                            <p className="text-[11px] text-slate-500 text-center leading-relaxed">
+                                Ao confirmar, o valor líquido de <strong className="text-slate-300">{formatCurrency(valorLiquidoModal)}</strong> será enviado para sua Chave Pix cadastrada após a aprovação do gestor.
+                            </p>
+
+                            <div className="flex gap-2 pt-2">
+                                <Button variant="ghost" onClick={() => setAntecipacaoModalOpen(false)} className="flex-1 text-slate-400 hover:text-white rounded-xl">
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    onClick={confirmSolicitarAntecipacao}
+                                    disabled={actionLoading}
+                                    className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl h-11"
+                                >
+                                    {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar Solicitação"}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
         </div>
     )
 }

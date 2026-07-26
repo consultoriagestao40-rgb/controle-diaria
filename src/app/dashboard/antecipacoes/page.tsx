@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import {
     Zap, CheckCircle2, XCircle, Clock, Search, ArrowUpRight,
-    UserCheck, DollarSign, Calendar, MapPin, Loader2, AlertCircle
+    UserCheck, DollarSign, Calendar, MapPin, Loader2, AlertCircle, Percent, Settings, Save
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -42,16 +42,21 @@ interface Antecipacao {
 
 export default function GestaoAntecipacoesPage() {
     const [antecipacoes, setAntecipacoes] = useState<Antecipacao[]>([])
+    const [taxaPercentual, setTaxaPercentual] = useState<number>(5.0)
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState(false)
     const [search, setSearch] = useState("")
+    const [savingTaxa, setSavingTaxa] = useState(false)
 
     const fetchAntecipacoes = async () => {
         try {
             const res = await fetch("/api/admin/antecipacoes")
             if (!res.ok) throw new Error()
             const data = await res.json()
-            setAntecipacoes(data)
+            setAntecipacoes(data.antecipacoes || [])
+            if (data.taxaPercentual !== undefined) {
+                setTaxaPercentual(data.taxaPercentual)
+            }
         } catch {
             toast.error("Erro ao carregar solicitações de antecipação.")
         } finally {
@@ -62,6 +67,24 @@ export default function GestaoAntecipacoesPage() {
     useEffect(() => {
         fetchAntecipacoes()
     }, [])
+
+    const handleSalvarTaxa = async () => {
+        setSavingTaxa(true)
+        try {
+            const res = await fetch("/api/admin/antecipacoes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ novaTaxaPercentual: taxaPercentual })
+            })
+
+            if (!res.ok) throw new Error()
+            toast.success(`Taxa de antecipação atualizada para ${taxaPercentual}%!`)
+        } catch {
+            toast.error("Erro ao salvar taxa.")
+        } finally {
+            setSavingTaxa(false)
+        }
+    }
 
     const handleAcao = async (antecipacaoId: string, acao: "APROVAR" | "REPROVAR") => {
         setActionLoading(true)
@@ -110,7 +133,7 @@ export default function GestaoAntecipacoesPage() {
                         </div>
                         <div>
                             <h1 className="text-2xl font-black tracking-tight text-slate-900">Solicitações de Antecipação de Saque</h1>
-                            <p className="text-xs text-slate-500 font-medium">Gestão de adiantamentos de diárias solicitados pelos prestadores</p>
+                            <p className="text-xs text-slate-500 font-medium">Gestão de adiantamentos de diárias com cálculo de taxa de conveniência</p>
                         </div>
                     </div>
                 </div>
@@ -127,6 +150,42 @@ export default function GestaoAntecipacoesPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Painel de Configuração da Taxa de Antecipação */}
+            <Card className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl border border-slate-700/50 p-5 shadow-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                            <Percent className="h-4 w-4 text-amber-400" />
+                            <span className="text-xs font-black uppercase tracking-widest text-amber-400">Configuração da Taxa de Antecipação</span>
+                        </div>
+                        <p className="text-xs text-slate-300">
+                            Defina a porcentagem descontada do valor da diária quando o prestador solicita o adiantamento.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 shrink-0">
+                        <span className="text-xs font-bold text-slate-400 pl-3">Taxa (%):</span>
+                        <Input
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            max="50"
+                            value={taxaPercentual}
+                            onChange={e => setTaxaPercentual(Number(e.target.value))}
+                            className="w-20 h-9 bg-slate-900 border-slate-700 text-white font-mono font-bold text-center rounded-lg"
+                        />
+                        <Button
+                            onClick={handleSalvarTaxa}
+                            disabled={savingTaxa}
+                            size="sm"
+                            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold h-9 rounded-lg px-3"
+                        >
+                            {savingTaxa ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                </div>
+            </Card>
 
             {/* Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -145,8 +204,8 @@ export default function GestaoAntecipacoesPage() {
                 <Card className="bg-white border-slate-200/80 shadow-sm rounded-2xl">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Solicitado</span>
-                            <div className="text-2xl font-black text-slate-900 mt-1">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Líquido a Pagar</span>
+                            <div className="text-2xl font-black text-emerald-600 mt-1">
                                 {formatCurrency(pendentes.reduce((acc, i) => acc + Number(i.valorSolicitado), 0))}
                             </div>
                         </div>
@@ -159,11 +218,13 @@ export default function GestaoAntecipacoesPage() {
                 <Card className="bg-white border-slate-200/80 shadow-sm rounded-2xl">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Histórico Processado</span>
-                            <div className="text-2xl font-black text-slate-900 mt-1">{concluidas.length}</div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Receita de Taxas Retidas</span>
+                            <div className="text-2xl font-black text-slate-900 mt-1">
+                                {formatCurrency(pendentes.reduce((acc, i) => acc + Number(i.taxaServico), 0))}
+                            </div>
                         </div>
                         <div className="h-10 w-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                            <CheckCircle2 className="h-5 w-5" />
+                            <Percent className="h-5 w-5" />
                         </div>
                     </CardContent>
                 </Card>
@@ -200,34 +261,34 @@ export default function GestaoAntecipacoesPage() {
                                             </div>
                                             <p className="text-xs text-slate-400 mt-0.5">CPF: {item.diarista.cpf || "Não informado"} | Pix: {item.diarista.chavePix || "Não informada"}</p>
                                         </div>
-                                        <Badge className="bg-amber-100 text-amber-800 border-amber-200">
-                                            {formatCurrency(Number(item.valorSolicitado))}
+                                        <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 text-sm font-black px-3 py-1">
+                                            {formatCurrency(Number(item.valorSolicitado))} Líquido
                                         </Badge>
                                     </div>
 
-                                    <div className="bg-slate-50 p-3 rounded-xl space-y-1 text-xs text-slate-600">
-                                        <div className="flex items-center gap-1.5 font-semibold">
-                                            <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                                            <span>Posto: {item.cobertura.posto.nome}</span>
+                                    {/* Discriminativo Financeiro */}
+                                    <div className="bg-slate-50 border border-slate-200/70 p-3.5 rounded-xl space-y-2 text-xs">
+                                        <div className="flex justify-between text-slate-600 font-medium">
+                                            <span>Valor Bruto da Diária:</span>
+                                            <span className="font-bold">{formatCurrency(Number(item.valorOriginal))}</span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-slate-500">
-                                            <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                            <span>Data da Diária: {formatDate(item.cobertura.data)}</span>
+                                        <div className="flex justify-between text-amber-600 font-semibold">
+                                            <span>Taxa de Conveniência ({taxaPercentual}%):</span>
+                                            <span>- {formatCurrency(Number(item.taxaServico))}</span>
                                         </div>
-                                        {item.cobertura.ponto && (
-                                            <div className="text-[11px] text-emerald-700 font-medium">
-                                                ✅ Check-in/out realizado com sucesso
-                                            </div>
-                                        )}
+                                        <div className="pt-1.5 border-t border-slate-200 flex justify-between font-black text-slate-900 text-sm">
+                                            <span>Valor Pix a Pagar:</span>
+                                            <span className="text-emerald-600">{formatCurrency(Number(item.valorSolicitado))}</span>
+                                        </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2 pt-2">
+                                    <div className="flex items-center gap-2 pt-1">
                                         <Button
                                             onClick={() => handleAcao(item.id, "APROVAR")}
                                             disabled={actionLoading}
                                             className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-10 rounded-xl shadow-sm"
                                         >
-                                            <CheckCircle2 className="h-4 w-4 mr-1.5" /> Aprovar Antecipação
+                                            <CheckCircle2 className="h-4 w-4 mr-1.5" /> Aprovar e Liberar no Financeiro
                                         </Button>
                                         <Button
                                             variant="outline"

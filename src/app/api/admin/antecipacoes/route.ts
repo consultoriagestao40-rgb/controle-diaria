@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-// Listar todas as solicitações de antecipação
+// Listar todas as solicitações de antecipação + taxa configurada
 export async function GET() {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
@@ -22,19 +22,48 @@ export async function GET() {
             orderBy: { solicitadoEm: "desc" }
         })
 
-        return NextResponse.json(antecipacoes)
+        const config = await prisma.configuracaoAuditoria.findFirst({
+            where: { ativo: true }
+        })
+
+        return NextResponse.json({
+            antecipacoes,
+            taxaPercentual: config?.taxaAntecipacaoPercentual ?? 5.0
+        })
     } catch (error) {
         return NextResponse.json({ error: "Erro ao buscar antecipações." }, { status: 500 })
     }
 }
 
-// Aprovar ou Reprovar antecipação
+// Aprovar/Reprovar solicitação ou atualizar a taxa de antecipação (%)
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
 
     try {
-        const { antecipacaoId, acao, justificativa } = await req.json()
+        const body = await req.json()
+        const { antecipacaoId, acao, justificativa, novaTaxaPercentual } = body
+
+        // Se for atualização de taxa de antecipação (%) pelo gestor
+        if (novaTaxaPercentual !== undefined) {
+            const configExistente = await prisma.configuracaoAuditoria.findFirst({ where: { ativo: true } })
+
+            if (configExistente) {
+                await prisma.configuracaoAuditoria.update({
+                    where: { id: configExistente.id },
+                    data: { taxaAntecipacaoPercentual: Number(novaTaxaPercentual) }
+                })
+            } else {
+                await prisma.configuracaoAuditoria.create({
+                    data: {
+                        palavrasProibidas: "cerveja,energetico,bebida",
+                        taxaAntecipacaoPercentual: Number(novaTaxaPercentual)
+                    }
+                })
+            }
+
+            return NextResponse.json({ success: true, message: `Taxa de antecipação atualizada para ${novaTaxaPercentual}%!` })
+        }
 
         if (!antecipacaoId || !acao) {
             return NextResponse.json({ error: "Parâmetros inválidos." }, { status: 400 })
@@ -59,10 +88,13 @@ export async function POST(req: NextRequest) {
                 }
             })
 
-            // Atualiza status da cobertura para APROVADO para agilizar pagamento no financeiro
+            // Atualiza status da cobertura para APROVADO com o valor líquido a ser pago
             await prisma.cobertura.update({
                 where: { id: antecipacao.coberturaId },
-                data: { status: "APROVADO" }
+                data: {
+                    status: "APROVADO",
+                    valor: antecipacao.valorSolicitado // Atualiza o valor a ser pago para o valor líquido com o desconto da taxa
+                }
             })
 
             return NextResponse.json({ success: true, antecipacao: atualizada })
@@ -83,6 +115,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Ação não reconhecida." }, { status: 400 })
 
     } catch (error) {
-        return NextResponse.json({ error: "Erro ao processar antecipação." }, { status: 500 })
+        return NextResponse.json({ error: "Erro ao processar solicitação." }, { status: 500 })
     }
 }
