@@ -28,6 +28,14 @@ interface Item {
     status: string
     posto: { nome: string }
     diarista: { nome: string }
+    ponto?: {
+        id: string
+        status: string
+        checkInAt: string
+        checkOutAt: string | null
+        latitude: number | null
+        longitude: number | null
+    } | null
     motivo: { descricao: string }
     reserva: { nome: string }
     cargaHoraria: { descricao: string }
@@ -570,6 +578,7 @@ export default function ApproverDashboard() {
                                     <th className="py-4.5 px-6">Posto de Trabalho</th>
                                     <th className="py-4.5 px-6">Quem Faltou</th>
                                     <th className="py-4.5 px-6">Quem Cobriu</th>
+                                    <th className="py-4.5 px-6">Ponto (GPS)</th>
                                     <th className="py-4.5 px-6 text-right">Valor</th>
                                 </tr>
                             </thead>
@@ -619,6 +628,24 @@ export default function ApproverDashboard() {
                                                 <User className="h-3.5 w-3.5 text-blue-500 shrink-0" />
                                                 {item.diarista.nome}
                                             </div>
+                                        </td>
+                                        <td className="py-4.5 px-6">
+                                            {item.ponto ? (
+                                                <div className="flex flex-col text-xs font-mono">
+                                                    <span className="text-emerald-600 font-bold">
+                                                        ✅ In: {new Date(item.ponto.checkInAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                    {item.ponto.checkOutAt ? (
+                                                        <span className="text-rose-600 font-bold">
+                                                            🏁 Out: {new Date(item.ponto.checkOutAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-amber-600 font-bold text-[10px]">Em serviço</span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-slate-400 italic">Sem ponto</span>
+                                            )}
                                         </td>
                                         <td className="py-4.5 px-6 text-right">
                                             <span className="font-black text-slate-900 tracking-tight text-base">
@@ -833,6 +860,50 @@ export default function ApproverDashboard() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Card: Registro de Ponto GPS (Presença Confirmada) */}
+                            <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-xs space-y-3.5">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-slate-100">
+                                    <MapPin className="h-3.5 w-3.5 text-emerald-600" />
+                                    Registro de Ponto GPS & Horários (Presença Confirmada)
+                                </h4>
+                                {detailItem.ponto ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 space-y-1">
+                                            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider block">✅ Horário de Check-in</span>
+                                            <span className="font-bold text-slate-800 text-sm block font-mono">
+                                                {new Date(detailItem.ponto.checkInAt).toLocaleDateString('pt-BR')} às {new Date(detailItem.ponto.checkInAt).toLocaleTimeString('pt-BR')}
+                                            </span>
+                                            {detailItem.ponto.latitude && detailItem.ponto.longitude && (
+                                                <span className="text-[10px] text-emerald-600 block">
+                                                    📍 GPS: {detailItem.ponto.latitude.toFixed(6)}, {detailItem.ponto.longitude.toFixed(6)}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-wider block">🏁 Horário de Check-out</span>
+                                            {detailItem.ponto.checkOutAt ? (
+                                                <>
+                                                    <span className="font-bold text-slate-800 text-sm block font-mono">
+                                                        {new Date(detailItem.ponto.checkOutAt).toLocaleDateString('pt-BR')} às {new Date(detailItem.ponto.checkOutAt).toLocaleTimeString('pt-BR')}
+                                                    </span>
+                                                    <span className="text-[10px] text-emerald-600 font-bold block">Status: Concluído</span>
+                                                </>
+                                            ) : (
+                                                <span className="font-bold text-amber-600 text-xs block italic">
+                                                    ⚠️ Plantão ainda em serviço (sem check-out registrado)
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-100 text-amber-800 text-xs flex items-center gap-2 font-medium">
+                                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                                        <span>Atenção: Nenhum registro de ponto com GPS foi realizado pela diarista para este plantão.</span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Card 3: Fluxo e Pagamento */}

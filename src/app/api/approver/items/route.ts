@@ -35,6 +35,7 @@ export async function GET() {
                 diarista: true,
                 motivo: true,
                 reserva: true,
+                ponto: true,
                 cargaHoraria: true,
                 supervisor: { select: { nome: true } },
                 aprovadorN1: { select: { nome: true } }, // Show who approved in N1 (if applicable)

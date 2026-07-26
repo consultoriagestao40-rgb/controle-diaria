@@ -23,6 +23,14 @@ interface Item {
     valor: string
     posto: { nome: string }
     diarista: { nome: string }
+    ponto?: {
+        id: string
+        status: string
+        checkInAt: string
+        checkOutAt: string | null
+        latitude: number | null
+        longitude: number | null
+    } | null
     reserva?: { nome: string }
     motivo: { descricao: string }
     observacao?: string
@@ -434,6 +442,7 @@ export default function AdminCoberturasPage() {
                                         <TableHead className="bg-white font-bold text-slate-900">Observação/Justificativas</TableHead>
                                         <TableHead className="bg-white font-bold text-slate-900">Valor</TableHead>
                                         <TableHead className="bg-white font-bold text-slate-900">Status</TableHead>
+                                        <TableHead className="bg-white font-bold text-slate-900 min-w-[150px]">Ponto / Horários (GPS)</TableHead>
                                         <TableHead className="bg-white font-bold text-slate-900">Solicitante (Criado)</TableHead>
                                         <TableHead className="bg-white font-bold text-slate-900 min-w-[120px]">Aprovador N1</TableHead>
                                         <TableHead className="bg-white font-bold text-slate-900 min-w-[120px]">Aprov. Final / Baixa</TableHead>
@@ -460,6 +469,26 @@ export default function AdminCoberturasPage() {
                                                         </span>
                                                     )}
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {item.ponto ? (
+                                                    <div className="flex flex-col gap-0.5 text-xs font-mono">
+                                                        <span className="text-emerald-600 font-bold flex items-center gap-1">
+                                                            ✅ In: {new Date(item.ponto.checkInAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                        {item.ponto.checkOutAt ? (
+                                                            <span className="text-rose-600 font-bold flex items-center gap-1">
+                                                                🏁 Out: {new Date(item.ponto.checkOutAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        ) : (
+                                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-[10px] w-fit">
+                                                                Em serviço
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-slate-400 italic">Não batido</span>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col">

@@ -51,6 +51,7 @@ export async function GET(req: Request) {
                 diarista: true,
                 reserva: true,
                 motivo: true,
+                ponto: true,
                 supervisor: { select: { nome: true } },
                 aprovador: { select: { nome: true } },
                 financeiro: { select: { nome: true } },
