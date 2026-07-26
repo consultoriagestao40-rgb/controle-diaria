@@ -94,7 +94,7 @@ export default function GestaoAntecipacoesPage() {
         }
     }
 
-    const handleAcao = async (antecipacaoId: string, acao: "APROVAR" | "REPROVADO") => {
+    const handleAcao = async (antecipacaoId: string, acao: "APROVAR" | "REPROVAR") => {
         setActionLoading(true)
         try {
             const res = await fetch("/api/admin/antecipacoes", {
@@ -182,7 +182,7 @@ export default function GestaoAntecipacoesPage() {
                             />
                             <Button
                                 size="sm"
-                                onClick={handleSalvarTaxa}
+                                onClick={handleSalvarPoliticas}
                                 disabled={savingTaxa}
                                 className="h-7 w-7 p-0 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg"
                             >
