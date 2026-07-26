@@ -59,20 +59,19 @@ export async function sendPixTransfer(params: PixTransferParams): Promise<AsaasT
 
     try {
         const pixType = detectPixKeyType(params.chavePix)
-        const cleanCpfCnpj = params.cpf.replace(/\D/g, "")
 
+        // Para transferência via chave Pix, NÃO enviar bankAccount
+        // Conforme docs.asaas.com: bankAccount e pixAddressKey são mutuamente exclusivos
         const requestBody = {
             value: params.valor,
+            operationType: "PIX",
             pixAddressKey: params.chavePix,
             pixAddressKeyType: pixType,
-            description: params.descricao,
-            bankAccount: {
-                ownerName: params.nome,
-                cpfCnpj: cleanCpfCnpj
-            }
+            description: params.descricao
         }
 
         console.log(`[ASAAS] Enviando transferência Pix para ${params.nome} (${pixType}): R$ ${params.valor}`);
+        console.log(`[ASAAS] Payload:`, JSON.stringify(requestBody));
 
         const response = await fetch(`${apiUrl}/transfers`, {
             method: "POST",
