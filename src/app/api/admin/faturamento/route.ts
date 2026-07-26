@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     const endStr = searchParams.get('end')
     const empresaId = searchParams.get('empresaId')
     const postoId = searchParams.get('postoId')
+    const statusFaturamento = searchParams.get('statusFaturamento') || 'A_FATURAR' // A_FATURAR | FATURADAS | ALL
 
     try {
         // Busca a configuração global de auditoria e taxas
@@ -39,6 +40,12 @@ export async function GET(req: NextRequest) {
             status: { in: ['APROVADO', 'PAGO'] }
         }
 
+        if (statusFaturamento === 'A_FATURAR') {
+            where.faturado = false
+        } else if (statusFaturamento === 'FATURADAS') {
+            where.faturado = true
+        }
+
         if (startStr && endStr) {
             const startDate = new Date(startStr)
             const endDate = new Date(endStr)
@@ -58,7 +65,8 @@ export async function GET(req: NextRequest) {
                 motivo: true,
                 empresa: true,
                 ponto: true,
-                antecipacoes: true
+                antecipacoes: true,
+                faturaCliente: true
             },
             orderBy: { data: 'desc' }
         })
@@ -73,7 +81,11 @@ export async function GET(req: NextRequest) {
 
         const items = coberturas.map(c => {
             const valorDiaria = Number(c.valor || 0)
-            const valorTaxaServico = Number((valorDiaria * (taxaServicoPercentual / 100)).toFixed(2))
+            const taxaAplicada = c.faturaCliente
+                ? c.faturaCliente.taxaServicoPercentual
+                : taxaServicoPercentual
+
+            const valorTaxaServico = Number((valorDiaria * (taxaAplicada / 100)).toFixed(2))
             const valorFaturaCliente = Number((valorDiaria + valorTaxaServico).toFixed(2))
 
             // Verifica se o diarista antecipou essa diária
@@ -100,12 +112,13 @@ export async function GET(req: NextRequest) {
                 id: c.id,
                 data: c.data,
                 postoNome: c.posto.nome,
+                empresaId: c.empresaId,
                 empresaNome: c.empresa?.nome || "Cliente Padrão",
                 diaristaNome: c.diarista.nome,
                 reservaNome: c.reserva?.nome || "Vaga em Aberto",
                 motivo: c.motivo.descricao,
                 valorDiaria,
-                taxaServicoPercentual,
+                taxaServicoPercentual: taxaAplicada,
                 valorTaxaServico,
                 valorFaturaCliente,
                 antecipada,
@@ -113,8 +126,31 @@ export async function GET(req: NextRequest) {
                 valorPagoDiarista,
                 lucroPlantao,
                 status: c.status,
+                faturado: c.faturado,
+                faturaCliente: c.faturaCliente ? {
+                    id: c.faturaCliente.id,
+                    numeroFatura: c.faturaCliente.numeroFatura,
+                    geradaEm: c.faturaCliente.createdAt,
+                    status: c.faturaCliente.status
+                } : null,
                 ponto: c.ponto
             }
+        })
+
+        // Lista de Faturas já emitidas para consulta rápida e exibição da Tabela de Faturas
+        const faturasEmitidas = await prisma.faturaCliente.findMany({
+            include: {
+                empresa: true,
+                coberturas: {
+                    include: {
+                        posto: true,
+                        diarista: true,
+                        motivo: true,
+                        ponto: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
         })
 
         return NextResponse.json({
@@ -131,7 +167,8 @@ export async function GET(req: NextRequest) {
                 totalGanhoAntecipacao,
                 totalLucroPrestadora
             },
-            items
+            items,
+            faturasEmitidas
         })
 
     } catch (error) {
@@ -140,37 +177,117 @@ export async function GET(req: NextRequest) {
     }
 }
 
+// POST: Ações de Faturamento (Salvar Taxa ou Gerar Nova Fatura)
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
 
     try {
         const body = await req.json()
-        const { taxaServicoClientePercentual } = body
+        const { acao, taxaServicoClientePercentual, coberturaIds, empresaId, observacoes } = body
 
-        if (taxaServicoClientePercentual === undefined) {
-            return NextResponse.json({ error: "Taxa não fornecida." }, { status: 400 })
+        // 1. Atualizar taxa global do cliente
+        if (acao === 'SALVAR_TAXA' || taxaServicoClientePercentual !== undefined && !coberturaIds) {
+            const configExistente = await prisma.configuracaoAuditoria.findFirst({ where: { ativo: true } })
+
+            if (configExistente) {
+                await prisma.configuracaoAuditoria.update({
+                    where: { id: configExistente.id },
+                    data: { taxaServicoClientePercentual: Number(taxaServicoClientePercentual) }
+                })
+            } else {
+                await prisma.configuracaoAuditoria.create({
+                    data: {
+                        palavrasProibidas: "cerveja,energetico",
+                        taxaServicoClientePercentual: Number(taxaServicoClientePercentual),
+                        taxaAntecipacaoPercentual: 5.0
+                    }
+                })
+            }
+
+            return NextResponse.json({ success: true, message: "Taxa de Serviço do Cliente salva com sucesso!" })
         }
 
-        const configExistente = await prisma.configuracaoAuditoria.findFirst({ where: { ativo: true } })
+        // 2. Gerar Nova Fatura do Cliente com as diárias selecionadas
+        if (acao === 'GERAR_FATURA' || (coberturaIds && coberturaIds.length > 0)) {
+            if (!coberturaIds || coberturaIds.length === 0) {
+                return NextResponse.json({ error: "Nenhuma diária selecionada para faturamento." }, { status: 400 })
+            }
 
-        if (configExistente) {
-            await prisma.configuracaoAuditoria.update({
-                where: { id: configExistente.id },
-                data: { taxaServicoClientePercentual: Number(taxaServicoClientePercentual) }
-            })
-        } else {
-            await prisma.configuracaoAuditoria.create({
-                data: {
-                    palavrasProibidas: "cerveja,energetico",
-                    taxaServicoClientePercentual: Number(taxaServicoClientePercentual),
-                    taxaAntecipacaoPercentual: 5.0
+            if (!empresaId) {
+                return NextResponse.json({ error: "Selecione o Cliente / Empresa para emitir a fatura." }, { status: 400 })
+            }
+
+            // Busca as coberturas selecionadas
+            const coberturas = await prisma.cobertura.findMany({
+                where: {
+                    id: { in: coberturaIds },
+                    faturado: false
                 }
             })
+
+            if (coberturas.length === 0) {
+                return NextResponse.json({ error: "As diárias selecionadas já foram faturadas ou não estão disponíveis." }, { status: 400 })
+            }
+
+            // Busca a taxa atual
+            const config = await prisma.configuracaoAuditoria.findFirst({ where: { ativo: true } })
+            const taxaServicoPercentual = config?.taxaServicoClientePercentual ?? 10.0
+
+            // Calcula totais
+            let valorDiarias = 0
+            coberturas.forEach(c => {
+                valorDiarias += Number(c.valor || 0)
+            })
+
+            const valorTaxaServico = Number((valorDiarias * (taxaServicoPercentual / 100)).toFixed(2))
+            const valorTotal = Number((valorDiarias + valorTaxaServico).toFixed(2))
+
+            // Gerar número sequencial de fatura FAT-2026-XXXX
+            const totalFaturasExistentes = await prisma.faturaCliente.count()
+            const proximoNumero = String(totalFaturasExistentes + 1).padStart(4, '0')
+            const anoAtual = new Date().getFullYear()
+            const numeroFatura = `FAT-${anoAtual}-${proximoNumero}`
+
+            // Data de Vencimento padrão: 10 dias após emissão
+            const vencimento = new Date()
+            vencimento.setDate(vencimento.getDate() + 10)
+
+            // Cria a Fatura
+            const novaFatura = await prisma.faturaCliente.create({
+                data: {
+                    numeroFatura,
+                    empresaId,
+                    valorDiarias,
+                    taxaServicoPercentual,
+                    valorTaxaServico,
+                    valorTotal,
+                    vencimentoEm: vencimento,
+                    observacoes: observacoes || `Fatura referente a ${coberturas.length} plantão(ões) de diárias.`
+                }
+            })
+
+            // Atualiza as coberturas para faturado = true
+            await prisma.cobertura.updateMany({
+                where: { id: { in: coberturas.map(c => c.id) } },
+                data: {
+                    faturado: true,
+                    faturaClienteId: novaFatura.id,
+                    dataFaturamento: new Date()
+                }
+            })
+
+            return NextResponse.json({
+                success: true,
+                message: `Fatura ${numeroFatura} gerada com sucesso para ${coberturas.length} diárias!`,
+                fatura: novaFatura
+            })
         }
 
-        return NextResponse.json({ success: true, message: "Taxa de Serviço do Cliente salva com sucesso!" })
+        return NextResponse.json({ error: "Ação não reconhecida." }, { status: 400 })
+
     } catch (error) {
-        return NextResponse.json({ error: "Erro ao salvar taxa de serviço." }, { status: 500 })
+        console.error("Erro ao processar faturamento:", error)
+        return NextResponse.json({ error: "Erro ao processar ação de faturamento." }, { status: 500 })
     }
 }

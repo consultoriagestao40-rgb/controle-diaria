@@ -145,6 +145,27 @@ model Empresa {
   nome      String
   ativo     Boolean @default(true)
   coberturas Cobertura[]
+  faturas    FaturaCliente[]
+}
+
+model FaturaCliente {
+  id                    String      @id @default(uuid())
+  numeroFatura          String      @unique // Ex: FAT-2026-0001
+  empresaId             String
+  empresa               Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  
+  valorDiarias          Decimal
+  taxaServicoPercentual Float       @default(10.0)
+  valorTaxaServico      Decimal
+  valorTotal            Decimal
+  
+  status                String      @default("PAGA") // PAGA | PENDENTE | CANCELADA
+  vencimentoEm          DateTime?
+  observacoes           String?
+
+  coberturas            Cobertura[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 }
 
 // Main Transaction
@@ -219,6 +240,11 @@ model Cobertura {
   historico     HistoricoWorkflow[]
   ponto         RegistroPonto?
   antecipacoes  SolicitacaoAntecipacao[]
+
+  faturado         Boolean        @default(false)
+  faturaClienteId  String?
+  faturaCliente    FaturaCliente? @relation(fields: [faturaClienteId], references: [id])
+  dataFaturamento  DateTime?
 }
 
 // Evidence & Attachments
