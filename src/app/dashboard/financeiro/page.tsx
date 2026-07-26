@@ -779,7 +779,7 @@ export default function FinanceDashboard() {
                     setBatchItemsToPay(null)
                 }
             }}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[500px] rounded-3xl p-6 bg-white gap-0">
                     <DialogHeader>
                         <DialogTitle>
                             {batchItemsToPay
@@ -855,41 +855,49 @@ export default function FinanceDashboard() {
                         })()}
                     </div>
 
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="ghost" onClick={() => {
-                            setSelectedItem(null)
-                            setBatchItemsToPay(null)
-                        }}>Cancelar</Button>
+                    <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t border-slate-100">
+                        <div className="flex flex-col sm:flex-row w-full gap-2 justify-end">
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    setSelectedItem(null)
+                                    setBatchItemsToPay(null)
+                                }}
+                                className="w-full sm:w-auto h-11 rounded-xl text-slate-500 hover:bg-slate-100 font-bold order-3 sm:order-1 cursor-pointer active:scale-95 transition-all"
+                            >
+                                Cancelar
+                            </Button>
 
-                        {(() => {
-                            const itemsToProcess = batchItemsToPay ? batchItemsToPay : (selectedItem ? [selectedItem] : [])
-                            const hasSemDados = itemsToProcess.some(i => !i.diarista.chavePix || !i.diarista.cpf)
-                            if (!hasSemDados && itemsToProcess.length > 0) {
-                                return (
-                                    <Button
-                                        onClick={() => {
-                                            setIsPagarComAsaas(true)
-                                            setConfirmacaoSenha("")
-                                            setSenhaModalOpen(true)
-                                        }}
-                                        disabled={processing}
-                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
-                                    >
-                                        Pagar via Pix Asaas
-                                    </Button>
-                                )
-                            }
-                            return null
-                        })()}
+                            {(() => {
+                                const itemsToProcess = batchItemsToPay ? batchItemsToPay : (selectedItem ? [selectedItem] : [])
+                                const hasSemDados = itemsToProcess.some(i => !i.diarista.chavePix || !i.diarista.cpf)
+                                if (!hasSemDados && itemsToProcess.length > 0) {
+                                    return (
+                                        <Button
+                                            onClick={() => {
+                                                setIsPagarComAsaas(true)
+                                                setConfirmacaoSenha("")
+                                                setSenhaModalOpen(true)
+                                            }}
+                                            disabled={processing}
+                                            className="w-full sm:w-auto h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold order-1 sm:order-2 shadow-lg shadow-indigo-500/10 cursor-pointer active:scale-95 transition-all"
+                                        >
+                                            Pagar via Pix Asaas
+                                        </Button>
+                                    )
+                                }
+                                return null
+                            })()}
 
-                        <Button
-                            onClick={() => submitPayment(false)}
-                            disabled={processing}
-                            className="bg-green-600 hover:bg-green-700 text-white font-bold"
-                        >
-                            {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Confirmar Baixa Manual
-                        </Button>
+                            <Button
+                                onClick={() => submitPayment(false)}
+                                disabled={processing}
+                                className="w-full sm:w-auto h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold order-2 sm:order-3 shadow-lg shadow-emerald-500/10 cursor-pointer active:scale-95 transition-all"
+                            >
+                                {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Baixa Manual (Sem Pix)
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
