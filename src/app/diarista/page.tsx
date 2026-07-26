@@ -72,6 +72,8 @@ export default function DiaristaDashboardPage() {
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState(false)
 
+    const [activeTab, setActiveTab] = useState<"PLANTAO" | "EXTRATO" | "SALDOS">("PLANTAO")
+
     // Modal de Antecipação
     const [antecipacaoModalOpen, setAntecipacaoModalOpen] = useState(false)
     const [selectedItemForAntecipacao, setSelectedItemForAntecipacao] = useState<ExtratoItem | null>(null)
@@ -235,12 +237,8 @@ export default function DiaristaDashboardPage() {
                     <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl h-10 w-10">
                         <LogOut className="h-5 w-5" />
                     </Button>
-                </div>
-
-                {/* VISÃO DOS SALDOS: NO DESKTOP (3 COLUNAS) E NO MOBILE (3 PILULAS COMPACTAS EM 1 LINHA) */}
-                
-                {/* 1. VISÃO DESKTOP (FULL CARDS EM GRID DE 3 COLUNAS) */}
-                <div className="hidden sm:grid sm:grid-cols-3 gap-3">
+                             {/* 1. SEÇÃO DE SALDOS (DESKTOP: GRID DE 3 COLUNAS / MOBILE: TAB SALDOS OU GRID COMPACTO) */}
+                <div className={`${activeTab === "SALDOS" ? "block" : "hidden sm:grid sm:grid-cols-3"} gap-3 space-y-3 sm:space-y-0`}>
                     {/* Total Sacado (Já Recebeu no Pix) */}
                     <Card className="bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/30 text-white rounded-2xl shadow-lg">
                         <CardContent className="p-4 flex items-center justify-between">
@@ -290,26 +288,8 @@ export default function DiaristaDashboardPage() {
                     </Card>
                 </div>
 
-                {/* 2. VISÃO MOBILE (3 MINI-PILULAS COMPACTAS EM 1 ÚNICA LINHA, SEM OCUPAR A TELA) */}
-                <div className="grid sm:hidden grid-cols-3 gap-1.5 bg-slate-900/80 p-2 rounded-2xl border border-slate-800 backdrop-blur-md">
-                    <div className="bg-slate-950/60 border border-emerald-500/20 p-2 rounded-xl text-center space-y-0.5 min-w-0">
-                        <span className="text-[8px] font-black uppercase tracking-wider text-emerald-400 block truncate">Sacado</span>
-                        <span className="text-xs font-black text-emerald-400 block truncate">{formatCurrency(data?.saldos.totalSacado || 0)}</span>
-                    </div>
-
-                    <div className="bg-slate-950/60 border border-amber-500/20 p-2 rounded-xl text-center space-y-0.5 min-w-0">
-                        <span className="text-[8px] font-black uppercase tracking-wider text-amber-400 block truncate">A Vencer</span>
-                        <span className="text-xs font-black text-amber-400 block truncate">{formatCurrency(data?.saldos.totalAVencer || 0)}</span>
-                    </div>
-
-                    <div className="bg-slate-950/60 border border-slate-700/40 p-2 rounded-xl text-center space-y-0.5 min-w-0">
-                        <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 block truncate">Em Análise</span>
-                        <span className="text-xs font-black text-slate-200 block truncate">{formatCurrency(data?.saldos.totalEmAnalise || 0)}</span>
-                    </div>
-                </div>
-
-                {/* Section: Plantão de Hoje com Check-in GPS */}
-                <div className="space-y-3">
+                {/* 2. SEÇÃO: PLANTÃO DE HOJE COM CHECK-IN/OUT GPS */}
+                <div className={`${activeTab === "PLANTAO" ? "block" : "hidden sm:block"} space-y-3`}>
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
                             <MapPin className="h-3.5 w-3.5 text-emerald-400" />
@@ -343,12 +323,12 @@ export default function DiaristaDashboardPage() {
 
                                 {data.plantaoHoje.ponto ? (
                                     <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl space-y-3">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                                             <span className="text-xs font-bold text-slate-400">Status do Ponto:</span>
                                             {data.plantaoHoje.ponto.status === "EM_ANDAMENTO" ? (
-                                                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30">Em Serviço (Check-in Feito)</Badge>
+                                                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[11px] whitespace-nowrap">Em Serviço (Check-in Feito)</Badge>
                                             ) : (
-                                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30">Concluído (Check-out Feito)</Badge>
+                                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[11px] whitespace-nowrap">Concluído (Check-out Feito)</Badge>
                                             )}
                                         </div>
 
@@ -363,12 +343,12 @@ export default function DiaristaDashboardPage() {
                                             <Button
                                                 onClick={() => handlePonto("CHECK_OUT")}
                                                 disabled={actionLoading}
-                                                className="w-full h-12 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm shadow-lg shadow-rose-600/20"
+                                                className="w-full h-12 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm shadow-lg shadow-rose-600/20 px-3 py-2 flex items-center justify-center overflow-hidden cursor-pointer active:scale-95 transition-all"
                                             >
                                                 {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <StopCircle className="h-5 w-5" />
-                                                        <span>Fazer Check-out (Encerrar Plantão)</span>
+                                                    <div className="flex items-center justify-center gap-2 min-w-0 w-full">
+                                                        <StopCircle className="h-5 w-5 shrink-0" />
+                                                        <span className="truncate">Encerrar Plantão (Check-out)</span>
                                                     </div>
                                                 )}
                                             </Button>
@@ -379,12 +359,12 @@ export default function DiaristaDashboardPage() {
                                         <Button
                                             onClick={() => handlePonto("CHECK_IN")}
                                             disabled={actionLoading}
-                                            className="w-full h-13 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/25"
+                                            className="w-full h-13 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/25 px-3 py-2 flex items-center justify-center overflow-hidden cursor-pointer active:scale-95 transition-all"
                                         >
                                             {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <PlayCircle className="h-5 w-5" />
-                                                    <span>Fazer Check-in Agora (GPS)</span>
+                                                <div className="flex items-center justify-center gap-2 min-w-0 w-full">
+                                                    <PlayCircle className="h-5 w-5 shrink-0" />
+                                                    <span className="truncate">Fazer Check-in Agora (GPS)</span>
                                                 </div>
                                             )}
                                         </Button>
@@ -400,8 +380,8 @@ export default function DiaristaDashboardPage() {
                     )}
                 </div>
 
-                {/* EXTRATO BANCÁRIO LINHA A LINHA */}
-                <div className="space-y-3">
+                {/* 3. SEÇÃO: EXTRATO BANCÁRIO LINHA A LINHA */}
+                <div className={`${activeTab === "EXTRATO" ? "block" : "hidden sm:block"} space-y-3`}>
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
                             <FileText className="h-3.5 w-3.5 text-emerald-400" />
@@ -472,7 +452,7 @@ export default function DiaristaDashboardPage() {
                                             <Button
                                                 size="sm"
                                                 onClick={() => openAntecipacaoModal(item)}
-                                                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-[11px] h-7 px-2.5 rounded-lg shadow-md"
+                                                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-[11px] h-7 px-2.5 rounded-lg shadow-md cursor-pointer active:scale-95 transition-all"
                                             >
                                                 <Zap className="h-3 w-3 mr-1 fill-slate-950" /> Antecipar Hoje
                                             </Button>
@@ -488,6 +468,57 @@ export default function DiaristaDashboardPage() {
                     )}
                 </div>
 
+            </div>
+
+            {/* MENU FIXO INFERIOR NATIVO DE NAVEGAÇÃO (NATIVE APP BOTTOM BAR) */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 border-t border-slate-800/90 backdrop-blur-2xl px-6 py-2 flex items-center justify-around shadow-[0_-10px_25px_rgba(0,0,0,0.5)]">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("PLANTAO")}
+                    className={`flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all cursor-pointer ${
+                        activeTab === "PLANTAO"
+                            ? "text-emerald-400 bg-emerald-500/10 font-black"
+                            : "text-slate-500 hover:text-slate-300 font-bold"
+                    }`}
+                >
+                    <MapPin className="h-5 w-5" />
+                    <span className="text-[10px] uppercase tracking-wider">Plantão</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("EXTRATO")}
+                    className={`flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all cursor-pointer ${
+                        activeTab === "EXTRATO"
+                            ? "text-emerald-400 bg-emerald-500/10 font-black"
+                            : "text-slate-500 hover:text-slate-300 font-bold"
+                    }`}
+                >
+                    <FileText className="h-5 w-5" />
+                    <span className="text-[10px] uppercase tracking-wider">Extrato</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("SALDOS")}
+                    className={`flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all cursor-pointer ${
+                        activeTab === "SALDOS"
+                            ? "text-emerald-400 bg-emerald-500/10 font-black"
+                            : "text-slate-500 hover:text-slate-300 font-bold"
+                    }`}
+                >
+                    <Wallet className="h-5 w-5" />
+                    <span className="text-[10px] uppercase tracking-wider">Saldos</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-slate-500 hover:text-rose-400 transition-all cursor-pointer font-bold"
+                >
+                    <LogOut className="h-5 w-5" />
+                    <span className="text-[10px] uppercase tracking-wider">Sair</span>
+                </button>
             </div>
 
             {/* Modal de Antecipação */}
