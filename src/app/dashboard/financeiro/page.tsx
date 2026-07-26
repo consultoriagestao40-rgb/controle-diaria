@@ -225,11 +225,14 @@ export default function FinanceDashboard() {
                     } catch {
                         if (errorText && errorText.length < 100) errorMsg = errorText
                     }
+                    window.alert(`Atenção: ${errorMsg}`)
                     toast.error(errorMsg)
                     failCount++
                 }
             } catch (err: any) {
-                toast.error(`Erro de conexão: ${err.message || "Verifique sua rede."}`)
+                const connError = `Erro de conexão: ${err.message || "Verifique sua rede."}`
+                window.alert(connError)
+                toast.error(connError)
                 failCount++
             }
         }
@@ -787,7 +790,10 @@ export default function FinanceDashboard() {
                     setBatchItemsToPay(null)
                 }
             }}>
-                <DialogContent className="sm:max-w-[480px] rounded-3xl p-6 bg-white gap-0">
+                <DialogContent 
+                    style={{ maxWidth: '480px', width: '92%', margin: '0 auto' }} 
+                    className="rounded-3xl p-6 bg-white !flex !flex-col gap-0 border border-slate-100 shadow-2xl"
+                >
                     <DialogHeader className="pb-4 border-b border-slate-100">
                         <DialogTitle className="flex items-center gap-2 font-black text-slate-900">
                             {mostrarSenhaInput ? (
