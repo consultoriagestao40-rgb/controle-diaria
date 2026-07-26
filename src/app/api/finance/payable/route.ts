@@ -213,6 +213,10 @@ export async function POST(req: Request) {
                 where: { id },
                 data: updateData
             }),
+            prisma.solicitacaoAntecipacao.updateMany({
+                where: { coberturaId: id, status: "APROVADO" },
+                data: { status: "PAGO", pagoEm: new Date() }
+            }),
             prisma.historicoWorkflow.create({
                 data: {
                     coberturaId: id,
