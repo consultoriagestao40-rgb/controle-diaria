@@ -18,7 +18,8 @@ import {
     Receipt,
     Wallet,
     Grid,
-    Landmark
+    Landmark,
+    Zap
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -114,7 +115,8 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
                     { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText },
                     { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText },
                     { label: "Aprovação", href: "/dashboard/aprovador", icon: CheckSquare },
-                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign }
+                    { label: "Pagamentos", href: "/dashboard/financeiro", icon: DollarSign },
+                    { label: "Antecipações", href: "/dashboard/antecipacoes", icon: Zap }
                 )
             } else if (role === "SUPERVISOR") {
                 coberturasItems.push(

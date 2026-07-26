@@ -17,6 +17,19 @@ enum Role {
   FINANCEIRO
   ENCARREGADO
   RH
+  DIARISTA
+}
+
+enum StatusPonto {
+  EM_ANDAMENTO
+  CONCLUIDO
+}
+
+enum StatusAntecipacao {
+  PENDENTE
+  APROVADO
+  REPROVADO
+  PAGO
 }
 
 enum StatusCobertura {
@@ -71,21 +84,29 @@ model User {
 
 // Catalogs
 model Posto {
-  id    String  @id @default(uuid())
-  nome  String
-  ativo Boolean @default(true)
+  id         String   @id @default(uuid())
+  nome       String
+  latitude   Float?
+  longitude  Float?
+  raioMetros Int?     @default(200)
+  ativo      Boolean  @default(true)
   coberturas Cobertura[]
   
   supervisores User[]
 }
 
 model Diarista {
-  id    String  @id @default(uuid())
-  nome  String
-  cpf   String? @unique // Added for uniqueness verification
-  chavePix String? 
-  ativo Boolean @default(true)
-  coberturas Cobertura[]
+  id           String      @id @default(uuid())
+  nome         String
+  cpf          String?     @unique // Added for uniqueness verification
+  email        String?
+  senha        String?
+  telefone     String?
+  chavePix     String? 
+  ativo        Boolean     @default(true)
+  coberturas   Cobertura[]
+  pontos       RegistroPonto[]
+  antecipacoes SolicitacaoAntecipacao[]
 }
 
 model Reserva {
@@ -195,6 +216,8 @@ model Cobertura {
 
   anexos        Anexo[]
   historico     HistoricoWorkflow[]
+  ponto         RegistroPonto?
+  antecipacoes  SolicitacaoAntecipacao[]
 }
 
 // Evidence & Attachments
@@ -361,3 +384,49 @@ model CentroCusto {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
+
+model RegistroPonto {
+  id           String      @id @default(uuid())
+  coberturaId  String      @unique
+  cobertura    Cobertura   @relation(fields: [coberturaId], references: [id], onDelete: Cascade)
+  diaristaId   String
+  diarista     Diarista    @relation(fields: [diaristaId], references: [id], onDelete: Cascade)
+  
+  checkInAt    DateTime    @default(now())
+  checkInLat   Float?
+  checkInLng   Float?
+  checkInFoto  String?
+  
+  checkOutAt   DateTime?
+  checkOutLat  Float?
+  checkOutLng  Float?
+  checkOutFoto String?
+  
+  status       StatusPonto @default(EM_ANDAMENTO)
+  observacao   String?
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model SolicitacaoAntecipacao {
+  id              String             @id @default(uuid())
+  coberturaId     String
+  cobertura       Cobertura          @relation(fields: [coberturaId], references: [id], onDelete: Cascade)
+  diaristaId      String
+  diarista        Diarista           @relation(fields: [diaristaId], references: [id], onDelete: Cascade)
+  
+  valorOriginal   Decimal
+  valorSolicitado Decimal
+  taxaServico     Decimal            @default(0)
+  status          StatusAntecipacao  @default(PENDENTE)
+  justificativa   String?
+  
+  solicitadoEm    DateTime           @default(now())
+  aprovadoEm      DateTime?
+  pagoEm          DateTime?
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
