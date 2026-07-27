@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
         } else if (statusFaturamento === 'FATURADAS') {
             where.faturado = true
         }
+        // Se statusFaturamento === 'TODAS', retorna todas as diárias (faturadas e não faturadas)
 
         if (startStr && endStr) {
             const startDate = new Date(startStr)

@@ -118,13 +118,16 @@ export default function FaturamentoClientesPage() {
     const [faturasEmitidas, setFaturasEmitidas] = useState<FaturaEmitida[]>([])
     const [loading, setLoading] = useState(true)
 
-    // Abas de visualização
-    const [statusTab, setStatusTab] = useState<"A_FATURAR" | "FATURADAS">("A_FATURAR")
+    // Abas de Navegação Principais
+    const [mainTab, setMainTab] = useState<"PLANTÕES" | "FATURAS">("PLANTÕES")
 
-    // Seleção manual de diárias para faturamento
+    // Sub-filtro de Status de Faturamento das Diárias (A FATURAR | FATURADAS | TODAS)
+    const [statusFaturamentoSubTab, setStatusFaturamentoSubTab] = useState<"A_FATURAR" | "FATURADAS" | "TODAS">("A_FATURAR")
+
+    // Seleção manual de diárias elegíveis para faturamento
     const [selectedIds, setSelectedIds] = useState<string[]>([])
 
-    // Filtros
+    // Filtros de Busca
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
     const [empresaId, setEmpresaId] = useState("ALL")
@@ -148,7 +151,7 @@ export default function FaturamentoClientesPage() {
         setLoading(true)
         try {
             const params = new URLSearchParams()
-            params.append("statusFaturamento", statusTab)
+            params.append("statusFaturamento", statusFaturamentoSubTab)
             if (startDate) params.append("start", startDate)
             if (endDate) params.append("end", endDate)
             if (empresaId !== "ALL") params.append("empresaId", empresaId)
@@ -189,7 +192,7 @@ export default function FaturamentoClientesPage() {
 
     useEffect(() => {
         fetchFaturamento()
-    }, [statusTab])
+    }, [statusFaturamentoSubTab, mainTab])
 
     const handleSalvarTaxaServico = async () => {
         setSavingTaxa(true)
@@ -215,20 +218,24 @@ export default function FaturamentoClientesPage() {
         }
     }
 
-    // Seleção de Diárias Apenas para Status PAGO
-    const diariasesPagas = items.filter(i => i.status === "PAGO")
+    // Filtra diárias que podem ser faturadas (Precisa ser PAGO ao diarista E faturado === false)
+    const diariasElegiveis = items.filter(i => i.status === "PAGO" && !i.faturado)
 
     const toggleSelectAll = () => {
-        if (selectedIds.length === diariasesPagas.length && diariasesPagas.length > 0) {
+        if (selectedIds.length === diariasElegiveis.length && diariasElegiveis.length > 0) {
             setSelectedIds([])
         } else {
-            setSelectedIds(diariasesPagas.map(i => i.id))
+            setSelectedIds(diariasElegiveis.map(i => i.id))
         }
     }
 
     const toggleSelectItem = (item: FaturamentoItem) => {
+        if (item.faturado) {
+            toast.error(`Esta diária já foi faturada no documento ${item.faturaCliente?.numeroFatura || 'anterior'} e não pode ser faturada novamente!`)
+            return
+        }
         if (item.status !== "PAGO") {
-            toast.error("Esta diária ainda não foi baixada como PAGA ao diarista pelo financeiro. Apenas diárias PAGAS podem ser faturadas ao cliente.")
+            toast.error("Esta diária ainda não foi baixada como PAGA ao diarista pelo financeiro. Apenas diárias com repasse PAGO podem ser faturadas ao cliente.")
             return
         }
         setSelectedIds(prev =>
@@ -255,6 +262,13 @@ export default function FaturamentoClientesPage() {
         }
 
         const selectedItemsList = items.filter(i => selectedIds.includes(i.id))
+
+        // Dupla validação de segurança
+        const temJaFaturado = selectedItemsList.some(i => i.faturado)
+        if (temJaFaturado) {
+            toast.error("Erro: Uma ou mais diárias selecionadas já foram faturadas anteriormente.")
+            return
+        }
 
         const temNaoPago = selectedItemsList.some(i => i.status !== "PAGO")
         if (temNaoPago) {
@@ -400,7 +414,7 @@ export default function FaturamentoClientesPage() {
         setFaturaModalOpen(true)
     }
 
-    // EXPORTADOR / IMPRESSOR DE FATURA DE ALTA DEFINIÇÃO EM UMA JANELA INDEPENDENTE (SEM PÁGINA EM BRANCO)
+    // IMPRESSOR / EXPORTADOR DE PDF EM JANELA INDEPENDENTE A4 PAISAGEM MULTI-PÁGINAS
     const handleExecutarImpressaoPDF = (detalheTarget?: FaturaDetalheState | null) => {
         const detalhe = detalheTarget || faturaDetalhe
         if (!detalhe) return
@@ -635,7 +649,8 @@ export default function FaturamentoClientesPage() {
             item.empresaNome.toLowerCase().includes(s) ||
             item.postoNome.toLowerCase().includes(s) ||
             item.diaristaNome.toLowerCase().includes(s) ||
-            item.reservaNome.toLowerCase().includes(s)
+            item.reservaNome.toLowerCase().includes(s) ||
+            (item.faturaCliente?.numeroFatura && item.faturaCliente.numeroFatura.toLowerCase().includes(s))
         )
     })
 
@@ -667,7 +682,7 @@ export default function FaturamentoClientesPage() {
                             Fechamento & Faturamento de Clientes
                         </h1>
                         <p className="text-sm text-slate-500 font-medium">
-                            Apenas diárias com repasse <strong>PAGO ao diarista</strong> pelo financeiro podem ser selecionadas e faturadas ao cliente.
+                            Gestão de plantões, repasses ao colaborador e emissão de faturas de fechamento.
                         </p>
                     </div>
                 </div>
@@ -697,7 +712,7 @@ export default function FaturamentoClientesPage() {
                         </div>
                         <h3 className="text-lg font-black tracking-tight">Configurar Taxa de Serviço do Cliente (%)</h3>
                         <p className="text-xs text-slate-400 max-w-xl">
-                            Esta taxa de acréscimo é aplicada sobre o valor das diárias para compor a fatura final do cliente. As diárias não baixadas como pagas permanecerão com trava financeira.
+                            Esta taxa de acréscimo é aplicada sobre o valor das diárias para compor a fatura final do cliente. Diárias não pagas ao colaborador ou já faturadas possuem travas de segurança.
                         </p>
                     </div>
 
@@ -792,35 +807,35 @@ export default function FaturamentoClientesPage() {
                 </div>
             )}
 
-            {/* SELETOR DE ABAS: ABA 1 (A FATURAR) vs ABA 2 (FATURAS FECHADAS) */}
+            {/* SELETOR DE ABAS PRINCIPAIS: ABA 1 (GESTÃO DE PLANTÕES) vs ABA 2 (FATURAS EMITIDAS) */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl">
                     <button
-                        onClick={() => setStatusTab("A_FATURAR")}
+                        onClick={() => setMainTab("PLANTÕES")}
                         className={`px-5 py-2.5 rounded-xl font-black text-xs transition-all cursor-pointer ${
-                            statusTab === "A_FATURAR"
-                                ? "bg-white text-slate-900 shadow-md"
+                            mainTab === "PLANTÕES"
+                                ? "bg-slate-900 text-white shadow-md"
                                 : "text-slate-500 hover:text-slate-900"
                         }`}
                     >
-                        ⏳ Aba 1: Diárias a Faturar (Pendentes)
+                        📋 Aba 1: Tabela de Diárias & Faturamento
                     </button>
                     <button
-                        onClick={() => setStatusTab("FATURADAS")}
+                        onClick={() => setMainTab("FATURAS")}
                         className={`px-5 py-2.5 rounded-xl font-black text-xs transition-all cursor-pointer ${
-                            statusTab === "FATURADAS"
-                                ? "bg-white text-slate-900 shadow-md"
+                            mainTab === "FATURAS"
+                                ? "bg-slate-900 text-white shadow-md"
                                 : "text-slate-500 hover:text-slate-900"
                         }`}
                     >
-                        📄 Aba 2: Tabela de Faturas Emitidas (Fechadas)
+                        📄 Aba 2: Histórico de Faturas Emitidas ({faturasEmitidas.length})
                     </button>
                 </div>
 
-                {statusTab === "A_FATURAR" && selectedIds.length > 0 && (
+                {mainTab === "PLANTÕES" && selectedIds.length > 0 && (
                     <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-2xl animate-fade-in">
                         <div className="text-xs">
-                            <span className="font-black text-emerald-800">{selectedIds.length} diárias selecionadas</span>
+                            <span className="font-black text-emerald-800">{selectedIds.length} diárias elegíveis selecionadas</span>
                             <span className="text-slate-500 ml-2 font-bold">Total Fatura: {formatCurrency(totalSelecionadoFatura)}</span>
                         </div>
                         <Button
@@ -894,7 +909,7 @@ export default function FaturamentoClientesPage() {
                         <div className="relative flex-1">
                             <Search className="h-4 w-4 absolute left-3 top-3 text-slate-400" />
                             <Input
-                                placeholder="Buscar por número da fatura, cliente ou posto..."
+                                placeholder="Buscar por número da fatura, cliente, posto ou colaborador..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="pl-9 rounded-xl border-slate-200"
@@ -907,32 +922,52 @@ export default function FaturamentoClientesPage() {
                 </CardContent>
             </Card>
 
-            {/* ABA 1: DIÁRIAS A FATURAR */}
-            {statusTab === "A_FATURAR" && (
+            {/* ABA 1: TABELA DE DIÁRIAS (COM AMBOS OS STATUS: PGTO DIARISTA & STATUS FATURAMENTO) */}
+            {mainTab === "PLANTÕES" && (
                 <Card className="rounded-3xl border-slate-200 shadow-xl overflow-hidden bg-white">
-                    <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                         <div>
                             <h3 className="font-black text-lg text-slate-900 tracking-tight flex items-center gap-2">
-                                ⏳ Diárias Disponíveis para Faturamento
+                                📋 Diárias & Plantões dos Clientes
                             </h3>
                             <p className="text-xs text-slate-500 font-medium">
-                                Regra de Segurança: Apenas diárias com repasse <strong>PAGO ao diarista</strong> pelo financeiro podem ser selecionadas e faturadas.
+                                Acompanhe o <strong>Pgto ao Colaborador</strong> e o <strong>Status da Fatura do Cliente</strong>. Diárias não pagas ao colaborador ou já faturadas não podem ser selecionadas.
                             </p>
                         </div>
 
-                        {filteredItems.length > 0 && (
-                            <Button
-                                onClick={handleGerarFaturaCliente}
-                                disabled={selectedIds.length === 0 || gerandoFatura}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs h-10 px-4 shadow-md cursor-pointer"
+                        {/* SUB-FILTRO DE STATUS DA FATURA DO CLIENTE */}
+                        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                            <button
+                                onClick={() => setStatusFaturamentoSubTab("A_FATURAR")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                    statusFaturamentoSubTab === "A_FATURAR"
+                                        ? "bg-white text-slate-900 shadow-xs"
+                                        : "text-slate-500 hover:text-slate-900"
+                                }`}
                             >
-                                {gerandoFatura ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-                                    <>
-                                        <Receipt className="h-4 w-4 mr-1.5" /> Gerar Fatura do Cliente ({selectedIds.length})
-                                    </>
-                                )}
-                            </Button>
-                        )}
+                                ⏳ Pendentes (A Faturar)
+                            </button>
+                            <button
+                                onClick={() => setStatusFaturamentoSubTab("FATURADAS")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                    statusFaturamentoSubTab === "FATURADAS"
+                                        ? "bg-white text-slate-900 shadow-xs"
+                                        : "text-slate-500 hover:text-slate-900"
+                                }`}
+                            >
+                                ✅ Faturadas
+                            </button>
+                            <button
+                                onClick={() => setStatusFaturamentoSubTab("TODAS")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                    statusFaturamentoSubTab === "TODAS"
+                                        ? "bg-white text-slate-900 shadow-xs"
+                                        : "text-slate-500 hover:text-slate-900"
+                                }`}
+                            >
+                                🌐 Todas as Diárias
+                            </button>
+                        </div>
                     </div>
 
                     <CardContent className="p-0">
@@ -943,7 +978,7 @@ export default function FaturamentoClientesPage() {
                             </div>
                         ) : filteredItems.length === 0 ? (
                             <div className="p-12 text-center text-slate-400 text-sm font-medium">
-                                Nenhuma diária pendente de faturamento encontrada para estes filtros.
+                                Nenhuma diária encontrada para os filtros selecionados.
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
@@ -954,30 +989,34 @@ export default function FaturamentoClientesPage() {
                                                 <button
                                                     onClick={toggleSelectAll}
                                                     className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                                                    title="Selecionar todas as diárias pagas ao diarista"
+                                                    title="Selecionar todas as diárias elegíveis (Pagas ao colaborador e Não Faturadas)"
                                                 >
-                                                    {selectedIds.length === diariasesPagas.length && diariasesPagas.length > 0 ? (
+                                                    {selectedIds.length === diariasElegiveis.length && diariasElegiveis.length > 0 ? (
                                                         <CheckSquare className="h-5 w-5 text-emerald-600" />
                                                     ) : (
                                                         <Square className="h-5 w-5" />
                                                     )}
                                                 </button>
                                             </th>
-                                            <th className="py-3.5 px-6">Data</th>
-                                            <th className="py-3.5 px-6">Cliente / Empresa</th>
-                                            <th className="py-3.5 px-6">Posto de Trabalho</th>
-                                            <th className="py-3.5 px-6">Quem Faltou</th>
-                                            <th className="py-3.5 px-6">Quem Cobriu</th>
-                                            <th className="py-3.5 px-6 text-center">Pgto Diarista</th>
-                                            <th className="py-3.5 px-6 text-right">Valor Diária</th>
-                                            <th className="py-3.5 px-6 text-right">Taxa Serviço ({taxaServicoInput}%)</th>
-                                            <th className="py-3.5 px-6 text-right">Valor Fatura</th>
+                                            <th className="py-3.5 px-5">Data</th>
+                                            <th className="py-3.5 px-5">Cliente / Empresa</th>
+                                            <th className="py-3.5 px-5">Posto de Trabalho</th>
+                                            <th className="py-3.5 px-5">Quem Faltou</th>
+                                            <th className="py-3.5 px-5">Quem Cobriu</th>
+                                            <th className="py-3.5 px-5 text-center">Pgto Colaborador</th>
+                                            <th className="py-3.5 px-5 text-center">Status Fatura</th>
+                                            <th className="py-3.5 px-5 text-right">Valor Diária</th>
+                                            <th className="py-3.5 px-5 text-right">Taxa Serviço ({taxaServicoInput}%)</th>
+                                            <th className="py-3.5 px-5 text-right">Valor Fatura</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {filteredItems.map(item => {
                                             const isSelected = selectedIds.includes(item.id)
-                                            const isPagoDiarista = item.status === "PAGO"
+                                            const isPagoColaborador = item.status === "PAGO"
+                                            const isJaFaturado = item.faturado
+
+                                            const podeSelecionar = isPagoColaborador && !isJaFaturado
 
                                             return (
                                                 <tr
@@ -985,13 +1024,15 @@ export default function FaturamentoClientesPage() {
                                                     className={`transition-colors ${
                                                         isSelected
                                                             ? "bg-emerald-50/50"
-                                                            : !isPagoDiarista
+                                                            : isJaFaturado
+                                                            ? "bg-indigo-50/20"
+                                                            : !isPagoColaborador
                                                             ? "bg-slate-50/40 opacity-75"
                                                             : "hover:bg-slate-50/70"
                                                     }`}
                                                 >
                                                     <td className="py-4 px-4 text-center">
-                                                        {isPagoDiarista ? (
+                                                        {podeSelecionar ? (
                                                             <button
                                                                 onClick={() => toggleSelectItem(item)}
                                                                 className="text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -1003,30 +1044,36 @@ export default function FaturamentoClientesPage() {
                                                                 )}
                                                             </button>
                                                         ) : (
-                                                            <div title="Trava Financeira: Diária precisa ser baixada como PAGA ao diarista antes de ser faturada ao cliente.">
-                                                                <Lock className="h-4 w-4 text-slate-300 mx-auto" />
+                                                            <div title={
+                                                                isJaFaturado
+                                                                    ? `Esta diária já foi FATURADA no documento ${item.faturaCliente?.numeroFatura || 'anterior'} e NÃO pode ser faturada novamente.`
+                                                                    : `Trava Financeira: Repasse precisa ser baixado como PAGO ao colaborador antes de ser faturado ao cliente.`
+                                                            }>
+                                                                <Lock className="h-4 w-4 text-slate-300 mx-auto cursor-not-allowed" />
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="py-4 px-6 font-medium text-slate-700">
+                                                    <td className="py-4 px-5 font-medium text-slate-700 whitespace-nowrap">
                                                         {new Date(item.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                                                     </td>
-                                                    <td className="py-4 px-6 font-bold text-slate-900">
+                                                    <td className="py-4 px-5 font-bold text-slate-900">
                                                         {item.empresaNome}
                                                     </td>
-                                                    <td className="py-4 px-6 font-semibold text-slate-700">
+                                                    <td className="py-4 px-5 font-semibold text-slate-700">
                                                         {item.postoNome}
                                                     </td>
-                                                    <td className="py-4 px-6 font-semibold text-purple-900">
+                                                    <td className="py-4 px-5 font-semibold text-purple-900">
                                                         {item.reservaNome}
                                                     </td>
-                                                    <td className="py-4 px-6 font-medium text-slate-700">
+                                                    <td className="py-4 px-5 font-medium text-slate-700">
                                                         {item.diaristaNome}
                                                     </td>
-                                                    <td className="py-4 px-6 text-center">
-                                                        {isPagoDiarista ? (
+
+                                                    {/* COLUNA 1: STATUS PGTO COLABORADOR */}
+                                                    <td className="py-4 px-5 text-center whitespace-nowrap">
+                                                        {isPagoColaborador ? (
                                                             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-black">
-                                                                ✅ Pago Diarista
+                                                                ✅ Pago Colaborador
                                                             </Badge>
                                                         ) : (
                                                             <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold" title="Aguardando baixa do pagamento no financeiro">
@@ -1034,13 +1081,27 @@ export default function FaturamentoClientesPage() {
                                                             </Badge>
                                                         )}
                                                     </td>
-                                                    <td className="py-4 px-6 text-right font-semibold text-slate-600">
+
+                                                    {/* COLUNA 2: STATUS FATURAMENTO CLIENTE */}
+                                                    <td className="py-4 px-5 text-center whitespace-nowrap">
+                                                        {isJaFaturado ? (
+                                                            <Badge className="bg-indigo-100 text-indigo-900 border-indigo-200 text-[10px] font-black font-mono">
+                                                                ✅ FATURADO ({item.faturaCliente?.numeroFatura || 'SIM'})
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] font-bold">
+                                                                ⏳ A Faturar
+                                                            </Badge>
+                                                        )}
+                                                    </td>
+
+                                                    <td className="py-4 px-5 text-right font-semibold text-slate-600 whitespace-nowrap">
                                                         {formatCurrency(item.valorDiaria)}
                                                     </td>
-                                                    <td className="py-4 px-6 text-right font-semibold text-emerald-600">
+                                                    <td className="py-4 px-5 text-right font-semibold text-emerald-600 whitespace-nowrap">
                                                         +{formatCurrency(item.valorTaxaServico)}
                                                     </td>
-                                                    <td className="py-4 px-6 text-right font-black text-slate-900 text-base">
+                                                    <td className="py-4 px-5 text-right font-black text-slate-900 text-base whitespace-nowrap">
                                                         {formatCurrency(item.valorFaturaCliente)}
                                                     </td>
                                                 </tr>
@@ -1054,15 +1115,15 @@ export default function FaturamentoClientesPage() {
                 </Card>
             )}
 
-            {/* ABA 2: TABELA DE FATURAS EMITIDAS (FATURAS FECHADAS) */}
-            {statusTab === "FATURADAS" && (
+            {/* ABA 2: HISTÓRICO DE FATURAS EMITIDAS (FATURAS FECHADAS) */}
+            {mainTab === "FATURAS" && (
                 <Card className="rounded-3xl border-slate-200 shadow-xl overflow-hidden bg-white">
                     <div className="p-6 border-b border-slate-100">
                         <h3 className="font-black text-lg text-slate-900 tracking-tight flex items-center gap-2">
-                            📄 Tabela de Faturas Emitidas (Faturas Fechadas)
+                            📄 Histórico de Faturas Emitidas (Faturas Fechadas)
                         </h3>
                         <p className="text-xs text-slate-500 font-medium">
-                            Histórico oficial de faturas geradas. Clique em Ver Extrato para abrir o documento oficial e exportar o PDF de alta qualidade.
+                            Faturas oficiais geradas para os clientes. Clique em <strong>Ver Extrato (PDF)</strong> para abrir e imprimir o documento A4 Paisagem.
                         </p>
                     </div>
 
