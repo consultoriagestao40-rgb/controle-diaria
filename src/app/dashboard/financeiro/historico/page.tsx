@@ -197,18 +197,25 @@ export default function FinanceHistoryPage() {
                                                 {formatCurrency(item.valor)}
                                             </TableCell>
                                             <TableCell>
-                                                {temComprovante ? (
-                                                    <a
-                                                        href={item.anexos[0].url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 transition-all duration-200 active:scale-95 shadow-xs"
-                                                        title="Baixar Comprovante Pix Oficial Asaas (PDF)"
-                                                    >
-                                                        <Download className="h-3.5 w-3.5 text-indigo-600" />
-                                                        <span>Baixar Comprovante</span>
-                                                    </a>
-                                                ) : (
+                                                {temComprovante ? (() => {
+                                                    const rawUrl = item.anexos[0].url
+                                                    const receiptHref = rawUrl.includes("asaas.com/comprovantes/")
+                                                        ? `/api/asaas/comprovante/${rawUrl.split("asaas.com/comprovantes/")[1]}`
+                                                        : rawUrl
+
+                                                    return (
+                                                        <a
+                                                            href={receiptHref}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 transition-all duration-200 active:scale-95 shadow-xs"
+                                                            title="Baixar Comprovante Pix Oficial Asaas (PDF)"
+                                                        >
+                                                            <Download className="h-3.5 w-3.5 text-indigo-600" />
+                                                            <span>Baixar Comprovante</span>
+                                                        </a>
+                                                    )
+                                                })() : (
                                                     <span className="text-slate-400 text-xs italic font-medium">Processado</span>
                                                 )}
                                             </TableCell>
