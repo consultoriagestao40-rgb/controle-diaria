@@ -6,23 +6,17 @@ import {
     Wallet, 
     FileText, 
     DollarSign, 
-    Plus, 
     CalendarPlus, 
     Calendar,
     BarChart, 
     Loader2, 
-    ArrowUpRight, 
-    ArrowDownLeft,
-    ChevronRight,
-    CircleHelp,
     AlertCircle,
-    Trash2,
-    FileUp,
-    CheckCircle,
-    ArrowRight,
     Camera,
-    User as UserIcon,
-    Settings
+    Settings,
+    Zap,
+    Users,
+    Activity,
+    TrendingUp
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -42,6 +36,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ReembolsoModal } from "./reembolso-modal"
 import { AdiantamentoModal } from "./adiantamento-modal"
 import { ProfileDialog } from "./profile-dialog"
+import { cn, formatCurrency } from "@/lib/utils"
 
 interface DashboardPortalProps {
     user: { name?: string | null, role?: string, avatarUrl?: string | null, cargo?: string | null }
@@ -51,8 +46,10 @@ interface DashboardPortalProps {
 }
 
 export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCoberturas = true }: DashboardPortalProps) {
+    const [activeTab, setActiveTab] = useState<"coberturas" | "despesas">("coberturas")
     const [metrics, setMetrics] = useState<any>(null)
     const [chartData, setChartData] = useState<any[]>([])
+    const [coberturasStats, setCoberturasStats] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [isReembolsoOpen, setIsReembolsoOpen] = useState(false)
     const [isAdiantamentoOpen, setIsAdiantamentoOpen] = useState(false)
@@ -63,7 +60,6 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
     const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null)
     const [isProfileOpen, setIsProfileOpen] = useState(false)
 
-    // Sync state when prop changes (e.g. after router.refresh())
     useEffect(() => {
         setAvatarUrl(user.avatarUrl || null)
     }, [user.avatarUrl])
@@ -76,8 +72,10 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
         const action = searchParams.get("action")
         if (action === "reembolso") {
             setIsReembolsoOpen(true)
+            setActiveTab("despesas")
         } else if (action === "adiantamento") {
             setIsAdiantamentoOpen(true)
+            setActiveTab("despesas")
         }
     }, [searchParams])
 
@@ -89,16 +87,12 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
             const data = await res.json()
             setMetrics(data.stats)
             setChartData(data.chartData)
+            setCoberturasStats(data.coberturasStats)
         } catch {
             toast.error("Erro ao carregar dados do dashboard")
         } finally {
             setLoading(false)
         }
-    }
-
-    const handleSuccess = () => {
-        fetchMetrics()
-        router.refresh()
     }
 
     const handleCloseReembolso = () => {
@@ -130,7 +124,7 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto pb-16">
-            {/* Header Banner - Exibido apenas no Mobile (No Desktop a navegação e perfil ficam no TopNav) */}
+            {/* Header Banner - Exibido apenas no Mobile */}
             <div className="relative -mt-4 -mx-4 rounded-none bg-slate-900 text-white p-6 sm:p-8 overflow-hidden shadow-2xl border-b border-white/5 md:hidden">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -z-10" />
                 <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl -z-10" />
@@ -173,7 +167,6 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
             <div className="space-y-3 md:hidden">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Ações Rápidas</h3>
                 <div className="flex gap-4 sm:gap-6 overflow-x-auto py-2 scrollbar-hide shrink-0 snap-x">
-                    
                     {acessoDespesas && (
                         <>
                             <button
@@ -222,169 +215,341 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
                             </Link>
                         </>
                     )}
+                </div>
+            </div>
 
-                    {user.role === 'ADMIN' && (
-                        <Link href="/dashboard/despesas/admin/centros-custo" className="flex flex-col items-center gap-2 group snap-center shrink-0 text-center">
-                            <div className="h-14 w-14 rounded-full bg-slate-100 hover:bg-indigo-50 border border-slate-200/50 hover:border-indigo-200 flex items-center justify-center text-slate-700 hover:text-indigo-600 shadow-md group-active:scale-95 transition-all duration-300">
-                                <BarChart className="h-5 w-5" />
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-500 group-hover:text-slate-900 transition-colors uppercase tracking-wider w-16 text-center leading-tight">Centros Custo</span>
-                        </Link>
+            {/* SELETOR DE ABAS PRINCIPAIS DO DASHBOARD */}
+            <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("coberturas")}
+                    className={cn(
+                        "flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-black transition-all cursor-pointer shadow-xs border",
+                        activeTab === "coberturas"
+                            ? "bg-slate-900 text-white border-slate-900 shadow-md scale-[1.02]"
+                            : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-slate-200"
                     )}
+                >
+                    <Calendar className={cn("h-4 w-4", activeTab === "coberturas" ? "text-cyan-400" : "text-slate-400")} />
+                    <span>Plantões & Coberturas</span>
+                    {coberturasStats?.totalQtd > 0 && (
+                        <span className={cn(
+                            "px-2 py-0.5 rounded-full text-[11px] font-extrabold",
+                            activeTab === "coberturas" ? "bg-cyan-500/20 text-cyan-300" : "bg-slate-100 text-slate-600"
+                        )}>
+                            {coberturasStats.totalQtd}
+                        </span>
+                    )}
+                </button>
+
+                {acessoDespesas && (
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("despesas")}
+                        className={cn(
+                            "flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-black transition-all cursor-pointer shadow-xs border",
+                            activeTab === "despesas"
+                                ? "bg-slate-900 text-white border-slate-900 shadow-md scale-[1.02]"
+                                : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-slate-200"
+                        )}
+                    >
+                        <Receipt className={cn("h-4 w-4", activeTab === "despesas" ? "text-indigo-400" : "text-slate-400")} />
+                        <span>Reembolsos & Despesas</span>
+                    </button>
+                )}
+            </div>
+
+            {/* CONTEÚDO DA ABA 1: PLANTÕES & COBERTURAS (PRIMEIRA ABA / DEFAULT) */}
+            {activeTab === "coberturas" && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                    {/* Header da Seção */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Resumo de Plantões & Coberturas</h2>
+                            <p className="text-sm text-slate-600 font-medium">Acumulado de valores por tipo de diária e visão mensal do ano vigente ({coberturasStats?.anoVigente || 2026}).</p>
+                        </div>
+                        <Badge variant="outline" className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border-slate-200 shadow-xs gap-1.5">
+                            <TrendingUp className="h-3.5 w-3.5 text-cyan-600" />
+                            Total Geral: {formatCurrency(coberturasStats?.totalValor || 0)}
+                        </Badge>
+                    </div>
+
+                    {/* Cards Acumulados de Valores por Tipo de Diárias (Motivos) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {coberturasStats?.statsPorMotivo && coberturasStats.statsPorMotivo.length > 0 ? (
+                            coberturasStats.statsPorMotivo.map((motivoItem: any, idx: number) => {
+                                const icons = [AlertCircle, Zap, Calendar, Users, Activity, FileText]
+                                const IconComp = icons[idx % icons.length]
+                                const isFalta = motivoItem.descricao.toLowerCase().includes("falta")
+                                const isAtestado = motivoItem.descricao.toLowerCase().includes("atestado")
+                                const isExtra = motivoItem.descricao.toLowerCase().includes("extra")
+
+                                return (
+                                    <Card key={motivoItem.descricao} className="rounded-3xl border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-white">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 truncate max-w-[140px]">
+                                                    {motivoItem.descricao}
+                                                </span>
+                                                <div className={cn(
+                                                    "h-9 w-9 rounded-2xl flex items-center justify-center shrink-0",
+                                                    isFalta ? "bg-amber-50 text-amber-600" :
+                                                    isAtestado ? "bg-cyan-50 text-cyan-600" :
+                                                    isExtra ? "bg-emerald-50 text-emerald-600" :
+                                                    "bg-indigo-50 text-indigo-600"
+                                                )}>
+                                                    <IconComp className="h-4 w-4" />
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-4 space-y-1">
+                                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                                                    {formatCurrency(motivoItem.totalValor)}
+                                                </h3>
+                                                <p className="text-xs font-bold text-slate-500">
+                                                    {motivoItem.count} {motivoItem.count === 1 ? 'plantão registrado' : 'plantões registrados'}
+                                                </p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )
+                            })
+                        ) : (
+                            <div className="col-span-full p-8 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-xs">
+                                <p className="text-sm font-bold text-slate-600">Nenhum plantão ou cobertura registrado neste período.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Gráfico de Linha Mês a Mês (Visão do Ano Vigente Jan a Dez) */}
+                    <Card className="rounded-3xl border-slate-100 shadow-sm bg-white overflow-hidden">
+                        <CardHeader className="p-6 pb-2">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-lg font-black text-slate-900 tracking-tight">
+                                        Evolução Mensal de Plantões ({coberturasStats?.anoVigente || 2026})
+                                    </CardTitle>
+                                    <CardDescription className="text-xs font-semibold text-slate-400 mt-1">
+                                        Valores totais acumulados mês a mês com a visão completa do ano vigente.
+                                    </CardDescription>
+                                </div>
+                                <Badge className="bg-cyan-50 text-cyan-700 border-cyan-200 font-extrabold text-xs px-3 py-1 rounded-xl">
+                                    Ano Vigente
+                                </Badge>
+                            </div>
+                        </CardHeader>
+
+                        <CardContent className="p-6 pt-4">
+                            <div className="h-72 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={coberturasStats?.chartDataAno || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorCoberturas" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#0891b2" stopOpacity={0.35}/>
+                                                <stop offset="95%" stopColor="#0891b2" stopOpacity={0.0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis 
+                                            dataKey="mes" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} 
+                                        />
+                                        <YAxis 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
+                                            tickFormatter={(val) => `R$ ${val}`}
+                                        />
+                                        <Tooltip 
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    const data = payload[0].payload
+                                                    return (
+                                                        <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-xl border border-white/10 text-xs space-y-1">
+                                                            <p className="font-extrabold text-cyan-400">{data.mes}</p>
+                                                            <p className="font-black text-sm">{formatCurrency(data.valor)}</p>
+                                                            <p className="text-[11px] text-slate-400 font-semibold">{data.qtd} plantões realizados</p>
+                                                        </div>
+                                                    )
+                                                }
+                                                return null
+                                            }}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="valor" 
+                                            stroke="#0891b2" 
+                                            strokeWidth={3}
+                                            fillOpacity={1} 
+                                            fill="url(#colorCoberturas)" 
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
-            </div>
+            )}
 
-            {/* Números e Métricas Finanças (Estilo Nubank - Cards Minimalistas com borda leve e números grandes) */}
-            <div className="space-y-3">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Resumo de Despesas</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {/* Card 1: Minhas Despesas (Geral) */}
-                    <Card className="border border-slate-200/60 shadow-lg bg-white rounded-2xl hover:scale-[1.01] transition-transform duration-300">
-                        <CardContent className="p-6 space-y-4 flex flex-col justify-between h-full">
-                            <div className="flex items-start justify-between">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Minhas Despesas</span>
-                                    <h3 className="text-2xl font-black text-slate-900">R$ {metrics?.totalMinhasDespesas.toFixed(2)}</h3>
-                                </div>
-                                <div className="h-9 w-9 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center text-indigo-500 shrink-0">
-                                    <Receipt className="h-4.5 w-4.5" />
-                                </div>
-                            </div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Acumulado total</span>
-                        </CardContent>
-                    </Card>
+            {/* CONTEÚDO DA ABA 2: REEMBOLSOS & DESPESAS (SEGUNDA ABA) */}
+            {activeTab === "despesas" && acessoDespesas && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                    <div className="space-y-3">
+                        <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Resumo de Despesas</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <Card className="rounded-3xl border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-white">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Minhas Despesas</span>
+                                        <div className="h-9 w-9 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                            <Wallet className="h-4 w-4" />
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 space-y-1">
+                                        <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                                            {formatCurrency(metrics?.totalMinhasDespesas || 0)}
+                                        </h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Acumulado Total</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                    {/* Card 2: Despesa Mensal */}
-                    <Card className="border border-slate-200/60 shadow-lg bg-white rounded-2xl hover:scale-[1.01] transition-transform duration-300">
-                        <CardContent className="p-6 space-y-4 flex flex-col justify-between h-full">
-                            <div className="flex items-start justify-between">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Despesa Mensal</span>
-                                    <h3 className="text-2xl font-black text-slate-900">R$ {metrics?.totalDespesaMensal.toFixed(2)}</h3>
-                                </div>
-                                <div className="h-9 w-9 bg-cyan-50 border border-cyan-100 rounded-xl flex items-center justify-center text-cyan-500 shrink-0">
-                                    <Wallet className="h-4.5 w-4.5" />
-                                </div>
-                            </div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Gasto este mês</span>
-                        </CardContent>
-                    </Card>
+                            <Card className="rounded-3xl border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-white">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Despesa Mensal</span>
+                                        <div className="h-9 w-9 rounded-2xl bg-cyan-50 flex items-center justify-center text-cyan-600">
+                                            <Receipt className="h-4 w-4" />
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 space-y-1">
+                                        <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                                            {formatCurrency(metrics?.totalDespesaMensal || 0)}
+                                        </h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gasto Este Mês</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                    {/* Card 3: Pendente de Prestação */}
-                    <Card className="border border-slate-200/60 shadow-lg bg-white rounded-2xl hover:scale-[1.01] transition-transform duration-300">
-                        <CardContent className="p-6 space-y-4 flex flex-col justify-between h-full">
-                            <div className="flex items-start justify-between">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">A Comprovar</span>
-                                    <h3 className="text-2xl font-black text-amber-600">R$ {metrics?.totalPendentePrestacao.toFixed(2)}</h3>
-                                </div>
-                                <div className="h-9 w-9 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center text-amber-500 shrink-0">
-                                    <FileText className="h-4.5 w-4.5" />
-                                </div>
-                            </div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Aguardando notas fiscais</span>
-                        </CardContent>
-                    </Card>
+                            <Card className="rounded-3xl border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-white">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">A Comprovar</span>
+                                        <div className="h-9 w-9 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
+                                            <FileText className="h-4 w-4" />
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 space-y-1">
+                                        <h3 className="text-2xl font-black text-amber-600 tracking-tight">
+                                            {formatCurrency(metrics?.totalPendentePrestacao || 0)}
+                                        </h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aguardando Notas Fiscais</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                    {/* Card 4: A Devolver (Desconto) */}
-                    <Card className="border border-slate-200/60 shadow-lg bg-white rounded-2xl hover:scale-[1.01] transition-transform duration-300">
-                        <CardContent className="p-6 space-y-4 flex flex-col justify-between h-full">
-                            <div className="flex items-start justify-between">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">A Devolver</span>
-                                    <h3 className="text-2xl font-black text-rose-600">R$ {metrics?.totalPendenteDesconto.toFixed(2)}</h3>
-                                </div>
-                                <div className="h-9 w-9 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-center text-rose-500 shrink-0">
-                                    <DollarSign className="h-4.5 w-4.5" />
-                                </div>
+                            <Card className="rounded-3xl border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-white">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">A Devolver</span>
+                                        <div className="h-9 w-9 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600">
+                                            <DollarSign className="h-4 w-4" />
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 space-y-1">
+                                        <h3 className="text-2xl font-black text-rose-600 tracking-tight">
+                                            {formatCurrency(metrics?.totalPendenteDesconto || 0)}
+                                        </h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Desconto em Folha / Pendência</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* Gráfico de Evolução de Despesas (Últimos 6 Meses) */}
+                    <Card className="rounded-3xl border-slate-100 shadow-sm bg-white overflow-hidden">
+                        <CardHeader className="p-6 pb-2">
+                            <CardTitle className="text-lg font-black text-slate-900 tracking-tight">
+                                Evolução dos Últimos 6 Meses (Despesas)
+                            </CardTitle>
+                            <CardDescription className="text-xs font-semibold text-slate-400">
+                                Comparativo mensal acumulado de solicitações de despesas realizadas por você.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-6 pt-4">
+                            <div className="h-64 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorDespesas" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis 
+                                            dataKey="mes" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} 
+                                        />
+                                        <YAxis 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
+                                            tickFormatter={(val) => `R$ ${val}`}
+                                        />
+                                        <Tooltip 
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    return (
+                                                        <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-xl border border-white/10 text-xs space-y-1">
+                                                            <p className="font-extrabold text-indigo-400">{payload[0].payload.mes}</p>
+                                                            <p className="font-black text-sm">{formatCurrency(payload[0].value as number)}</p>
+                                                        </div>
+                                                    )
+                                                }
+                                                return null
+                                            }}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="valor" 
+                                            stroke="#4f46e5" 
+                                            strokeWidth={3}
+                                            fillOpacity={1} 
+                                            fill="url(#colorDespesas)" 
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
                             </div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Desconto em folha / Pendência</span>
                         </CardContent>
                     </Card>
                 </div>
-            </div>
+            )}
 
-            {/* Comparativo Gráfico de Despesas (Área Interativa Recharts com Gradiente Indigo) */}
-            <div className="space-y-3">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Evolução Mensal de Gastos</h3>
-                <Card className="border border-slate-200/60 shadow-xl bg-white rounded-2xl overflow-hidden">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base font-black text-slate-900">Evolução dos Últimos 6 Meses</CardTitle>
-                        <CardDescription className="text-xs text-slate-500 font-medium">Comparativo mensal acumulado de solicitações de despesas realizadas por você.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4 h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis 
-                                    dataKey="mes" 
-                                    stroke="#94a3b8" 
-                                    fontSize={10} 
-                                    fontWeight="bold" 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                />
-                                <YAxis 
-                                    stroke="#94a3b8" 
-                                    fontSize={10} 
-                                    fontWeight="bold" 
-                                    axisLine={false} 
-                                    tickLine={false}
-                                    tickFormatter={(val) => `R$ ${val}`}
-                                />
-                                <Tooltip 
-                                    contentStyle={{ 
-                                        backgroundColor: '#0f172a', 
-                                        borderRadius: '16px', 
-                                        border: 'none', 
-                                        color: '#fff',
-                                        fontSize: '11px',
-                                        fontWeight: 'bold',
-                                        padding: '12px'
-                                    }}
-                                    formatter={(value: any) => [`R$ ${Number(value).toFixed(2)}`, 'Gasto']}
-                                    labelStyle={{ color: '#94a3b8', paddingBottom: '4px' }}
-                                />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="valor" 
-                                    stroke="#4f46e5" 
-                                    strokeWidth={3} 
-                                    fillOpacity={1} 
-                                    fill="url(#colorVal)" 
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <ReembolsoModal 
-                isOpen={isReembolsoOpen} 
-                onClose={handleCloseReembolso} 
-                onSuccess={handleSuccess}
+            {/* Modais de Reembolso e Adiantamento */}
+            <ReembolsoModal
+                isOpen={isReembolsoOpen}
+                onClose={handleCloseReembolso}
+                onSuccess={() => fetchMetrics()}
                 user={user}
-                logoUrl={logoUrl}
             />
 
-            <AdiantamentoModal 
-                isOpen={isAdiantamentoOpen} 
-                onClose={handleCloseAdiantamento} 
-                onSuccess={handleSuccess}
+            <AdiantamentoModal
+                isOpen={isAdiantamentoOpen}
+                onClose={handleCloseAdiantamento}
+                onSuccess={() => fetchMetrics()}
                 user={user}
-                logoUrl={logoUrl}
             />
 
-            {/* Profile Edit Modal */}
-            <ProfileDialog 
-                isOpen={isProfileOpen} 
-                onOpenChange={setIsProfileOpen} 
+            {/* Modal de Perfil */}
+            <ProfileDialog
+                isOpen={isProfileOpen}
+                onOpenChange={setIsProfileOpen}
                 user={user}
                 onSuccess={(newUrl) => setAvatarUrl(newUrl)}
             />
