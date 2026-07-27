@@ -38,6 +38,7 @@ interface NavItem {
 
 interface NavGroup {
     title: string
+    color: "cyan" | "indigo" | "emerald"
     items: NavItem[]
 }
 
@@ -130,6 +131,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
             if (diáriasItems.length > 0) {
                 groups.push({
                     title: "Diárias & Escalas",
+                    color: "cyan",
                     items: diáriasItems
                 })
             }
@@ -172,6 +174,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
             if (despesasItems.length > 0) {
                 groups.push({
                     title: "Despesas & Reembolsos",
+                    color: "indigo",
                     items: despesasItems
                 })
             }
@@ -194,6 +197,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
         if (financeiroItems.length > 0) {
             groups.push({
                 title: "Financeiro & Faturamento",
+                color: "emerald",
                 items: financeiroItems
             })
         }
@@ -214,20 +218,23 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
     }
 
     return (
-        <header className="sticky top-0 z-50 hidden md:flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white px-8 shadow-xs transition-all font-sans text-slate-800">
-            {/* Esquerda: Logo da Empresa */}
-            <div className="flex items-center gap-8">
+        <header className="sticky top-0 z-50 hidden md:flex h-20 w-full items-center justify-between border-b border-white/10 bg-sidebar/95 backdrop-blur-md px-8 shadow-2xl transition-all text-white font-sans">
+            {/* Esquerda: Logo + Título */}
+            <div className="flex items-center gap-6">
                 <Link href="/dashboard" className="flex items-center gap-3 active:scale-95 transition-transform">
                     <img
                         src={logoUrl || "/logo.png"}
                         alt="ReembolsaFácil"
-                        className="h-9 w-auto object-contain"
+                        className="h-11 w-auto object-contain rounded-lg"
                     />
+                    <span className="hidden lg:block text-[10px] font-black text-white/40 uppercase tracking-[0.25em] border-l border-white/10 pl-3 py-1">
+                        Painel Integrado
+                    </span>
                 </Link>
             </div>
 
-            {/* Centro: Menus de Navegação Superior (Estilo Inter) */}
-            <div ref={navRef} className="flex items-center gap-6">
+            {/* Centro: Menus de Navegação Superior (Estrutura Inter em Cores Escuras do Sistema) */}
+            <div ref={navRef} className="flex items-center gap-4">
                 {/* Grupos Dropdown com texto limpo e seta */}
                 {groups.map((group) => {
                     const isOpen = openGroup === group.title
@@ -242,23 +249,27 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                             <button
                                 onClick={() => setOpenGroup(isOpen ? null : group.title)}
                                 className={cn(
-                                    "flex items-center gap-1.5 text-[15px] font-semibold transition-colors cursor-pointer py-1 px-2.5 rounded-md",
+                                    "flex items-center gap-1.5 text-[15px] font-semibold transition-all cursor-pointer py-1.5 px-3 rounded-xl border",
                                     activeGroup || isOpen
-                                        ? "text-indigo-600 font-bold bg-indigo-50/80"
-                                        : "text-slate-800 hover:text-indigo-600 hover:bg-slate-50"
+                                        ? group.color === "cyan"
+                                            ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
+                                            : group.color === "indigo"
+                                            ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/30"
+                                            : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                                        : "text-slate-300 hover:text-white hover:bg-white/5 border-transparent"
                                 )}
                             >
                                 <span>{group.title}</span>
-                                <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isOpen && "rotate-180 text-indigo-600")} />
+                                <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isOpen && "rotate-180")} />
                             </button>
 
-                            {/* Dropdown Card Flutuante */}
+                            {/* Dropdown Card Flutuante (Escuro com Glassmorphism) */}
                             {isOpen && (
                                 <div
-                                    className="absolute left-0 top-full mt-0 w-80 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200 z-50"
+                                    className="absolute left-0 top-full mt-0 w-80 rounded-2xl border border-white/10 bg-slate-900/95 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-1 duration-200 z-50"
                                     onMouseLeave={() => setOpenGroup(null)}
                                 >
-                                    <div className="px-3 py-1.5 border-b border-slate-100 mb-1.5">
+                                    <div className="px-3 py-1.5 border-b border-white/5 mb-1.5">
                                         <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                                             {group.title}
                                         </p>
@@ -274,18 +285,18 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                                                     className={cn(
                                                         "group flex items-start gap-3 rounded-xl p-2.5 text-xs transition-all duration-150 active:scale-[0.98]",
                                                         active
-                                                            ? "bg-indigo-50 text-indigo-700 font-bold"
-                                                            : "text-slate-700 hover:text-indigo-600 hover:bg-slate-50"
+                                                            ? "bg-white/10 text-white font-bold border border-white/10"
+                                                            : "text-slate-300 hover:text-white hover:bg-white/5 border border-transparent"
                                                     )}
                                                 >
                                                     <div className={cn(
                                                         "p-2 rounded-lg shrink-0 mt-0.5 transition-transform group-hover:scale-105",
-                                                        active ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600"
+                                                        active ? "bg-white/10 text-white" : "bg-slate-800 text-slate-400 group-hover:text-white"
                                                     )}>
                                                         <item.icon className="h-4 w-4" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="font-semibold text-sm leading-tight text-slate-800 group-hover:text-indigo-600 transition-colors">
+                                                        <p className="font-semibold text-sm leading-tight text-white group-hover:text-cyan-300 transition-colors">
                                                             {item.label}
                                                         </p>
                                                         {item.description && (
@@ -308,23 +319,23 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                 <Link
                     href="/dashboard"
                     className={cn(
-                        "text-[15px] font-semibold transition-colors py-1 px-2.5 rounded-md",
+                        "text-[15px] font-semibold transition-all py-1.5 px-3 rounded-xl border",
                         pathname === "/dashboard"
-                            ? "text-indigo-600 font-bold bg-indigo-50/80"
-                            : "text-slate-800 hover:text-indigo-600 hover:bg-slate-50"
+                            ? "bg-white/10 text-white border-white/20 shadow-inner font-bold"
+                            : "text-slate-300 hover:text-white hover:bg-white/5 border-transparent"
                     )}
                 >
                     Painel Principal
                 </Link>
             </div>
 
-            {/* Direita: "Acesse sua conta ∨" / Perfil do Usuário */}
+            {/* Direita: Perfil do Usuário / Logout */}
             <div className="relative">
                 <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center gap-2 text-[15px] font-semibold text-slate-800 hover:text-indigo-600 transition-colors cursor-pointer py-1.5 px-3 rounded-lg hover:bg-slate-50 border border-transparent"
+                    className="flex items-center gap-3 text-[15px] font-semibold text-slate-200 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 active:scale-95"
                 >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs border border-indigo-100 overflow-hidden">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-slate-300 font-bold text-xs border border-white/10 overflow-hidden">
                         {avatarUrl ? (
                             <img src={avatarUrl} alt={user.name || "Perfil"} className="h-full w-full object-cover" />
                         ) : (
@@ -337,9 +348,9 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
 
                 {/* Dropdown Perfil / Sair */}
                 {isUserMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-slate-200/90 bg-white p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200 z-50">
-                        <div className="px-3 py-2 border-b border-slate-100 mb-1">
-                            <p className="text-sm font-bold text-slate-800 truncate">{user.name}</p>
+                    <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-white/10 bg-slate-900/95 p-2 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-1 duration-200 z-50 text-white">
+                        <div className="px-3 py-2 border-b border-white/5 mb-1">
+                            <p className="text-sm font-bold text-white truncate">{user.name}</p>
                             <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
                                 {user.cargo || (user.role === 'ADMIN' ? 'Administrador' : user.role === 'APROVADOR_N1' ? 'Aprovador N1' : user.role === 'APROVADOR_N2' ? 'Aprovador N2' : user.role === 'SUPERVISOR' ? 'Supervisor' : user.role === 'FINANCEIRO' ? 'Financeiro' : user.role === 'RH' ? 'RH' : user.role)}
                             </p>
@@ -350,19 +361,19 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                                 setIsUserMenuOpen(false)
                                 setIsProfileOpen(true)
                             }}
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
                         >
                             <UserIcon className="h-4 w-4 text-slate-400" />
                             <span>Editar Meu Perfil</span>
                         </button>
 
-                        <div className="my-1 border-t border-slate-100" />
+                        <div className="my-1 border-t border-white/5" />
 
                         <Link
                             href="/api/auth/signout"
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-colors"
                         >
-                            <LogOut className="h-4 w-4 text-red-500" />
+                            <LogOut className="h-4 w-4 text-red-400" />
                             <span>Sair da Conta</span>
                         </Link>
                     </div>
