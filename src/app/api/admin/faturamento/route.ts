@@ -215,10 +215,6 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: "Nenhuma diária selecionada para faturamento." }, { status: 400 })
             }
 
-            if (!empresaId) {
-                return NextResponse.json({ error: "Selecione o Cliente / Empresa para emitir a fatura." }, { status: 400 })
-            }
-
             // Busca as coberturas selecionadas
             const coberturas = await prisma.cobertura.findMany({
                 where: {
@@ -226,6 +222,14 @@ export async function POST(req: NextRequest) {
                     faturado: false
                 }
             })
+
+            // Trava Financeira: Apenas diárias baixadas como PAGAS ao diarista pelo financeiro podem ser faturadas ao cliente
+            const naoPagas = coberturas.filter(c => c.status !== 'PAGO')
+            if (naoPagas.length > 0) {
+                return NextResponse.json({
+                    error: `Atenção: ${naoPagas.length} diária(s) selecionada(s) ainda não foram baixadas como PAGAS ao diarista pelo financeiro. Apenas diárias com repasse baixado como PAGO podem ser faturadas ao cliente.`
+                }, { status: 400 })
+            }
 
             if (coberturas.length === 0) {
                 return NextResponse.json({ error: "As diárias selecionadas já foram faturadas ou não estão disponíveis." }, { status: 400 })
