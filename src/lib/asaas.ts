@@ -44,7 +44,7 @@ interface AsaasTransferResult {
  * Envia uma transferência Pix utilizando a API do Asaas.
  */
 export async function sendPixTransfer(params: PixTransferParams): Promise<AsaasTransferResult> {
-    const apiKey = "$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjI2Yjc5Yjc2LTMyM2MtNGQ4Yi05NTA2LWNhYTIzMzRhYWVlNTo6JGFhY2hfMGRiOWQ5NDEtY2U1Mi00MTQ1LWFkNDYtNzM4NGIyODI3Y2Iz"
+    const apiKey = process.env.ASAAS_API_KEY || ""
     const apiUrl = process.env.ASAAS_API_URL || "https://www.asaas.com/api/v3"
 
     // Modo Simulado de Homologação (Mock) se a chave de API estiver vazia
