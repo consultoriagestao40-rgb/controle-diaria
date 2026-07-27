@@ -229,7 +229,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                         <img
                             src={logoUrl || "/logo.png"}
                             alt="ReembolsaFácil"
-                            className="h-10 w-auto object-contain rounded-lg"
+                            className="h-10 w-auto object-contain rounded-xl"
                         />
                         <span className="hidden lg:block text-[10px] font-black text-white/40 uppercase tracking-[0.25em] border-l border-white/10 pl-3 py-1">
                             Painel Integrado
