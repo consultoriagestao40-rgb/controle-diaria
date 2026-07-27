@@ -16,7 +16,9 @@ import {
     Zap,
     Users,
     Activity,
-    TrendingUp
+    TrendingUp,
+    Filter,
+    RefreshCw
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -50,7 +52,16 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
     const [metrics, setMetrics] = useState<any>(null)
     const [chartData, setChartData] = useState<any[]>([])
     const [coberturasStats, setCoberturasStats] = useState<any>(null)
+    const [filterOptions, setFilterOptions] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+
+    // Filtros de Plantões & Coberturas
+    const [filterDiarista, setFilterDiarista] = useState("ALL")
+    const [filterReserva, setFilterReserva] = useState("ALL")
+    const [filterMotivo, setFilterMotivo] = useState("ALL")
+    const [filterPosto, setFilterPosto] = useState("ALL")
+    const [filterSupervisor, setFilterSupervisor] = useState("ALL")
+
     const [isReembolsoOpen, setIsReembolsoOpen] = useState(false)
     const [isAdiantamentoOpen, setIsAdiantamentoOpen] = useState(false)
     const router = useRouter()
@@ -66,7 +77,7 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
 
     useEffect(() => {
         fetchMetrics()
-    }, [])
+    }, [filterDiarista, filterReserva, filterMotivo, filterPosto, filterSupervisor])
 
     useEffect(() => {
         const action = searchParams.get("action")
@@ -82,17 +93,33 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
     const fetchMetrics = async () => {
         setLoading(true)
         try {
-            const res = await fetch("/api/despesas/dashboard")
+            const query = new URLSearchParams()
+            if (filterDiarista !== "ALL") query.append("diaristaId", filterDiarista)
+            if (filterReserva !== "ALL") query.append("reservaId", filterReserva)
+            if (filterMotivo !== "ALL") query.append("motivoId", filterMotivo)
+            if (filterPosto !== "ALL") query.append("postoId", filterPosto)
+            if (filterSupervisor !== "ALL") query.append("supervisorId", filterSupervisor)
+
+            const res = await fetch(`/api/despesas/dashboard?${query.toString()}`)
             if (!res.ok) throw new Error()
             const data = await res.json()
             setMetrics(data.stats)
             setChartData(data.chartData)
             setCoberturasStats(data.coberturasStats)
+            setFilterOptions(data.filterOptions)
         } catch {
             toast.error("Erro ao carregar dados do dashboard")
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleClearFilters = () => {
+        setFilterDiarista("ALL")
+        setFilterReserva("ALL")
+        setFilterMotivo("ALL")
+        setFilterPosto("ALL")
+        setFilterSupervisor("ALL")
     }
 
     const handleCloseReembolso = () => {
@@ -109,7 +136,7 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
         }
     }
 
-    if (loading) {
+    if (loading && !metrics) {
         return (
             <div className="flex h-[80vh] flex-col items-center justify-center gap-4">
                 <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
@@ -121,6 +148,8 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
     const initials = user.name
         ? user.name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase()
         : "U"
+
+    const isAnyFilterActive = filterDiarista !== "ALL" || filterReserva !== "ALL" || filterMotivo !== "ALL" || filterPosto !== "ALL" || filterSupervisor !== "ALL"
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto pb-16">
@@ -261,67 +290,107 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
 
             {/* CONTEÚDO DA ABA 1: PLANTÕES & COBERTURAS (PRIMEIRA ABA / DEFAULT) */}
             {activeTab === "coberturas" && (
-                <div className="space-y-8 animate-in fade-in duration-300">
-                    {/* Header da Seção */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div>
-                            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Resumo de Plantões & Coberturas</h2>
-                            <p className="text-sm text-slate-600 font-medium">Acumulado de valores por tipo de diária e visão mensal do ano vigente ({coberturasStats?.anoVigente || 2026}).</p>
-                        </div>
-                        <Badge variant="outline" className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border-slate-200 shadow-xs gap-1.5">
-                            <TrendingUp className="h-3.5 w-3.5 text-cyan-600" />
-                            Total Geral: {formatCurrency(coberturasStats?.totalValor || 0)}
-                        </Badge>
-                    </div>
-
-                    {/* Cards Acumulados de Valores por Tipo de Diárias (Motivos) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {coberturasStats?.statsPorMotivo && coberturasStats.statsPorMotivo.length > 0 ? (
-                            coberturasStats.statsPorMotivo.map((motivoItem: any, idx: number) => {
-                                const icons = [AlertCircle, Zap, Calendar, Users, Activity, FileText]
-                                const IconComp = icons[idx % icons.length]
-                                const isFalta = motivoItem.descricao.toLowerCase().includes("falta")
-                                const isAtestado = motivoItem.descricao.toLowerCase().includes("atestado")
-                                const isExtra = motivoItem.descricao.toLowerCase().includes("extra")
-
-                                return (
-                                    <Card key={motivoItem.descricao} className="rounded-3xl border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-white">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 truncate max-w-[140px]">
-                                                    {motivoItem.descricao}
-                                                </span>
-                                                <div className={cn(
-                                                    "h-9 w-9 rounded-2xl flex items-center justify-center shrink-0",
-                                                    isFalta ? "bg-amber-50 text-amber-600" :
-                                                    isAtestado ? "bg-cyan-50 text-cyan-600" :
-                                                    isExtra ? "bg-emerald-50 text-emerald-600" :
-                                                    "bg-indigo-50 text-indigo-600"
-                                                )}>
-                                                    <IconComp className="h-4 w-4" />
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-4 space-y-1">
-                                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
-                                                    {formatCurrency(motivoItem.totalValor)}
-                                                </h3>
-                                                <p className="text-xs font-bold text-slate-500">
-                                                    {motivoItem.count} {motivoItem.count === 1 ? 'plantão registrado' : 'plantões registrados'}
-                                                </p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )
-                            })
-                        ) : (
-                            <div className="col-span-full p-8 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-xs">
-                                <p className="text-sm font-bold text-slate-600">Nenhum plantão ou cobertura registrado neste período.</p>
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    {/* BARRA DE FILTROS (Diarista, Colaborador, Motivo, Posto, Supervisor) */}
+                    <Card className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Filter className="h-3.5 w-3.5 text-cyan-600" />
+                                    Filtros de Pesquisa
+                                </span>
+                                {isAnyFilterActive && (
+                                    <button
+                                        type="button"
+                                        onClick={handleClearFilters}
+                                        className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <RefreshCw className="h-3 w-3" />
+                                        Limpar Filtros
+                                    </button>
+                                )}
                             </div>
-                        )}
-                    </div>
 
-                    {/* Gráfico de Linha Mês a Mês (Visão do Ano Vigente Jan a Dez) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                                {/* 1. Diarista */}
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-slate-500">Diarista</label>
+                                    <select
+                                        value={filterDiarista}
+                                        onChange={(e) => setFilterDiarista(e.target.value)}
+                                        className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    >
+                                        <option value="ALL">Todos</option>
+                                        {filterOptions?.diaristas?.map((d: any) => (
+                                            <option key={d.id} value={d.id}>{d.nome}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* 2. Colaborador (Reserva) */}
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-slate-500">Colaborador</label>
+                                    <select
+                                        value={filterReserva}
+                                        onChange={(e) => setFilterReserva(e.target.value)}
+                                        className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    >
+                                        <option value="ALL">Todos</option>
+                                        {filterOptions?.reservas?.map((r: any) => (
+                                            <option key={r.id} value={r.id}>{r.nome}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* 3. Motivo */}
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-slate-500">Motivo</label>
+                                    <select
+                                        value={filterMotivo}
+                                        onChange={(e) => setFilterMotivo(e.target.value)}
+                                        className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    >
+                                        <option value="ALL">Todos</option>
+                                        {filterOptions?.motivos?.map((m: any) => (
+                                            <option key={m.id} value={m.id}>{m.descricao}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* 4. Posto */}
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-slate-500">Posto</label>
+                                    <select
+                                        value={filterPosto}
+                                        onChange={(e) => setFilterPosto(e.target.value)}
+                                        className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    >
+                                        <option value="ALL">Todos</option>
+                                        {filterOptions?.postos?.map((p: any) => (
+                                            <option key={p.id} value={p.id}>{p.nome}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* 5. Supervisor */}
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-slate-500">Supervisor</label>
+                                    <select
+                                        value={filterSupervisor}
+                                        onChange={(e) => setFilterSupervisor(e.target.value)}
+                                        className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    >
+                                        <option value="ALL">Todos</option>
+                                        {filterOptions?.supervisores?.map((s: any) => (
+                                            <option key={s.id} value={s.id}>{s.nome}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* 1º: GRÁFICO DE LINHA DA FOTO SUBIDO PARA FICAR ACIMA DOS CARDS */}
                     <Card className="rounded-3xl border-slate-100 shadow-sm bg-white overflow-hidden">
                         <CardHeader className="p-6 pb-2">
                             <div className="flex items-center justify-between">
@@ -390,6 +459,64 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* 2º: CARDS ACUMULADOS DE VALORES POR TIPO DE DIÁRIA (MOTIVOS) ABAIXO DO GRÁFICO */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                                Acumulado de Valores por Tipo de Diária
+                            </h3>
+                            <Badge variant="outline" className="px-3 py-1 rounded-xl text-xs font-bold bg-white text-slate-700 border-slate-200 gap-1.5">
+                                Total Geral: {formatCurrency(coberturasStats?.totalValor || 0)}
+                            </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {coberturasStats?.statsPorMotivo && coberturasStats.statsPorMotivo.length > 0 ? (
+                                coberturasStats.statsPorMotivo.map((motivoItem: any, idx: number) => {
+                                    const icons = [AlertCircle, Zap, Calendar, Users, Activity, FileText]
+                                    const IconComp = icons[idx % icons.length]
+                                    const isFalta = motivoItem.descricao.toLowerCase().includes("falta")
+                                    const isAtestado = motivoItem.descricao.toLowerCase().includes("atestado")
+                                    const isExtra = motivoItem.descricao.toLowerCase().includes("extra")
+
+                                    return (
+                                        <Card key={motivoItem.descricao} className="rounded-3xl border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-white">
+                                            <CardContent className="p-6">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 truncate max-w-[140px]">
+                                                        {motivoItem.descricao}
+                                                    </span>
+                                                    <div className={cn(
+                                                        "h-9 w-9 rounded-2xl flex items-center justify-center shrink-0",
+                                                        isFalta ? "bg-amber-50 text-amber-600" :
+                                                        isAtestado ? "bg-cyan-50 text-cyan-600" :
+                                                        isExtra ? "bg-emerald-50 text-emerald-600" :
+                                                        "bg-indigo-50 text-indigo-600"
+                                                    )}>
+                                                        <IconComp className="h-4 w-4" />
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-4 space-y-1">
+                                                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                                                        {formatCurrency(motivoItem.totalValor)}
+                                                    </h3>
+                                                    <p className="text-xs font-bold text-slate-500">
+                                                        {motivoItem.count} {motivoItem.count === 1 ? 'plantão registrado' : 'plantões registrados'}
+                                                    </p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )
+                                })
+                            ) : (
+                                <div className="col-span-full p-8 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-xs">
+                                    <p className="text-sm font-bold text-slate-600">Nenhum plantão ou cobertura encontrado com os filtros selecionados.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 

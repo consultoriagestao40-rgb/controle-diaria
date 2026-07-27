@@ -1,15 +1,22 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) return new NextResponse("Unauthorized", { status: 401 })
 
     const user = session.user as any
 
     try {
+        const { searchParams } = new URL(request.url)
+        const filterDiaristaId = searchParams.get("diaristaId")
+        const filterReservaId = searchParams.get("reservaId")
+        const filterMotivoId = searchParams.get("motivoId")
+        const filterPostoId = searchParams.get("postoId")
+        const filterSupervisorId = searchParams.get("supervisorId")
+
         const now = new Date()
         const currentYear = now.getFullYear()
         const startOfYear = new Date(currentYear, 0, 1)
@@ -90,13 +97,37 @@ export async function GET() {
             valor: Math.round(valor * 100) / 100
         }))
 
-        // --- 2. SEÇÃO DE PLANTÕES & COBERTURAS ---
-        // Coberturas do ano vigente (Jan a Dez do ano atual)
+        // --- 2. SEÇÃO DE PLANTÕES & COBERTURAS COM FILTROS ---
+        const coberturaWhere: any = {
+            data: { gte: startOfYear },
+            status: { notIn: ['REPROVADO', 'CANCELADO' as any] }
+        }
+
+        if (filterDiaristaId && filterDiaristaId !== "ALL") {
+            coberturaWhere.diaristaId = filterDiaristaId
+        }
+        if (filterReservaId && filterReservaId !== "ALL") {
+            coberturaWhere.reservaId = filterReservaId
+        }
+        if (filterMotivoId && filterMotivoId !== "ALL") {
+            coberturaWhere.motivoId = filterMotivoId
+        }
+        if (filterPostoId && filterPostoId !== "ALL") {
+            coberturaWhere.postoId = filterPostoId
+        }
+        if (filterSupervisorId && filterSupervisorId !== "ALL") {
+            coberturaWhere.supervisorId = filterSupervisorId
+        }
+
+        // Se for supervisor, filtra apenas os postos sob sua responsabilidade
+        if (user.role === 'SUPERVISOR') {
+            coberturaWhere.posto = {
+                supervisores: { some: { id: user.id } }
+            }
+        }
+
         const coberturasAnoVigente = await prisma.cobertura.findMany({
-            where: {
-                data: { gte: startOfYear },
-                status: { notIn: ['REPROVADO', 'CANCELADO' as any] }
-            },
+            where: coberturaWhere,
             include: {
                 motivo: true
             }
@@ -153,6 +184,15 @@ export async function GET() {
             qtd: item.qtd
         }))
 
+        // Opções para os Filtros
+        const [diaristas, reservas, motivos, postos, supervisores] = await Promise.all([
+            prisma.diarista.findMany({ where: { ativo: true }, select: { id: true, nome: true }, orderBy: { nome: 'asc' } }),
+            prisma.reserva.findMany({ where: { ativo: true }, select: { id: true, nome: true }, orderBy: { nome: 'asc' } }),
+            prisma.motivo.findMany({ where: { ativo: true }, select: { id: true, descricao: true }, orderBy: { descricao: 'asc' } }),
+            prisma.posto.findMany({ where: { ativo: true }, select: { id: true, nome: true }, orderBy: { nome: 'asc' } }),
+            prisma.user.findMany({ where: { role: { in: ['SUPERVISOR', 'ADMIN'] } }, select: { id: true, nome: true }, orderBy: { nome: 'asc' } })
+        ])
+
         return NextResponse.json({
             // Dados Despesas
             stats: {
@@ -170,6 +210,15 @@ export async function GET() {
                 statsPorMotivo,
                 chartDataAno: chartDataCoberturasAno,
                 anoVigente: currentYear
+            },
+
+            // Opções dos Filtros
+            filterOptions: {
+                diaristas,
+                reservas,
+                motivos,
+                postos,
+                supervisores
             }
         })
     } catch (error) {
