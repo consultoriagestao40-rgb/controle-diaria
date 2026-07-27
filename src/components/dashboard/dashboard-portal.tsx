@@ -130,8 +130,8 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto pb-16">
-            {/* Header Banner - Estilo App Financeiro (Predominante Indigo/Slate) */}
-            <div className="relative -mt-4 -mx-4 md:mt-0 md:mx-0 rounded-none md:rounded-3xl bg-slate-900 text-white p-6 sm:p-8 overflow-hidden shadow-2xl border-b md:border border-white/5">
+            {/* Header Banner - Exibido apenas no Mobile (No Desktop a navegação e perfil ficam no TopNav) */}
+            <div className="relative -mt-4 -mx-4 rounded-none bg-slate-900 text-white p-6 sm:p-8 overflow-hidden shadow-2xl border-b border-white/5 md:hidden">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -z-10" />
                 <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl -z-10" />
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -169,8 +169,8 @@ export function DashboardPortal({ user, logoUrl, acessoDespesas = true, acessoCo
                 </div>
             </div>
 
-            {/* Ações Rápidas (Estilo Nubank - Atalhos Redondos) */}
-            <div className="space-y-3">
+            {/* Ações Rápidas - Exibido apenas no Mobile */}
+            <div className="space-y-3 md:hidden">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Ações Rápidas</h3>
                 <div className="flex gap-4 sm:gap-6 overflow-x-auto py-2 scrollbar-hide shrink-0 snap-x">
                     

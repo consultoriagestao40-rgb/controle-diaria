@@ -239,19 +239,6 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
 
                 {/* Centro: Categorias Principais (Estilo Inter Modelo) */}
                 <div className="flex items-center gap-4">
-                    {/* Link Painel Principal */}
-                    <Link
-                        href="/dashboard"
-                        className={cn(
-                            "text-[15px] font-semibold transition-all py-2 px-4 rounded-xl border",
-                            pathname === "/dashboard"
-                                ? "bg-white/10 text-white border-white/20 shadow-inner font-bold"
-                                : "text-slate-300 hover:text-white hover:bg-white/5 border-transparent"
-                        )}
-                    >
-                        Painel Principal
-                    </Link>
-
                     {/* Grupos de Menu */}
                     {groups.map((group) => {
                         const isOpen = openGroup === group.title
