@@ -38,7 +38,6 @@ interface NavItem {
 
 interface NavGroup {
     title: string
-    color: "cyan" | "indigo" | "emerald" | "amber"
     items: NavItem[]
 }
 
@@ -48,6 +47,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
     const [isProfileOpen, setIsProfileOpen] = useState(false)
     const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null)
     const [openGroup, setOpenGroup] = useState<string | null>(null)
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
     const navRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -59,6 +59,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
         const handleClickOutside = (event: MouseEvent) => {
             if (navRef.current && !navRef.current.contains(event.target as Node)) {
                 setOpenGroup(null)
+                setIsUserMenuOpen(false)
             }
         }
         document.addEventListener("mousedown", handleClickOutside)
@@ -68,6 +69,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
     // Fechar dropdown ao mudar de rota
     useEffect(() => {
         setOpenGroup(null)
+        setIsUserMenuOpen(false)
     }, [pathname])
 
     // Montar grupos de navegação segmentados
@@ -128,7 +130,6 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
             if (diáriasItems.length > 0) {
                 groups.push({
                     title: "Diárias & Escalas",
-                    color: "cyan",
                     items: diáriasItems
                 })
             }
@@ -171,7 +172,6 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
             if (despesasItems.length > 0) {
                 groups.push({
                     title: "Despesas & Reembolsos",
-                    color: "indigo",
                     items: despesasItems
                 })
             }
@@ -194,7 +194,6 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
         if (financeiroItems.length > 0) {
             groups.push({
                 title: "Financeiro & Faturamento",
-                color: "emerald",
                 items: financeiroItems
             })
         }
@@ -215,38 +214,21 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
     }
 
     return (
-        <header className="sticky top-0 z-50 hidden md:flex h-20 w-full items-center justify-between border-b border-white/10 bg-sidebar/95 backdrop-blur-md px-6 shadow-2xl transition-all">
-            {/* Esquerda: Logo + Título */}
-            <div className="flex items-center gap-6">
+        <header className="sticky top-0 z-50 hidden md:flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white px-8 shadow-xs transition-all font-sans text-slate-800">
+            {/* Esquerda: Logo da Empresa */}
+            <div className="flex items-center gap-8">
                 <Link href="/dashboard" className="flex items-center gap-3 active:scale-95 transition-transform">
                     <img
                         src={logoUrl || "/logo.png"}
                         alt="ReembolsaFácil"
-                        className="h-11 w-auto object-contain rounded-lg"
+                        className="h-9 w-auto object-contain"
                     />
-                    <span className="hidden lg:block text-[10px] font-black text-white/40 uppercase tracking-[0.25em] border-l border-white/10 pl-3 py-1">
-                        Painel Integrado
-                    </span>
                 </Link>
             </div>
 
-            {/* Centro: Menus de Navegação Superior */}
-            <div ref={navRef} className="flex items-center gap-2">
-                {/* 1. Painel Principal (Link Direto) */}
-                <Link
-                    href="/dashboard"
-                    className={cn(
-                        "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border",
-                        pathname === "/dashboard"
-                            ? "bg-white/10 text-white border-white/20 shadow-inner"
-                            : "text-slate-300 hover:text-white hover:bg-white/5 border-transparent"
-                    )}
-                >
-                    <Grid className="h-4 w-4 text-cyan-400" />
-                    <span>Painel Principal</span>
-                </Link>
-
-                {/* 2. Grupos Dropdown */}
+            {/* Centro: Menus de Navegação Superior (Estilo Inter) */}
+            <div ref={navRef} className="flex items-center gap-6">
+                {/* Grupos Dropdown com texto limpo e seta */}
                 {groups.map((group) => {
                     const isOpen = openGroup === group.title
                     const activeGroup = isGroupActive(group)
@@ -254,34 +236,30 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                     return (
                         <div
                             key={group.title}
-                            className="relative"
+                            className="relative py-4"
                             onMouseEnter={() => setOpenGroup(group.title)}
                         >
                             <button
                                 onClick={() => setOpenGroup(isOpen ? null : group.title)}
                                 className={cn(
-                                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border cursor-pointer",
+                                    "flex items-center gap-1.5 text-[15px] font-semibold transition-colors cursor-pointer py-1 px-2.5 rounded-md",
                                     activeGroup || isOpen
-                                        ? group.color === "cyan"
-                                            ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
-                                            : group.color === "indigo"
-                                            ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/30"
-                                            : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
-                                        : "text-slate-300 hover:text-white hover:bg-white/5 border-transparent"
+                                        ? "text-indigo-600 font-bold bg-indigo-50/80"
+                                        : "text-slate-800 hover:text-indigo-600 hover:bg-slate-50"
                                 )}
                             >
                                 <span>{group.title}</span>
-                                <ChevronDown className={cn("h-4 w-4 transition-transform duration-300 text-slate-400", isOpen && "rotate-180")} />
+                                <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isOpen && "rotate-180 text-indigo-600")} />
                             </button>
 
-                            {/* Dropdown Content */}
+                            {/* Dropdown Card Flutuante */}
                             {isOpen && (
                                 <div
-                                    className="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-slate-900/95 p-2 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50"
+                                    className="absolute left-0 top-full mt-0 w-80 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200 z-50"
                                     onMouseLeave={() => setOpenGroup(null)}
                                 >
-                                    <div className="px-3 py-2 border-b border-white/5 mb-1">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    <div className="px-3 py-1.5 border-b border-slate-100 mb-1.5">
+                                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                                             {group.title}
                                         </p>
                                     </div>
@@ -294,20 +272,20 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                                                     key={item.href}
                                                     href={item.href}
                                                     className={cn(
-                                                        "group flex items-start gap-3 rounded-xl p-2.5 text-xs transition-all duration-200 active:scale-[0.98]",
+                                                        "group flex items-start gap-3 rounded-xl p-2.5 text-xs transition-all duration-150 active:scale-[0.98]",
                                                         active
-                                                            ? "bg-white/10 text-white font-bold border border-white/10"
-                                                            : "text-slate-300 hover:text-white hover:bg-white/5 border border-transparent"
+                                                            ? "bg-indigo-50 text-indigo-700 font-bold"
+                                                            : "text-slate-700 hover:text-indigo-600 hover:bg-slate-50"
                                                     )}
                                                 >
                                                     <div className={cn(
-                                                        "p-2 rounded-lg shrink-0 mt-0.5 transition-transform group-hover:scale-110",
-                                                        active ? "bg-white/10 text-white" : "bg-slate-800/80 text-slate-400 group-hover:text-white"
+                                                        "p-2 rounded-lg shrink-0 mt-0.5 transition-transform group-hover:scale-105",
+                                                        active ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600"
                                                     )}>
                                                         <item.icon className="h-4 w-4" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="font-semibold text-sm leading-tight text-white group-hover:text-cyan-300 transition-colors">
+                                                        <p className="font-semibold text-sm leading-tight text-slate-800 group-hover:text-indigo-600 transition-colors">
                                                             {item.label}
                                                         </p>
                                                         {item.description && (
@@ -325,44 +303,73 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                         </div>
                     )
                 })}
+
+                {/* Link Direto Painel Principal */}
+                <Link
+                    href="/dashboard"
+                    className={cn(
+                        "text-[15px] font-semibold transition-colors py-1 px-2.5 rounded-md",
+                        pathname === "/dashboard"
+                            ? "text-indigo-600 font-bold bg-indigo-50/80"
+                            : "text-slate-800 hover:text-indigo-600 hover:bg-slate-50"
+                    )}
+                >
+                    Painel Principal
+                </Link>
             </div>
 
-            {/* Direita: Perfil do Usuário + Logout */}
-            <div className="flex items-center gap-4">
+            {/* Direita: "Acesse sua conta ∨" / Perfil do Usuário */}
+            <div className="relative">
                 <button
-                    onClick={() => setIsProfileOpen(true)}
-                    className="flex items-center gap-3 rounded-xl p-1.5 pr-3 hover:bg-white/5 transition-all cursor-pointer border border-transparent hover:border-white/10 active:scale-95"
-                    title="Editar Perfil"
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-2 text-[15px] font-semibold text-slate-800 hover:text-indigo-600 transition-colors cursor-pointer py-1.5 px-3 rounded-lg hover:bg-slate-50 border border-transparent"
                 >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-300 overflow-hidden border border-white/10">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs border border-indigo-100 overflow-hidden">
                         {avatarUrl ? (
                             <img src={avatarUrl} alt={user.name || "Perfil"} className="h-full w-full object-cover" />
                         ) : (
-                            <UserIcon className="h-5 w-5" />
+                            <UserIcon className="h-4 w-4" />
                         )}
                     </div>
-                    <div className="text-left hidden lg:block">
-                        <p className="text-xs font-bold text-white truncate max-w-[120px]">{user.name}</p>
-                        <p className="text-[10px] text-slate-400 truncate uppercase tracking-wider font-semibold">
-                            {user.cargo || (user.role === 'ADMIN' ? 'Administrador' : user.role === 'APROVADOR_N1' ? 'Aprovador N1' : user.role === 'APROVADOR_N2' ? 'Aprovador N2' : user.role === 'APROVADOR' ? 'Aprovador N2' : user.role === 'SUPERVISOR' ? 'Supervisor' : user.role === 'FINANCEIRO' ? 'Financeiro' : user.role === 'ENCARREGADO' ? 'Encarregado' : user.role === 'RH' ? 'RH' : user.role)}
-                        </p>
-                    </div>
+                    <span className="max-w-[120px] truncate">{user.name || "Sua Conta"}</span>
+                    <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isUserMenuOpen && "rotate-180")} />
                 </button>
 
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl"
-                    asChild
-                >
-                    <Link href="/api/auth/signout" title="Sair do Sistema">
-                        <LogOut className="h-4 w-4 mr-1.5" />
-                        <span>Sair</span>
-                    </Link>
-                </Button>
+                {/* Dropdown Perfil / Sair */}
+                {isUserMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-slate-200/90 bg-white p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-200 z-50">
+                        <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                            <p className="text-sm font-bold text-slate-800 truncate">{user.name}</p>
+                            <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                                {user.cargo || (user.role === 'ADMIN' ? 'Administrador' : user.role === 'APROVADOR_N1' ? 'Aprovador N1' : user.role === 'APROVADOR_N2' ? 'Aprovador N2' : user.role === 'SUPERVISOR' ? 'Supervisor' : user.role === 'FINANCEIRO' ? 'Financeiro' : user.role === 'RH' ? 'RH' : user.role)}
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                setIsUserMenuOpen(false)
+                                setIsProfileOpen(true)
+                            }}
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                        >
+                            <UserIcon className="h-4 w-4 text-slate-400" />
+                            <span>Editar Meu Perfil</span>
+                        </button>
+
+                        <div className="my-1 border-t border-slate-100" />
+
+                        <Link
+                            href="/api/auth/signout"
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                            <LogOut className="h-4 w-4 text-red-500" />
+                            <span>Sair da Conta</span>
+                        </Link>
+                    </div>
+                )}
             </div>
 
-            {/* Profile Dialog Modal */}
+            {/* Modal de Perfil */}
             <ProfileDialog
                 isOpen={isProfileOpen}
                 onOpenChange={setIsProfileOpen}
