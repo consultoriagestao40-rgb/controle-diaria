@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { writeFile } from "fs/promises"
 import { join } from "path"
 import bcrypt from "bcryptjs"
-import { sendPixTransfer } from "@/lib/asaas"
+import { sendPixTransfer, getPixAddressKeyDetails, areNamesSimilar } from "@/lib/asaas"
 
 // GET: List items waiting for payment (Status = APROVADO) + Payment Methods
 export async function GET(req: Request) {
@@ -152,6 +152,28 @@ export async function POST(req: Request) {
             }
 
             const descTaxa = taxaServico > 0 ? ` (Taxa Antecipação: -R$ ${taxaServico.toFixed(2)})` : ""
+
+            // Se o usuário não deu confirmação prévia de divergência de titularidade, consulta a chave no Banco Central via Asaas
+            const confirmarDivergencia = formData.get("confirmarDivergencia") === "true"
+            if (!confirmarDivergencia) {
+                const details = await getPixAddressKeyDetails(cobertura.diarista.chavePix)
+                if (details.success && details.name) {
+                    const nomesSimilares = areNamesSimilar(cobertura.diarista.nome, details.name)
+                    if (!nomesSimilares) {
+                        return new NextResponse(
+                            JSON.stringify({
+                                requerConfirmacaoTitular: true,
+                                nomeCadastrado: cobertura.diarista.nome,
+                                titularReal: details.name,
+                                cpfCnpjTitular: details.cpfCnpj || "Não informado",
+                                bancoTitular: details.bankName || "Banco de Destino",
+                                chavePix: cobertura.diarista.chavePix
+                            }),
+                            { status: 200, headers: { "Content-Type": "application/json" } }
+                        )
+                    }
+                }
+            }
 
             // Envia o Pix pelo Asaas com o valor líquido (descontada a taxa de antecipação)
             const asaasResult = await sendPixTransfer({

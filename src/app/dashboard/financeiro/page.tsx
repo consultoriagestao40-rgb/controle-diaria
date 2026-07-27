@@ -209,22 +209,42 @@ export default function FinanceDashboard() {
                     formData.append("comprovante", fileToUpload)
                 }
 
-                const res = await fetch("/api/finance/payable", {
+                let res = await fetch("/api/finance/payable", {
                     method: "POST",
                     body: formData
                 })
 
-                if (res.ok) {
+                let data = await res.json().catch(() => ({}))
+
+                if (res.ok && data.requerConfirmacaoTitular) {
+                    const querAutorizar = window.confirm(
+                        `⚠️ ATENÇÃO: DIVERGÊNCIA DE TITULARIDADE NO PIX\n\n` +
+                        `• Colaborador Cadastrado: ${data.nomeCadastrado}\n` +
+                        `• Titular Real da Chave Pix: ${data.titularReal}\n` +
+                        `• CPF/CNPJ do Titular: ${data.cpfCnpjTitular}\n` +
+                        `• Banco de Destino: ${data.bancoTitular}\n\n` +
+                        `A Chave Pix informada pertence a um terceiro.\n` +
+                        `Deseja confirmar o envio do Pix para este destinatário?`
+                    )
+
+                    if (querAutorizar) {
+                        formData.append("confirmarDivergencia", "true")
+                        res = await fetch("/api/finance/payable", {
+                            method: "POST",
+                            body: formData
+                        })
+                        data = await res.json().catch(() => ({}))
+                    } else {
+                        toast.info("Pagamento cancelado devido a divergência de titularidade.")
+                        failCount++
+                        continue
+                    }
+                }
+
+                if (res.ok && (data.success || data.success === undefined)) {
                     successCount++
                 } else {
-                    const errorText = await res.text().catch(() => "")
-                    let errorMsg = "Erro no processamento do pagamento."
-                    try {
-                        const errorData = JSON.parse(errorText)
-                        if (errorData.error) errorMsg = errorData.error
-                    } catch {
-                        if (errorText && errorText.length < 100) errorMsg = errorText
-                    }
+                    const errorMsg = data.error || "Erro no processamento do pagamento."
                     window.alert(`Atenção: ${errorMsg}`)
                     toast.error(errorMsg)
                     failCount++
