@@ -421,11 +421,16 @@ export default function FaturamentoClientesPage() {
             const nomeArquivoPDF = `Fatura_${faturaDetalhe.numeroFatura}_${clienteClean}_Periodo_${pInicioClean}_a_${pFimClean}`
             document.title = nomeArquivoPDF
 
-            window.print()
+            // Temporariamente fecha a modal para remover a sobreposição escura do Radix Portal
+            setFaturaModalOpen(false)
 
             setTimeout(() => {
-                document.title = tituloOriginal
-            }, 1000)
+                window.print()
+                setTimeout(() => {
+                    document.title = tituloOriginal
+                    setFaturaModalOpen(true)
+                }, 500)
+            }, 200)
         } else {
             window.print()
         }
@@ -451,25 +456,27 @@ export default function FaturamentoClientesPage() {
                         color: #0f172a !important;
                     }
 
-                    /* Esconde todo o layout de tela, botões e modais */
-                    body > *:not(#documento-fatura-oficial-a4) {
-                        display: none !important;
-                    }
-                    
-                    [role="dialog"], [data-radix-portal], .print\:hidden {
+                    /* Esconde a barra do dashboard, modais do radix e elementos de tela */
+                    .print\:hidden,
+                    [role="dialog"],
+                    [data-radix-portal] {
                         display: none !important;
                     }
 
                     /* Exibe o documento da fatura com fluxo natural multi-páginas */
                     #documento-fatura-oficial-a4 {
                         display: block !important;
-                        position: relative !important;
+                        visibility: visible !important;
                         width: 100% !important;
                         height: auto !important;
                         overflow: visible !important;
                         margin: 0 !important;
                         padding: 0 !important;
                         background: #ffffff !important;
+                    }
+
+                    #documento-fatura-oficial-a4 * {
+                        visibility: visible !important;
                     }
 
                     /* Repete o cabeçalho da tabela em TODAS as páginas do PDF */
