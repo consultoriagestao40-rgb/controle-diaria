@@ -113,12 +113,13 @@ export async function POST(req: Request) {
             }
         }
 
-        // Buscar dados da cobertura e do diarista para validação Asaas
+        // Buscar dados da cobertura, diarista e antecipações para validação Asaas
         const cobertura = await prisma.cobertura.findUnique({
             where: { id },
             include: {
                 diarista: true,
-                posto: true
+                posto: true,
+                antecipacoes: true
             }
         })
 
@@ -128,6 +129,12 @@ export async function POST(req: Request) {
                 { status: 404, headers: { "Content-Type": "application/json" } }
             )
         }
+
+        // Verificar se existe solicitação de antecipação para aplicar o desconto da taxa de serviço (ex: R$ 0.50 ou 5%)
+        const antecipacaoAtiva = cobertura.antecipacoes?.find(a => a.status === 'APROVADO' || a.status === 'PENDENTE' || a.status === 'PAGO')
+        const taxaServico = antecipacaoAtiva ? Number(antecipacaoAtiva.taxaServico) : 0
+        const valorOriginal = Number(cobertura.valor)
+        const valorTransferenciaPix = antecipacaoAtiva ? Number(antecipacaoAtiva.valorSolicitado) : valorOriginal
 
         let asaasTransferId = ""
         if (acao === 'PAGO' && pagarComAsaas) {
@@ -144,13 +151,15 @@ export async function POST(req: Request) {
                 )
             }
 
-            // Envia o Pix pelo Asaas
+            const descTaxa = taxaServico > 0 ? ` (Taxa Antecipação: -R$ ${taxaServico.toFixed(2)})` : ""
+
+            // Envia o Pix pelo Asaas com o valor líquido (descontada a taxa de antecipação)
             const asaasResult = await sendPixTransfer({
-                valor: Number(cobertura.valor),
+                valor: valorTransferenciaPix,
                 chavePix: cobertura.diarista.chavePix,
                 cpf: cobertura.diarista.cpf,
                 nome: cobertura.diarista.nome,
-                descricao: `Pgto Cobertura: ${cobertura.posto.nome} - Ref. ${new Date(cobertura.data).toLocaleDateString('pt-BR')}`
+                descricao: `Pgto Cobertura: ${cobertura.posto.nome} - Ref. ${new Date(cobertura.data).toLocaleDateString('pt-BR')}${descTaxa}`
             })
 
             if (!asaasResult.success) {
@@ -214,7 +223,7 @@ export async function POST(req: Request) {
                 data: updateData
             }),
             prisma.solicitacaoAntecipacao.updateMany({
-                where: { coberturaId: id, status: "APROVADO" },
+                where: { coberturaId: id, status: { in: ["APROVADO", "PENDENTE"] } },
                 data: { status: "PAGO", pagoEm: new Date() }
             }),
             prisma.historicoWorkflow.create({
