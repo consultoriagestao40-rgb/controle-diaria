@@ -1,22 +1,22 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { SidebarNav } from "@/components/dashboard/sidebar-nav"
+import { TopNav } from "@/components/dashboard/top-nav"
 import { MobileHeader } from "@/components/dashboard/mobile-header"
 import { LayoutMainContainer } from "@/components/dashboard/layout-main-container"
 import { prisma } from "@/lib/prisma"
- 
+
 export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
     const session = await getServerSession(authOptions)
- 
+
     if (!session) {
         redirect("/login")
     }
- 
+
     const dbUser = await prisma.user.findUnique({
         where: { id: (session.user as any).id }
     })
@@ -34,28 +34,28 @@ export default async function DashboardLayout({
         where: { ativo: true }
     })
     const logoUrl = config?.logoPersonalizado || "/logo.png"
- 
+
     return (
-        <div className="flex h-screen flex-col md:flex-row bg-[#F8FAFC] overflow-hidden">
-            {/* Sidebar for Desktop (Client Component) */}
-            <SidebarNav 
-                user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl, cargo: dbUser.cargo }} 
-                logoUrl={logoUrl} 
+        <div className="flex h-screen flex-col bg-[#F8FAFC] overflow-hidden">
+            {/* Top Navigation Header for Desktop */}
+            <TopNav
+                user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl, cargo: dbUser.cargo }}
+                logoUrl={logoUrl}
                 acessoDespesas={acessoDespesas}
                 acessoCoberturas={acessoCoberturas}
             />
- 
-            {/* Main Content */}
+
+            {/* Main Content Body Area */}
             <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden relative">
-                {/* Mobile Navigation Header (Client Component wrapper) */}
-                <MobileHeader 
-                    user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl, cargo: dbUser.cargo }} 
-                    logoUrl={logoUrl} 
+                {/* Mobile Navigation Header (Preserved for Mobile) */}
+                <MobileHeader
+                    user={{ name: dbUser.nome, role: role, avatarUrl: dbUser.avatarUrl, cargo: dbUser.cargo }}
+                    logoUrl={logoUrl}
                     acessoDespesas={acessoDespesas}
                     acessoCoberturas={acessoCoberturas}
                 />
- 
-                {/* Main scrollable body area (Client Component wrapper) */}
+
+                {/* Main scrollable body area */}
                 <LayoutMainContainer>
                     {children}
                 </LayoutMainContainer>
@@ -63,4 +63,3 @@ export default async function DashboardLayout({
         </div>
     )
 }
-// Trigger build webhook manually
