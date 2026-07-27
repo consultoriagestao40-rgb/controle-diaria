@@ -37,6 +37,7 @@ interface PixTransferParams {
 interface AsaasTransferResult {
     success: boolean
     transferId?: string
+    transactionReceiptUrl?: string
     error?: string
 }
 
@@ -183,9 +184,12 @@ export async function sendPixTransfer(params: PixTransferParams): Promise<AsaasT
             }
         }
 
+        const receiptUrl = responseData.transactionReceiptUrl || `https://www.asaas.com/comprovantes/${responseData.id}`
+
         return {
             success: true,
-            transferId: responseData.id
+            transferId: responseData.id,
+            transactionReceiptUrl: receiptUrl
         }
     } catch (error: any) {
         console.error("[ASAAS EXCEPTION]", error)

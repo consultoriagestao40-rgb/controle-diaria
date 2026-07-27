@@ -137,6 +137,7 @@ export async function POST(req: Request) {
         const valorTransferenciaPix = antecipacaoAtiva ? Number(antecipacaoAtiva.valorSolicitado) : valorOriginal
 
         let asaasTransferId = ""
+        let asaasReceiptUrl = ""
         if (acao === 'PAGO' && pagarComAsaas) {
             if (!cobertura.diarista.chavePix) {
                 return new NextResponse(
@@ -153,9 +154,8 @@ export async function POST(req: Request) {
 
             const descTaxa = taxaServico > 0 ? ` (Taxa Antecipação: -R$ ${taxaServico.toFixed(2)})` : ""
 
-            // Se o usuário não deu confirmação prévia de divergência de titularidade, consulta a chave no Banco Central via Asaas
-            const confirmarDivergencia = formData.get("confirmarDivergencia") === "true"
-            if (!confirmarDivergencia) {
+            const confirmarTitular = formData.get("confirmarDivergencia") === "true" || formData.get("confirmarTitular") === "true"
+            if (!confirmarTitular) {
                 const details = await getPixAddressKeyDetails(cobertura.diarista.chavePix)
                 if (details.success && details.name) {
                     const nomesSimilares = areNamesSimilar(cobertura.diarista.nome, details.name)
@@ -191,6 +191,7 @@ export async function POST(req: Request) {
                 )
             }
             asaasTransferId = asaasResult.transferId || ""
+            asaasReceiptUrl = asaasResult.transactionReceiptUrl || ""
         }
 
         // Handle File Upload if present
@@ -206,6 +207,17 @@ export async function POST(req: Request) {
                     nomeOriginal: file.name,
                     tamanho: file.size,
                     tipo: file.type,
+                    usuarioId: user.id
+                }
+            }
+        } else if (asaasReceiptUrl && acao === 'PAGO') {
+            // Salva o comprovante oficial gerado pelo Asaas automaticamente como Anexo da Cobertura
+            anexoData = {
+                create: {
+                    url: asaasReceiptUrl,
+                    nomeOriginal: `Comprovante_Pix_Asaas_${id.slice(-6)}.pdf`,
+                    tamanho: 1024,
+                    tipo: "application/pdf",
                     usuarioId: user.id
                 }
             }
