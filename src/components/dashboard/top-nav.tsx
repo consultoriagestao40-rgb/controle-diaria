@@ -223,57 +223,60 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
         <div ref={navRef} className="sticky top-0 z-50 hidden md:block w-full">
             {/* Barra de Navegação Principal */}
             <header className="h-20 w-full items-center justify-between border-b border-white/10 bg-sidebar/95 backdrop-blur-md px-8 shadow-2xl transition-all text-white font-sans flex relative z-50">
-                {/* Esquerda: Logo + Título */}
-                <div className="flex items-center gap-6">
-                    <Link href="/dashboard" className="flex items-center gap-3 active:scale-95 transition-transform">
+                {/* Esquerda: Logo + Titulo + Menus Alinhados à Esquerda (Estilo Banco Inter) */}
+                <div className="flex items-center gap-8">
+                    <Link href="/dashboard" className="flex items-center gap-3 active:scale-95 transition-transform shrink-0">
                         <img
                             src={logoUrl || "/logo.png"}
                             alt="ReembolsaFácil"
-                            className="h-11 w-auto object-contain rounded-lg"
+                            className="h-10 w-auto object-contain rounded-lg"
                         />
                         <span className="hidden lg:block text-[10px] font-black text-white/40 uppercase tracking-[0.25em] border-l border-white/10 pl-3 py-1">
                             Painel Integrado
                         </span>
                     </Link>
-                </div>
 
-                {/* Centro: Categorias Principais (Estilo Inter Modelo) */}
-                <div className="flex items-center gap-4">
-                    {/* Grupos de Menu */}
-                    {groups.map((group) => {
-                        const isOpen = openGroup === group.title
-                        const activeGroup = isGroupActive(group)
+                    {/* Menus Alinhados à Esquerda sem efeito de botão (Apenas Texto + Seta) */}
+                    <div className="flex items-center gap-7">
+                        {groups.map((group) => {
+                            const isOpen = openGroup === group.title
+                            const activeGroup = isGroupActive(group)
 
-                        return (
-                            <button
-                                key={group.title}
-                                onClick={() => setOpenGroup(isOpen ? null : group.title)}
-                                onMouseEnter={() => setOpenGroup(group.title)}
-                                className={cn(
-                                    "flex items-center gap-2 text-[15px] font-semibold transition-all cursor-pointer py-2 px-4 rounded-xl border",
-                                    activeGroup || isOpen
-                                        ? group.color === "cyan"
-                                            ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
-                                            : group.color === "indigo"
-                                            ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/30"
-                                            : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
-                                        : "text-slate-300 hover:text-white hover:bg-white/5 border-transparent"
-                                )}
-                            >
-                                <span>{group.title}</span>
-                                <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-300", isOpen && "rotate-180 text-cyan-400")} />
-                            </button>
-                        )
-                    })}
+                            return (
+                                <button
+                                    key={group.title}
+                                    type="button"
+                                    onClick={() => setOpenGroup(isOpen ? null : group.title)}
+                                    className={cn(
+                                        "flex items-center gap-1.5 text-[15px] transition-colors cursor-pointer py-1 bg-transparent border-none outline-none font-semibold",
+                                        isOpen
+                                            ? "text-cyan-400 font-bold"
+                                            : activeGroup
+                                            ? "text-white font-bold"
+                                            : "text-slate-300 hover:text-white"
+                                    )}
+                                >
+                                    <span>{group.title}</span>
+                                    <ChevronDown
+                                        className={cn(
+                                            "h-4 w-4 transition-transform duration-300",
+                                            isOpen ? "rotate-180 text-cyan-400" : "text-slate-400"
+                                        )}
+                                    />
+                                </button>
+                            )
+                        })}
+                    </div>
                 </div>
 
                 {/* Direita: Perfil do Usuário / Logout */}
                 <div className="relative">
                     <button
+                        type="button"
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                        className="flex items-center gap-3 text-[15px] font-semibold text-slate-200 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 active:scale-95"
+                        className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-200 hover:text-white transition-colors cursor-pointer py-1 px-2.5 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 active:scale-95"
                     >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-slate-300 font-bold text-xs border border-white/10 overflow-hidden">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300 font-bold text-xs border border-white/10 overflow-hidden">
                             {avatarUrl ? (
                                 <img src={avatarUrl} alt={user.name || "Perfil"} className="h-full w-full object-cover" />
                             ) : (
@@ -295,6 +298,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                             </div>
 
                             <button
+                                type="button"
                                 onClick={() => {
                                     setIsUserMenuOpen(false)
                                     setIsProfileOpen(true)
@@ -319,12 +323,9 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                 </div>
             </header>
 
-            {/* MEGA MENU EM LARGURA TOTAL (100% Width Full Banner - Estilo Banco Inter em Cores Escuras do Sistema) */}
+            {/* MEGA MENU EM LARGURA TOTAL - Apenas Abertura por Clique */}
             {activeGroupData && (
-                <div
-                    className="absolute top-20 left-0 right-0 w-full bg-slate-900/98 backdrop-blur-2xl border-b border-white/10 shadow-2xl z-40 animate-in fade-in slide-in-from-top-2 duration-300"
-                    onMouseLeave={() => setOpenGroup(null)}
-                >
+                <div className="absolute top-20 left-0 right-0 w-full bg-slate-900/98 backdrop-blur-2xl border-b border-white/10 shadow-2xl z-40 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="max-w-7xl mx-auto px-8 py-8">
                         {/* Header do Grupo de Mega Menu */}
                         <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
@@ -342,8 +343,9 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                                 </span>
                             </div>
                             <button
+                                type="button"
                                 onClick={() => setOpenGroup(null)}
-                                className="text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                                className="text-xs font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
                             >
                                 ✕ Fechar
                             </button>
@@ -358,6 +360,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                                     <Link
                                         key={item.href}
                                         href={item.href}
+                                        onClick={() => setOpenGroup(null)}
                                         className={cn(
                                             "group flex items-start gap-4 rounded-2xl p-4 text-xs transition-all duration-200 border active:scale-[0.98]",
                                             active
