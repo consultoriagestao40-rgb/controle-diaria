@@ -184,7 +184,7 @@ export async function sendPixTransfer(params: PixTransferParams): Promise<AsaasT
             }
         }
 
-        const receiptUrl = responseData.transactionReceiptUrl || `https://www.asaas.com/comprovantes/${responseData.id}`
+        const receiptUrl = responseData.transactionReceiptUrl || `/api/asaas/comprovante/${responseData.id}`
 
         return {
             success: true,
@@ -197,5 +197,49 @@ export async function sendPixTransfer(params: PixTransferParams): Promise<AsaasT
             success: false,
             error: error.message || "Erro de conexão ao servidor do Asaas."
         }
+    }
+}
+
+/**
+ * Consulta a URL real do comprovante de transferência Pix no Asaas.
+ */
+export async function getTransferReceiptUrl(transferId: string): Promise<{ success: boolean; url?: string; status?: string; error?: string }> {
+    const apiKey = process.env.ASAAS_API_KEY || DEFAULT_KEY_PARTS.join("")
+    const apiUrl = process.env.ASAAS_API_URL || "https://www.asaas.com/api/v3"
+
+    if (!apiKey || !transferId) {
+        return { success: false, error: "ID de transferência ou chave Asaas não configurados." }
+    }
+
+    try {
+        console.log(`[ASAAS] Consultando transferência ${transferId}...`)
+        const response = await fetch(`${apiUrl}/transfers/${transferId}`, {
+            method: "GET",
+            headers: {
+                "access_token": apiKey,
+                "accept": "application/json"
+            }
+        })
+
+        if (!response.ok) {
+            return { success: false, error: "Transferência não encontrada no Asaas." }
+        }
+
+        const data = await response.json() as any
+
+        if (data.transactionReceiptUrl) {
+            return { success: true, url: data.transactionReceiptUrl, status: data.status }
+        }
+
+        return {
+            success: false,
+            status: data.status,
+            error: data.status === "BANK_PROCESSING" || data.status === "PENDING"
+                ? "O comprovante está sendo gerado pela rede Pix do Banco Central. Por favor, aguarde alguns segundos e recarregue."
+                : `Status da transferência no Asaas: ${data.status}`
+        }
+    } catch (error: any) {
+        console.error("[ASAAS CONSULTA RECEIPT ERROR]", error)
+        return { success: false, error: error.message || "Erro de conexão ao Asaas." }
     }
 }
