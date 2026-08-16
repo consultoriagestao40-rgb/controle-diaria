@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
                     cnpj: empresa.cnpj,
                     config: config ? {
                         id: config.id,
-                        clientId: config.clientId ? `${config.clientId.slice(0, 6)}...` : "",
+                        clientId: config.clientId || "",
                         clientSecretConfigured: !!config.clientSecret,
                         redirectUri: config.redirectUri,
                         ativo: config.ativo,
@@ -139,8 +139,8 @@ export async function POST(req: NextRequest) {
 
         const dataUpdate: any = {}
 
-        if (clientId !== undefined) dataUpdate.clientId = clientId
-        if (clientSecret !== undefined && clientSecret.trim() !== "") dataUpdate.clientSecret = clientSecret
+        if (clientId !== undefined && !clientId.includes("...") && clientId.trim() !== "") dataUpdate.clientId = clientId.trim()
+        if (clientSecret !== undefined && !clientSecret.includes("...") && clientSecret.trim() !== "") dataUpdate.clientSecret = clientSecret.trim()
         if (redirectUri !== undefined) dataUpdate.redirectUri = redirectUri
         if (ativo !== undefined) dataUpdate.ativo = ativo
         if (autoCriarAoAprovar !== undefined) dataUpdate.autoCriarAoAprovar = autoCriarAoAprovar
