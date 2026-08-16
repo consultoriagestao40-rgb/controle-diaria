@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
 
-const CONTA_AZUL_API_URL = process.env.CONTA_AZUL_API_URL || "https://api.contaazul.com"
-const CONTA_AZUL_AUTH_URL = process.env.CONTA_AZUL_AUTH_URL || "https://api.contaazul.com/auth/authorize"
-const CONTA_AZUL_TOKEN_URL = process.env.CONTA_AZUL_TOKEN_URL || "https://api.contaazul.com/oauth2/token"
+const CONTA_AZUL_API_URL = process.env.CONTA_AZUL_API_URL || "https://api-v2.contaazul.com/v1"
+const CONTA_AZUL_AUTH_URL = process.env.CONTA_AZUL_AUTH_URL || "https://login.contaazul.com/#/oauth/authorize"
+const CONTA_AZUL_TOKEN_URL = process.env.CONTA_AZUL_TOKEN_URL || "https://api-v2.contaazul.com/oauth/token"
 
 export interface ContaAzulTokenResult {
     success: boolean
@@ -64,9 +64,9 @@ export async function getContaAzulAuthorizationUrl(empresaId: string, customStat
         custom: customState || ""
     }
     const state = Buffer.from(JSON.stringify(stateObj)).toString("base64")
-    const scope = encodeURIComponent("sales finance company")
+    const scope = encodeURIComponent("openid profile aws.cognito.signin.user.admin")
 
-    return `${CONTA_AZUL_AUTH_URL}?redirect_uri=${encodeURIComponent(redirectUri)}&client_id=${clientId}&scope=${scope}&state=${state}`
+    return `${CONTA_AZUL_AUTH_URL}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}`
 }
 
 /**
