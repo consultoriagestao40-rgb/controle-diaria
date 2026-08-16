@@ -125,6 +125,26 @@ export default function FinanceDashboard() {
         end: new Date().toISOString().split('T')[0]
     })
 
+    // Sincronização automática em segundo plano ao abrir a tela
+    useEffect(() => {
+        const autoSync = async () => {
+            try {
+                const res = await fetch("/api/contaazul/sync", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({})
+                })
+                const data = await res.json()
+                if (data.success && (data.coberturasAtualizadas > 0 || data.despesasAtualizadas > 0)) {
+                    fetchItems()
+                }
+            } catch {
+                // Silencioso em background
+            }
+        }
+        autoSync()
+    }, [])
+
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchItems()
