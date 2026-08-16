@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Plus, Pencil, Trash2, Loader2, List, TriangleAlert, RefreshCw, ExternalLink, CheckCircle2, AlertCircle, Building2, Key, Layers, ArrowRight } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Plus, Pencil, Trash2, Loader2, List, TriangleAlert, RefreshCw, ExternalLink, CheckCircle2, AlertCircle, Building2, Key, Layers, ArrowRight, Search, ChevronDown, X, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -21,6 +21,130 @@ import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { useSearchParams } from "next/navigation"
+
+function SearchableCategorySelect({
+    value,
+    selectedName,
+    onChange,
+    categories,
+    placeholder = "Selecione ou digite para buscar...",
+    disabled = false
+}: {
+    value: string
+    selectedName?: string
+    onChange: (id: string, name: string) => void
+    categories: { id: string; nome: string; tipo?: string }[]
+    placeholder?: string
+    disabled?: boolean
+}) {
+    const [isOpen, setIsOpen] = useState(false)
+    const [searchTerm, setSearchTerm] = useState("")
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
+
+    const selectedCategory = categories.find(c => c.id === value)
+    const displayLabel = selectedCategory ? selectedCategory.nome : selectedName || ""
+
+    const filtered = categories.filter(c => 
+        c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.id.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    return (
+        <div ref={containerRef} className="relative w-full">
+            <div
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                className={`w-full min-h-[34px] px-3 py-1.5 border rounded-lg bg-white flex items-center justify-between text-xs cursor-pointer transition-all ${
+                    isOpen ? "border-sky-500 ring-2 ring-sky-100 shadow-sm" : "border-slate-200 hover:border-slate-300"
+                } ${disabled ? "opacity-50 cursor-not-allowed bg-slate-50" : ""}`}
+            >
+                <span className={displayLabel ? "font-semibold text-slate-800 truncate" : "text-slate-400 truncate"}>
+                    {displayLabel || placeholder}
+                </span>
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                    {value && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onChange("", "")
+                            }}
+                            className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
+                            title="Limpar seleção"
+                        >
+                            <X className="h-3 w-3" />
+                        </button>
+                    )}
+                    <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${isOpen ? "rotate-180 text-sky-600" : ""}`} />
+                </div>
+            </div>
+
+            {isOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100">
+                    <div className="p-2 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
+                        <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <input
+                            type="text"
+                            autoFocus
+                            placeholder="Digite para filtrar (ex: Diária, Reembolso, 03.1...)"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-transparent text-xs outline-none font-medium placeholder:text-slate-400"
+                        />
+                        {searchTerm && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchTerm("")}
+                                className="text-[10px] font-bold text-slate-400 hover:text-slate-600"
+                            >
+                                Limpar
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
+                        {filtered.length === 0 ? (
+                            <div className="p-4 text-center text-xs text-slate-400">
+                                Nenhuma categoria encontrada para &quot;{searchTerm}&quot;
+                            </div>
+                        ) : (
+                            filtered.map(cat => {
+                                const isSelected = cat.id === value
+                                return (
+                                    <div
+                                        key={cat.id}
+                                        onClick={() => {
+                                            onChange(cat.id, cat.nome)
+                                            setIsOpen(false)
+                                            setSearchTerm("")
+                                        }}
+                                        className={`px-3 py-2 text-xs rounded-lg cursor-pointer flex items-center justify-between transition-colors ${
+                                            isSelected 
+                                                ? "bg-sky-50 text-sky-900 font-bold" 
+                                                : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                                        }`}
+                                    >
+                                        <span className="truncate">{cat.nome}</span>
+                                        {isSelected && <Check className="h-3.5 w-3.5 text-sky-600 shrink-0 ml-2" />}
+                                    </div>
+                                )
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
 
 interface Motivo {
     id: string
@@ -928,98 +1052,56 @@ function ContaAzulTab() {
                                             
                                             <div>
                                                 <Label htmlFor={`cat-diaria-${empresa.id}`} className="text-xs">Categoria para Diárias / Coberturas *</Label>
-                                                {categoriesByEmpresa[empresa.id] && categoriesByEmpresa[empresa.id].length > 0 ? (
-                                                    <select
-                                                        id={`cat-diaria-${empresa.id}`}
-                                                        value={formData.categoriaDiariaId}
-                                                        onChange={e => {
-                                                            const selected = categoriesByEmpresa[empresa.id].find((c: any) => c.id === e.target.value)
-                                                            setFormData({
-                                                                ...formData,
-                                                                categoriaDiariaId: e.target.value,
-                                                                categoriaDiariaNome: selected ? selected.nome : ""
-                                                            })
-                                                        }}
-                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white font-medium"
-                                                    >
-                                                        <option value="">Selecione a Categoria no Conta Azul...</option>
-                                                        {categoriesByEmpresa[empresa.id].map((c: any) => (
-                                                            <option key={c.id} value={c.id}>{c.nome}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <Input
-                                                        id={`cat-diaria-${empresa.id}`}
-                                                        value={formData.categoriaDiariaId}
-                                                        onChange={e => setFormData({ ...formData, categoriaDiariaId: e.target.value })}
-                                                        placeholder={loadingCategories === empresa.id ? "Carregando categorias..." : "ID da Categoria de Diárias no Conta Azul"}
-                                                        className="h-8 text-xs bg-white"
-                                                    />
-                                                )}
+                                                <SearchableCategorySelect
+                                                    value={formData.categoriaDiariaId}
+                                                    selectedName={formData.categoriaDiariaNome}
+                                                    categories={categoriesByEmpresa[empresa.id] || []}
+                                                    placeholder="Selecione ou digite para filtrar categoria..."
+                                                    disabled={loadingCategories === empresa.id}
+                                                    onChange={(id, nome) => {
+                                                        setFormData({
+                                                            ...formData,
+                                                            categoriaDiariaId: id,
+                                                            categoriaDiariaNome: nome
+                                                        })
+                                                    }}
+                                                />
                                             </div>
 
                                             <div>
                                                 <Label htmlFor={`cat-reembolso-${empresa.id}`} className="text-xs">Categoria para Reembolsos *</Label>
-                                                {categoriesByEmpresa[empresa.id] && categoriesByEmpresa[empresa.id].length > 0 ? (
-                                                    <select
-                                                        id={`cat-reembolso-${empresa.id}`}
-                                                        value={formData.categoriaReembolsoId}
-                                                        onChange={e => {
-                                                            const selected = categoriesByEmpresa[empresa.id].find((c: any) => c.id === e.target.value)
-                                                            setFormData({
-                                                                ...formData,
-                                                                categoriaReembolsoId: e.target.value,
-                                                                categoriaReembolsoNome: selected ? selected.nome : ""
-                                                            })
-                                                        }}
-                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white font-medium"
-                                                    >
-                                                        <option value="">Selecione a Categoria no Conta Azul...</option>
-                                                        {categoriesByEmpresa[empresa.id].map((c: any) => (
-                                                            <option key={c.id} value={c.id}>{c.nome}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <Input
-                                                        id={`cat-reembolso-${empresa.id}`}
-                                                        value={formData.categoriaReembolsoId}
-                                                        onChange={e => setFormData({ ...formData, categoriaReembolsoId: e.target.value })}
-                                                        placeholder={loadingCategories === empresa.id ? "Carregando categorias..." : "ID da Categoria de Reembolso no Conta Azul"}
-                                                        className="h-8 text-xs bg-white"
-                                                    />
-                                                )}
+                                                <SearchableCategorySelect
+                                                    value={formData.categoriaReembolsoId}
+                                                    selectedName={formData.categoriaReembolsoNome}
+                                                    categories={categoriesByEmpresa[empresa.id] || []}
+                                                    placeholder="Selecione ou digite para filtrar categoria..."
+                                                    disabled={loadingCategories === empresa.id}
+                                                    onChange={(id, nome) => {
+                                                        setFormData({
+                                                            ...formData,
+                                                            categoriaReembolsoId: id,
+                                                            categoriaReembolsoNome: nome
+                                                        })
+                                                    }}
+                                                />
                                             </div>
 
                                             <div>
                                                 <Label htmlFor={`cat-adiantamento-${empresa.id}`} className="text-xs">Categoria para Adiantamentos *</Label>
-                                                {categoriesByEmpresa[empresa.id] && categoriesByEmpresa[empresa.id].length > 0 ? (
-                                                    <select
-                                                        id={`cat-adiantamento-${empresa.id}`}
-                                                        value={formData.categoriaAdiantamentoId}
-                                                        onChange={e => {
-                                                            const selected = categoriesByEmpresa[empresa.id].find((c: any) => c.id === e.target.value)
-                                                            setFormData({
-                                                                ...formData,
-                                                                categoriaAdiantamentoId: e.target.value,
-                                                                categoriaAdiantamentoNome: selected ? selected.nome : ""
-                                                            })
-                                                        }}
-                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white font-medium"
-                                                    >
-                                                        <option value="">Selecione a Categoria no Conta Azul...</option>
-                                                        {categoriesByEmpresa[empresa.id].map((c: any) => (
-                                                            <option key={c.id} value={c.id}>{c.nome}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <Input
-                                                        id={`cat-adiantamento-${empresa.id}`}
-                                                        value={formData.categoriaAdiantamentoId}
-                                                        onChange={e => setFormData({ ...formData, categoriaAdiantamentoId: e.target.value })}
-                                                        placeholder={loadingCategories === empresa.id ? "Carregando categorias..." : "ID da Categoria de Adiantamento no Conta Azul"}
-                                                        className="h-8 text-xs bg-white"
-                                                    />
-                                                )}
+                                                <SearchableCategorySelect
+                                                    value={formData.categoriaAdiantamentoId}
+                                                    selectedName={formData.categoriaAdiantamentoNome}
+                                                    categories={categoriesByEmpresa[empresa.id] || []}
+                                                    placeholder="Selecione ou digite para filtrar categoria..."
+                                                    disabled={loadingCategories === empresa.id}
+                                                    onChange={(id, nome) => {
+                                                        setFormData({
+                                                            ...formData,
+                                                            categoriaAdiantamentoId: id,
+                                                            categoriaAdiantamentoNome: nome
+                                                        })
+                                                    }}
+                                                />
                                             </div>
                                         </div>
 
