@@ -41,6 +41,7 @@ export async function GET(req: Request) {
                 financeiro: {
                     select: { id: true, nome: true, email: true }
                 },
+                empresa: true,
                 centroCusto: true,
                 anexos: true,
                 itens: true
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
  
     try {
         const body = await req.json()
-        const { tipo, descricao, valorSolicitado, anexos, enviarParaAprovacao, itens } = body
+        const { tipo, descricao, valorSolicitado, anexos, enviarParaAprovacao, itens, empresaId } = body
  
         if (!tipo || !descricao) {
             return new NextResponse(
@@ -111,6 +112,13 @@ export async function POST(req: Request) {
                 JSON.stringify({ error: "Tipo inválido. Deve ser REEMBOLSO ou ADIANTAMENTO." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
+        }
+
+        // Determinar Empresa
+        let finalEmpresaId = empresaId
+        if (!finalEmpresaId) {
+            const firstEmpresa = await prisma.empresa.findFirst({ where: { ativo: true }, orderBy: { nome: 'asc' } })
+            finalEmpresaId = firstEmpresa?.id || null
         }
 
         // Processar itens detalhados (Itemização)
@@ -193,6 +201,7 @@ export async function POST(req: Request) {
                     valorSolicitado: valor,
                     solicitanteId: user.id,
                     centroCustoId: userCentroCustoId,
+                    empresaId: finalEmpresaId,
                     alertaAuditoria: auditResult.alertMessage,
                     itens: itemsToCreate.length > 0 ? {
                         create: itemsToCreate.map(item => ({

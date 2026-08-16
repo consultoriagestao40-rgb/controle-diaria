@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Receipt, DollarSign, ArrowRight, Loader2, FileUp, Sparkles, CheckCircle, Plus, Trash2, Calendar, Settings, ChevronLeft } from "lucide-react"
+import { Receipt, DollarSign, ArrowRight, Loader2, FileUp, Sparkles, CheckCircle, Plus, Trash2, Calendar, Settings, ChevronLeft, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,6 +23,8 @@ export default function NovaDespesaPage() {
     // Itemized list states
     const [itens, setItens] = useState<any[]>([])
     const [categorias, setCategorias] = useState<string[]>([])
+    const [empresas, setEmpresas] = useState<any[]>([])
+    const [empresaId, setEmpresaId] = useState("")
     
     // Temporary inputs for new item
     const [itemCategoria, setItemCategoria] = useState("")
@@ -48,6 +50,17 @@ export default function NovaDespesaPage() {
             .catch(() => {
                 setCategorias(["REFEICAO", "HOSPEDAGEM", "TRANSPORTE", "OUTROS"])
             })
+
+        fetch("/api/admin/empresas")
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    const ativas = data.filter((e: any) => e.ativo)
+                    setEmpresas(ativas)
+                    if (ativas.length > 0) setEmpresaId(ativas[0].id)
+                }
+            })
+            .catch(() => {})
     }, [])
 
     const handleAddItem = () => {
@@ -177,6 +190,7 @@ export default function NovaDespesaPage() {
                 body: JSON.stringify({
                     tipo,
                     descricao,
+                    empresaId,
                     valorSolicitado: tipo === "ADIANTAMENTO" ? roundedValorAdiantamento : Math.round(totalDespesa * 100) / 100,
                     itens: finalItens,
                     anexos,
@@ -307,6 +321,26 @@ export default function NovaDespesaPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 sm:p-8 space-y-6">
+                    {/* Empresa do Grupo */}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-1.5">
+                            <Building2 className="h-4 w-4 text-sky-600" />
+                            <Label htmlFor="empresa" className="font-bold text-slate-700">Empresa do Grupo *</Label>
+                        </div>
+                        <select
+                            id="empresa"
+                            value={empresaId}
+                            onChange={(e) => setEmpresaId(e.target.value)}
+                            className="w-full h-11 border border-slate-200 rounded-2xl px-4 bg-slate-50/50 font-semibold text-sm focus:ring-primary focus:border-primary focus:bg-white transition-all cursor-pointer"
+                        >
+                            <option value="">Selecione a empresa...</option>
+                            {empresas.map((emp: any) => (
+                                <option key={emp.id} value={emp.id}>{emp.nome}</option>
+                            ))}
+                        </select>
+                        <p className="text-[11px] text-slate-400">O contas a pagar será direcionado para o ERP Conta Azul da empresa selecionada.</p>
+                    </div>
+
                     {/* Descrição */}
                     <div className="space-y-2">
                         <Label htmlFor="descricao" className="font-bold text-slate-700">Finalidade Geral da Solicitação *</Label>

@@ -78,13 +78,39 @@ export default function FinanceHistoryPage() {
                     </Link>
                     <div>
                         <h1 className="text-2xl font-black tracking-tight text-slate-900">Histórico de Pagamentos</h1>
-                        <p className="text-xs text-slate-500 font-medium">Registros completos de todas as baixas e comprovantes Pix emitidos.</p>
+                        <p className="text-xs text-slate-500 font-medium">Registros completos de todas as baixas e comprovantes emitidos (Asaas e Conta Azul).</p>
                     </div>
                 </div>
 
-                <Badge variant="secondary" className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                    {items.length} {items.length === 1 ? 'registro encontrado' : 'registros no histórico'}
-                </Badge>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 font-semibold"
+                        onClick={async () => {
+                            toast.info("Sincronizando com o Conta Azul...")
+                            try {
+                                const res = await fetch("/api/contaazul/sync", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({})
+                                })
+                                const data = await res.json()
+                                if (data.success) {
+                                    toast.success(data.message || "Sincronização concluída!")
+                                    fetchHistory()
+                                }
+                            } catch {
+                                toast.error("Erro ao sincronizar.")
+                            }
+                        }}
+                    >
+                        <RefreshCw className="mr-1.5 h-3.5 w-3.5 text-sky-600" /> Sincronizar Conta Azul
+                    </Button>
+                    <Badge variant="secondary" className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        {items.length} {items.length === 1 ? 'registro encontrado' : 'registros no histórico'}
+                    </Badge>
+                </div>
             </div>
 
             {/* Painel de Filtros e Busca */}
@@ -199,6 +225,7 @@ export default function FinanceHistoryPage() {
                                             <TableCell>
                                                 {temComprovante ? (() => {
                                                     const rawUrl = item.anexos[0].url
+                                                    const isContaAzul = rawUrl.includes("contaazul") || item.anexos[0].nomeOriginal.toLowerCase().includes("contaazul")
                                                     const receiptHref = rawUrl.includes("asaas.com/comprovantes/")
                                                         ? `/api/asaas/comprovante/${rawUrl.split("asaas.com/comprovantes/")[1]}`
                                                         : rawUrl
@@ -208,11 +235,15 @@ export default function FinanceHistoryPage() {
                                                             href={receiptHref}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 transition-all duration-200 active:scale-95 shadow-xs"
-                                                            title="Baixar Comprovante Pix Oficial Asaas (PDF)"
+                                                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 shadow-xs ${
+                                                                isContaAzul
+                                                                    ? "text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200/80"
+                                                                    : "text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80"
+                                                            }`}
+                                                            title={isContaAzul ? "Baixar Comprovante Oficial Conta Azul (PDF)" : "Baixar Comprovante Pix Oficial Asaas (PDF)"}
                                                         >
-                                                            <Download className="h-3.5 w-3.5 text-indigo-600" />
-                                                            <span>Baixar Comprovante</span>
+                                                            <Download className={`h-3.5 w-3.5 ${isContaAzul ? "text-sky-600" : "text-indigo-600"}`} />
+                                                            <span>{isContaAzul ? "Comprovante ERP" : "Baixar Comprovante"}</span>
                                                         </a>
                                                     )
                                                 })() : (

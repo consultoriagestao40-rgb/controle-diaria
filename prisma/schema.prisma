@@ -141,11 +141,49 @@ model MeioPagamento {
 }
 
 model Empresa {
-  id        String  @id @default(uuid())
-  nome      String
-  ativo     Boolean @default(true)
+  id         String          @id @default(uuid())
+  nome       String
+  cnpj       String?
+  ativo      Boolean         @default(true)
   coberturas Cobertura[]
   faturas    FaturaCliente[]
+  despesas   Despesa[]
+  contaAzulConfig ContaAzulConfig?
+}
+
+model ContaAzulConfig {
+  id                      String    @id @default(uuid())
+  empresaId               String    @unique
+  empresa                 Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  
+  clientId                String?
+  clientSecret            String?
+  redirectUri             String?
+  accessToken             String?
+  refreshToken            String?
+  expiresAt               DateTime?
+  
+  ativo                   Boolean   @default(true)
+  autoCriarAoAprovar      Boolean   @default(true)
+  
+  // Categorias Mapeadas no Conta Azul
+  categoriaDiariaId       String?
+  categoriaDiariaNome     String?
+  categoriaReembolsoId    String?
+  categoriaReembolsoNome  String?
+  categoriaAdiantamentoId String?
+  categoriaAdiantamentoNome String?
+  
+  // Centros de Custo e Contas Financeiras Mapeadas
+  centroCustoPadraoId     String?
+  centroCustoPadraoNome   String?
+  contaFinanceiraPadraoId String?
+  contaFinanceiraPadraoNome String?
+  
+  webhookSecret           String?
+  ultimaSincronizacao     DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 }
 
 model FaturaCliente {
@@ -245,6 +283,12 @@ model Cobertura {
   faturaClienteId  String?
   faturaCliente    FaturaCliente? @relation(fields: [faturaClienteId], references: [id])
   dataFaturamento  DateTime?
+
+  // Integração ERP Conta Azul
+  contaAzulPayableId   String?
+  contaAzulStatus      String?
+  contaAzulSyncedAt    DateTime?
+  contaAzulReceiptUrl  String?
 }
 
 // Evidence & Attachments
@@ -337,6 +381,16 @@ model Despesa {
   // Centro de Custo
   centroCustoId         String?
   centroCusto           CentroCusto?      @relation(fields: [centroCustoId], references: [id])
+
+  // Empresa do Grupo
+  empresaId             String?
+  empresa               Empresa?          @relation(fields: [empresaId], references: [id])
+
+  // Integração ERP Conta Azul
+  contaAzulPayableId    String?
+  contaAzulStatus       String?
+  contaAzulSyncedAt     DateTime?
+  contaAzulReceiptUrl   String?
 
   // Relacionamentos modulares
   anexos                Anexo[]           @relation("AnexosDespesa")

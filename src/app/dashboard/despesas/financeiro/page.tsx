@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DollarSign, Loader2, AlertCircle, Calendar, Receipt, FileText, CheckCircle, Wallet, ArrowRightLeft, X, XCircle, Search, CheckSquare } from "lucide-react"
+import { DollarSign, Loader2, AlertCircle, Calendar, Receipt, FileText, CheckCircle, Wallet, ArrowRightLeft, X, XCircle, Search, CheckSquare, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -258,12 +258,41 @@ export default function FinanceiroDespesasPage() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -z-10 md:hidden" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -z-10 md:hidden" />
                 
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight text-white md:text-slate-900">
-                    Painel <span className="text-emerald-400 md:text-primary italic">Financeiro de Despesas</span>
-                </h1>
-                <p className="text-emerald-500/60 md:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-1 md:mt-0">
-                    Gerencie os pagamentos e conciliações de saldos de despesas
-                </p>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter flex flex-wrap items-center gap-x-3 gap-y-1 leading-tight text-white md:text-slate-900">
+                            Painel <span className="text-emerald-400 md:text-primary italic">Financeiro de Despesas</span>
+                        </h1>
+                        <p className="text-emerald-500/60 md:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-1 md:mt-0">
+                            Gerencie os pagamentos e conciliações de saldos de despesas
+                        </p>
+                    </div>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 font-bold shadow-xs cursor-pointer"
+                        onClick={async () => {
+                            toast.info("Sincronizando baixas com o Conta Azul...")
+                            try {
+                                const res = await fetch("/api/contaazul/sync", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({})
+                                })
+                                const data = await res.json()
+                                if (data.success) {
+                                    toast.success(data.message || "Sincronização concluída!")
+                                    fetchFinanceData()
+                                }
+                            } catch {
+                                toast.error("Erro ao sincronizar.")
+                            }
+                        }}
+                    >
+                        <RefreshCw className="mr-1.5 h-3.5 w-3.5 text-sky-600" /> Sincronizar Conta Azul
+                    </Button>
+                </div>
             </div>
 
             {/* Cards de Resumo no Topo */}

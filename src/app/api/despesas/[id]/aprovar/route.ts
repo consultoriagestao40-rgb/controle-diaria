@@ -116,6 +116,27 @@ export async function PATCH(
             return atualizada
         })
 
+        // Se aprovado, dispara criação de Contas a Pagar no Conta Azul
+        if (novoStatus === 'APROVADO') {
+            try {
+                const { createPayableFromDespesa } = await import("@/lib/contaazul")
+                const caResult = await createPayableFromDespesa(id)
+                if (caResult.success) {
+                    await prisma.historicoDespesa.create({
+                        data: {
+                            despesaId: id,
+                            deStatus: 'APROVADO',
+                            paraStatus: 'APROVADO',
+                            usuarioId: user.id,
+                            observacao: `[Conta Azul] Lançamento de Contas a Pagar criado com sucesso (ID: ${caResult.payableId})`
+                        }
+                    })
+                }
+            } catch (caErr: any) {
+                console.error("[CONTA AZUL DESPESA TRIGGER ERROR]", caErr)
+            }
+        }
+
         return NextResponse.json(despesaAtualizada)
     } catch (error) {
         console.error("Erro ao aprovar/reprovar despesa:", error)

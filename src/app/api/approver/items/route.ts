@@ -224,6 +224,27 @@ export async function POST(req: Request) {
             })
         ])
 
+        // If approved (Final Approval), create Conta Azul Payable bill if active
+        if (newStatus === 'APROVADO') {
+            try {
+                const { createPayableFromCobertura } = await import("@/lib/contaazul")
+                const caResult = await createPayableFromCobertura(id)
+                if (caResult.success) {
+                    await prisma.historicoWorkflow.create({
+                        data: {
+                            coberturaId: id,
+                            deStatus: 'APROVADO',
+                            paraStatus: 'APROVADO',
+                            usuarioId: user.id,
+                            observacao: `[Conta Azul] Lançamento de Contas a Pagar criado com sucesso (ID: ${caResult.payableId})`
+                        }
+                    })
+                }
+            } catch (caErr: any) {
+                console.error("[CONTA AZUL TRIGGER ERROR]", caErr)
+            }
+        }
+
         // Notify Supervisor if Rejected or Adjustment requested
         // TODO: Notify N1 if N2 rejects? Maybe later.
         await notifyStatusChange(id, newStatus, justificativa)

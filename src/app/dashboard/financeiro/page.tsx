@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckCircle, DollarSign, Loader2, Calendar, MapPin, User, FileText, CreditCard, Upload, Download, Search, AlertTriangle, XCircle, X } from "lucide-react"
+import { CheckCircle, DollarSign, Loader2, Calendar, MapPin, User, FileText, CreditCard, Upload, Download, Search, AlertTriangle, XCircle, X, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -92,6 +92,31 @@ export default function FinanceDashboard() {
     // Estados de integração do Asaas
     const [confirmacaoSenha, setConfirmacaoSenha] = useState("")
     const [mostrarSenhaInput, setMostrarSenhaInput] = useState(false)
+
+    // Estado de sincronização do Conta Azul
+    const [syncingContaAzul, setSyncingContaAzul] = useState(false)
+
+    const handleSyncContaAzul = async () => {
+        setSyncingContaAzul(true)
+        try {
+            const res = await fetch("/api/contaazul/sync", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({})
+            })
+            const data = await res.json()
+            if (data.success) {
+                toast.success(data.message || "Sincronização com Conta Azul concluída!")
+                fetchItems()
+            } else {
+                toast.error(data.error || "Erro ao sincronizar com Conta Azul.")
+            }
+        } catch {
+            toast.error("Erro de conexão ao sincronizar com Conta Azul.")
+        } finally {
+            setSyncingContaAzul(false)
+        }
+    }
 
     // Export Dialog State
     const [exportOpen, setExportOpen] = useState(false)
@@ -441,7 +466,16 @@ export default function FinanceDashboard() {
                         </>
                     )}
 
-                    <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto shrink-0">
+                        <Button
+                            variant="outline"
+                            className="flex-1 sm:flex-none h-10 rounded-xl bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 font-semibold"
+                            onClick={handleSyncContaAzul}
+                            disabled={syncingContaAzul}
+                        >
+                            {syncingContaAzul ? <Loader2 className="mr-2 h-4 w-4 animate-spin text-sky-600" /> : <RefreshCw className="mr-2 h-4 w-4 text-sky-600" />}
+                            Sincronizar Conta Azul
+                        </Button>
                         <Button variant="outline" className="flex-1 sm:flex-none h-10 rounded-xl" onClick={() => setExportOpen(true)}>
                             <Download className="mr-2 h-4 w-4" /> Exportar
                         </Button>
