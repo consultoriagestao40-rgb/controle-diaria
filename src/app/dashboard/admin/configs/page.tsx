@@ -754,6 +754,8 @@ function ContaAzulTab() {
     const [formData, setFormData] = useState<any>({})
     const [savingEmpresaId, setSavingEmpresaId] = useState<string | null>(null)
     const [categoriesByEmpresa, setCategoriesByEmpresa] = useState<Record<string, any[]>>({})
+    const [centrosCustoByEmpresa, setCentrosCustoByEmpresa] = useState<Record<string, any[]>>({})
+    const [contasFinanceirasByEmpresa, setContasFinanceirasByEmpresa] = useState<Record<string, any[]>>({})
     const [loadingCategories, setLoadingCategories] = useState<string | null>(null)
 
     useEffect(() => {
@@ -856,19 +858,33 @@ function ContaAzulTab() {
             contaFinanceiraPadraoNome: empresa.config?.contaFinanceiraPadraoNome || ""
         })
 
-        if (empresa.isConnected && !categoriesByEmpresa[empresa.id]) {
+        if (empresa.isConnected && (!categoriesByEmpresa[empresa.id] || !centrosCustoByEmpresa[empresa.id] || !contasFinanceirasByEmpresa[empresa.id])) {
             setLoadingCategories(empresa.id)
             try {
                 const res = await fetch(`/api/contaazul/options?empresaId=${empresa.id}`)
                 const data = await res.json()
-                if (data.success && Array.isArray(data.categorias)) {
-                    setCategoriesByEmpresa(prev => ({
-                        ...prev,
-                        [empresa.id]: data.categorias
-                    }))
+                if (data.success) {
+                    if (Array.isArray(data.categorias)) {
+                        setCategoriesByEmpresa(prev => ({
+                            ...prev,
+                            [empresa.id]: data.categorias
+                        }))
+                    }
+                    if (Array.isArray(data.centrosCusto)) {
+                        setCentrosCustoByEmpresa(prev => ({
+                            ...prev,
+                            [empresa.id]: data.centrosCusto
+                        }))
+                    }
+                    if (Array.isArray(data.contasFinanceiras)) {
+                        setContasFinanceirasByEmpresa(prev => ({
+                            ...prev,
+                            [empresa.id]: data.contasFinanceiras
+                        }))
+                    }
                 }
             } catch {
-                console.error("Erro ao carregar categorias")
+                console.error("Erro ao carregar opções do Conta Azul")
             } finally {
                 setLoadingCategories(null)
             }
@@ -1146,67 +1162,39 @@ function ContaAzulTab() {
                                         {/* Centro de Custo e Conta Financeira */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-sky-100">
                                             <div>
-                                                <Label htmlFor={`centro-custo-${empresa.id}`} className="text-xs">Centro de Custo Padrão</Label>
-                                                {empresa.costCenters && empresa.costCenters.length > 0 ? (
-                                                    <select
-                                                        id={`centro-custo-${empresa.id}`}
-                                                        value={formData.centroCustoPadraoId}
-                                                        onChange={e => {
-                                                            const selected = empresa.costCenters.find((cc: any) => cc.id === e.target.value)
-                                                            setFormData({
-                                                                ...formData,
-                                                                centroCustoPadraoId: e.target.value,
-                                                                centroCustoPadraoNome: selected ? (selected.name || selected.nome) : ""
-                                                            })
-                                                        }}
-                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white"
-                                                    >
-                                                        <option value="">(Opcional) Selecione...</option>
-                                                        {empresa.costCenters.map((cc: any) => (
-                                                            <option key={cc.id} value={cc.id}>{cc.name || cc.nome || cc.id}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <Input
-                                                        id={`centro-custo-${empresa.id}`}
-                                                        value={formData.centroCustoPadraoId}
-                                                        onChange={e => setFormData({ ...formData, centroCustoPadraoId: e.target.value })}
-                                                        placeholder="ID Centro de Custo"
-                                                        className="h-8 text-xs bg-white"
-                                                    />
-                                                )}
+                                                <Label htmlFor={`centro-custo-${empresa.id}`} className="text-xs font-semibold text-slate-700">Centro de Custo Padrão (Fallback)</Label>
+                                                <SearchableCategorySelect
+                                                    categories={centrosCustoByEmpresa[empresa.id] || []}
+                                                    value={formData.centroCustoPadraoId}
+                                                    selectedName={formData.centroCustoPadraoNome}
+                                                    placeholder="Selecione o centro de custo padrão..."
+                                                    disabled={loadingCategories === empresa.id}
+                                                    onChange={(id, nome) => {
+                                                        setFormData({
+                                                            ...formData,
+                                                            centroCustoPadraoId: id,
+                                                            centroCustoPadraoNome: nome
+                                                        })
+                                                    }}
+                                                />
                                             </div>
 
                                             <div>
-                                                <Label htmlFor={`conta-banco-${empresa.id}`} className="text-xs">Conta Bancária / Financeira</Label>
-                                                {empresa.bankAccounts && empresa.bankAccounts.length > 0 ? (
-                                                    <select
-                                                        id={`conta-banco-${empresa.id}`}
-                                                        value={formData.contaFinanceiraPadraoId}
-                                                        onChange={e => {
-                                                            const selected = empresa.bankAccounts.find((ba: any) => ba.id === e.target.value)
-                                                            setFormData({
-                                                                ...formData,
-                                                                contaFinanceiraPadraoId: e.target.value,
-                                                                contaFinanceiraPadraoNome: selected ? (selected.name || selected.nome) : ""
-                                                            })
-                                                        }}
-                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white"
-                                                    >
-                                                        <option value="">(Opcional) Selecione...</option>
-                                                        {empresa.bankAccounts.map((ba: any) => (
-                                                            <option key={ba.id} value={ba.id}>{ba.name || ba.nome || ba.id}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <Input
-                                                        id={`conta-banco-${empresa.id}`}
-                                                        value={formData.contaFinanceiraPadraoId}
-                                                        onChange={e => setFormData({ ...formData, contaFinanceiraPadraoId: e.target.value })}
-                                                        placeholder="ID Conta Bancária"
-                                                        className="h-8 text-xs bg-white"
-                                                    />
-                                                )}
+                                                <Label htmlFor={`conta-banco-${empresa.id}`} className="text-xs font-semibold text-slate-700">Conta Bancária / Financeira (Ex: Conta PJ)</Label>
+                                                <SearchableCategorySelect
+                                                    categories={contasFinanceirasByEmpresa[empresa.id] || []}
+                                                    value={formData.contaFinanceiraPadraoId}
+                                                    selectedName={formData.contaFinanceiraPadraoNome}
+                                                    placeholder="Selecione a conta bancária/PJ..."
+                                                    disabled={loadingCategories === empresa.id}
+                                                    onChange={(id, nome) => {
+                                                        setFormData({
+                                                            ...formData,
+                                                            contaFinanceiraPadraoId: id,
+                                                            contaFinanceiraPadraoNome: nome
+                                                        })
+                                                    }}
+                                                />
                                             </div>
                                         </div>
 

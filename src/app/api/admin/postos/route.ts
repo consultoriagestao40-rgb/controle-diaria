@@ -28,14 +28,16 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json()
-        const { nome, ativo } = body
+        const { nome, ativo, centroCustoContaAzulId, centroCustoContaAzulNome } = body
 
         if (!nome) return new NextResponse("Nome is required", { status: 400 })
 
         const posto = await prisma.posto.create({
             data: {
                 nome,
-                ativo: ativo !== undefined ? ativo : true
+                ativo: ativo !== undefined ? ativo : true,
+                centroCustoContaAzulId,
+                centroCustoContaAzulNome
             }
         })
 

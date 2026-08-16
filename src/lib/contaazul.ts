@@ -400,8 +400,10 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
             payload.category_id = categoryId
         }
 
-        if (config.centroCustoPadraoId) {
-            payload.cost_center_id = config.centroCustoPadraoId
+        // Prioridade de Centro de Custo: Posto de Trabalho -> Padrão da Empresa
+        const costCenterId = cobertura.posto?.centroCustoContaAzulId || config.centroCustoPadraoId
+        if (costCenterId) {
+            payload.cost_center_id = costCenterId
         }
 
         if (config.contaFinanceiraPadraoId) {

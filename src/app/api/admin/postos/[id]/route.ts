@@ -15,11 +15,16 @@ export async function PUT(
     try {
         const { id } = await params
         const body = await req.json()
-        const { nome, ativo } = body
+        const { nome, ativo, centroCustoContaAzulId, centroCustoContaAzulNome } = body
 
         const posto = await prisma.posto.update({
             where: { id },
-            data: { nome, ativo }
+            data: {
+                nome,
+                ativo,
+                centroCustoContaAzulId,
+                centroCustoContaAzulNome
+            }
         })
 
         return NextResponse.json(posto)

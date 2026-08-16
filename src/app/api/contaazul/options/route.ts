@@ -25,32 +25,64 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Empresa não conectada ao Conta Azul (OAuth pendente)." }, { status: 400 })
         }
 
-        // Busca as categorias financeiras do Conta Azul (Plano de Contas)
-        const res = await fetch("https://api-v2.contaazul.com/v1/categorias?tamanho_pagina=250", {
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json"
-            }
-        })
-
-        if (!res.ok) {
-            const errData = await res.json().catch(() => ({}))
-            return NextResponse.json({ error: errData.message || "Erro ao consultar categorias no Conta Azul." }, { status: res.status })
+        const headers = {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
         }
 
-        const data = await res.json()
-        const itens = data.itens || []
+        // Busca simultânea de Categorias, Centros de Custo e Contas Financeiras
+        const [resCat, resCc, resContas] = await Promise.all([
+            fetch("https://api-v2.contaazul.com/v1/categorias?tamanho_pagina=250", { headers }).catch(() => null),
+            fetch("https://api-v2.contaazul.com/v1/centro-de-custo?tamanho_pagina=250", { headers }).catch(() => null),
+            fetch("https://api-v2.contaazul.com/v1/conta-financeira?tamanho_pagina=100", { headers }).catch(() => null)
+        ])
 
-        // Filtra e organiza categorias
-        const categorias = itens.map((item: any) => ({
-            id: item.id,
-            nome: item.nome,
-            tipo: item.tipo || "DESPESA"
-        })).sort((a: any, b: any) => a.nome.localeCompare(b.nome))
+        // Processa Categorias
+        let categorias: any[] = []
+        if (resCat && resCat.ok) {
+            const dataCat = await resCat.json().catch(() => ({}))
+            const itensCat = dataCat.itens || []
+            categorias = itensCat.map((item: any) => ({
+                id: item.id,
+                nome: item.nome,
+                tipo: item.tipo || "DESPESA"
+            })).sort((a: any, b: any) => a.nome.localeCompare(b.nome))
+        }
+
+        // Processa Centros de Custo
+        let centrosCusto: any[] = []
+        if (resCc && resCc.ok) {
+            const dataCc = await resCc.json().catch(() => ({}))
+            const itensCc = dataCc.itens || []
+            centrosCusto = itensCc.map((item: any) => ({
+                id: item.id,
+                nome: item.nome,
+                codigo: item.codigo || "",
+                ativo: item.ativo !== false
+            })).sort((a: any, b: any) => a.nome.localeCompare(b.nome))
+        }
+
+        // Processa Contas Financeiras (Bancos, Cartões, Conta PJ Conta Azul)
+        let contasFinanceiras: any[] = []
+        if (resContas && resContas.ok) {
+            const dataContas = await resContas.json().catch(() => ({}))
+            const itensContas = dataContas.itens || []
+            contasFinanceiras = itensContas.map((item: any) => ({
+                id: item.id,
+                nome: item.nome,
+                banco: item.banco || "",
+                tipo: item.tipo || "",
+                agencia: item.agencia || "",
+                numero: item.numero || "",
+                ativo: item.ativo !== false
+            })).sort((a: any, b: any) => a.nome.localeCompare(b.nome))
+        }
 
         return NextResponse.json({
             success: true,
-            categorias
+            categorias,
+            centrosCusto,
+            contasFinanceiras
         })
     } catch (error: any) {
         console.error("[CONTA AZUL OPTIONS ERROR]", error)

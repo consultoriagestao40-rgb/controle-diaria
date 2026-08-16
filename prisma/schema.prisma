@@ -93,6 +93,10 @@ model Posto {
   coberturas Cobertura[]
   
   supervisores User[]
+
+  // Centro de Custo no ERP Conta Azul
+  centroCustoContaAzulId   String?
+  centroCustoContaAzulNome String?
 }
 
 model Diarista {
