@@ -629,6 +629,8 @@ function ContaAzulTab() {
     const [editingEmpresaId, setEditingEmpresaId] = useState<string | null>(null)
     const [formData, setFormData] = useState<any>({})
     const [savingEmpresaId, setSavingEmpresaId] = useState<string | null>(null)
+    const [categoriesByEmpresa, setCategoriesByEmpresa] = useState<Record<string, any[]>>({})
+    const [loadingCategories, setLoadingCategories] = useState<string | null>(null)
 
     useEffect(() => {
         fetchConfigs()
@@ -706,7 +708,7 @@ function ContaAzulTab() {
         }
     }
 
-    const startEditing = (empresa: any) => {
+    const startEditing = async (empresa: any) => {
         setEditingEmpresaId(empresa.id)
         setFormData({
             clientId: empresa.config?.clientId || "",
@@ -725,6 +727,24 @@ function ContaAzulTab() {
             contaFinanceiraPadraoId: empresa.config?.contaFinanceiraPadraoId || "",
             contaFinanceiraPadraoNome: empresa.config?.contaFinanceiraPadraoNome || ""
         })
+
+        if (empresa.isConnected && !categoriesByEmpresa[empresa.id]) {
+            setLoadingCategories(empresa.id)
+            try {
+                const res = await fetch(`/api/contaazul/options?empresaId=${empresa.id}`)
+                const data = await res.json()
+                if (data.success && Array.isArray(data.categorias)) {
+                    setCategoriesByEmpresa(prev => ({
+                        ...prev,
+                        [empresa.id]: data.categorias
+                    }))
+                }
+            } catch {
+                console.error("Erro ao carregar categorias")
+            } finally {
+                setLoadingCategories(null)
+            }
+        }
     }
 
     const handleSaveEmpresa = async (empresaId: string) => {
@@ -897,27 +917,34 @@ function ContaAzulTab() {
 
                                         {/* Mapeamentos de Categorias */}
                                         <div className="space-y-3 pt-2 border-t border-sky-100">
-                                            <span className="text-xs font-bold text-slate-700 block">Mapeamento de Categorias (Plano de Contas)</span>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-slate-700 block">Mapeamento de Categorias (Plano de Contas)</span>
+                                                {loadingCategories === empresa.id && (
+                                                    <span className="flex items-center gap-1.5 text-xs text-sky-600 font-semibold">
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando do Conta Azul...
+                                                    </span>
+                                                )}
+                                            </div>
                                             
                                             <div>
-                                                <Label htmlFor={`cat-diaria-${empresa.id}`} className="text-xs">Categoria para Diárias / Coberturas</Label>
-                                                {empresa.categories && empresa.categories.length > 0 ? (
+                                                <Label htmlFor={`cat-diaria-${empresa.id}`} className="text-xs">Categoria para Diárias / Coberturas *</Label>
+                                                {categoriesByEmpresa[empresa.id] && categoriesByEmpresa[empresa.id].length > 0 ? (
                                                     <select
                                                         id={`cat-diaria-${empresa.id}`}
                                                         value={formData.categoriaDiariaId}
                                                         onChange={e => {
-                                                            const selected = empresa.categories.find((c: any) => c.id === e.target.value)
+                                                            const selected = categoriesByEmpresa[empresa.id].find((c: any) => c.id === e.target.value)
                                                             setFormData({
                                                                 ...formData,
                                                                 categoriaDiariaId: e.target.value,
-                                                                categoriaDiariaNome: selected ? (selected.name || selected.nome) : ""
+                                                                categoriaDiariaNome: selected ? selected.nome : ""
                                                             })
                                                         }}
-                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white"
+                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white font-medium"
                                                     >
                                                         <option value="">Selecione a Categoria no Conta Azul...</option>
-                                                        {empresa.categories.map((c: any) => (
-                                                            <option key={c.id} value={c.id}>{c.name || c.nome || c.descricao || c.id}</option>
+                                                        {categoriesByEmpresa[empresa.id].map((c: any) => (
+                                                            <option key={c.id} value={c.id}>{c.nome}</option>
                                                         ))}
                                                     </select>
                                                 ) : (
@@ -925,31 +952,31 @@ function ContaAzulTab() {
                                                         id={`cat-diaria-${empresa.id}`}
                                                         value={formData.categoriaDiariaId}
                                                         onChange={e => setFormData({ ...formData, categoriaDiariaId: e.target.value })}
-                                                        placeholder="ID da Categoria de Diárias no Conta Azul"
+                                                        placeholder={loadingCategories === empresa.id ? "Carregando categorias..." : "ID da Categoria de Diárias no Conta Azul"}
                                                         className="h-8 text-xs bg-white"
                                                     />
                                                 )}
                                             </div>
 
                                             <div>
-                                                <Label htmlFor={`cat-reembolso-${empresa.id}`} className="text-xs">Categoria para Reembolsos</Label>
-                                                {empresa.categories && empresa.categories.length > 0 ? (
+                                                <Label htmlFor={`cat-reembolso-${empresa.id}`} className="text-xs">Categoria para Reembolsos *</Label>
+                                                {categoriesByEmpresa[empresa.id] && categoriesByEmpresa[empresa.id].length > 0 ? (
                                                     <select
                                                         id={`cat-reembolso-${empresa.id}`}
                                                         value={formData.categoriaReembolsoId}
                                                         onChange={e => {
-                                                            const selected = empresa.categories.find((c: any) => c.id === e.target.value)
+                                                            const selected = categoriesByEmpresa[empresa.id].find((c: any) => c.id === e.target.value)
                                                             setFormData({
                                                                 ...formData,
                                                                 categoriaReembolsoId: e.target.value,
-                                                                categoriaReembolsoNome: selected ? (selected.name || selected.nome) : ""
+                                                                categoriaReembolsoNome: selected ? selected.nome : ""
                                                             })
                                                         }}
-                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white"
+                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white font-medium"
                                                     >
                                                         <option value="">Selecione a Categoria no Conta Azul...</option>
-                                                        {empresa.categories.map((c: any) => (
-                                                            <option key={c.id} value={c.id}>{c.name || c.nome || c.descricao || c.id}</option>
+                                                        {categoriesByEmpresa[empresa.id].map((c: any) => (
+                                                            <option key={c.id} value={c.id}>{c.nome}</option>
                                                         ))}
                                                     </select>
                                                 ) : (
@@ -957,31 +984,31 @@ function ContaAzulTab() {
                                                         id={`cat-reembolso-${empresa.id}`}
                                                         value={formData.categoriaReembolsoId}
                                                         onChange={e => setFormData({ ...formData, categoriaReembolsoId: e.target.value })}
-                                                        placeholder="ID da Categoria de Reembolso no Conta Azul"
+                                                        placeholder={loadingCategories === empresa.id ? "Carregando categorias..." : "ID da Categoria de Reembolso no Conta Azul"}
                                                         className="h-8 text-xs bg-white"
                                                     />
                                                 )}
                                             </div>
 
                                             <div>
-                                                <Label htmlFor={`cat-adiantamento-${empresa.id}`} className="text-xs">Categoria para Adiantamentos</Label>
-                                                {empresa.categories && empresa.categories.length > 0 ? (
+                                                <Label htmlFor={`cat-adiantamento-${empresa.id}`} className="text-xs">Categoria para Adiantamentos *</Label>
+                                                {categoriesByEmpresa[empresa.id] && categoriesByEmpresa[empresa.id].length > 0 ? (
                                                     <select
                                                         id={`cat-adiantamento-${empresa.id}`}
                                                         value={formData.categoriaAdiantamentoId}
                                                         onChange={e => {
-                                                            const selected = empresa.categories.find((c: any) => c.id === e.target.value)
+                                                            const selected = categoriesByEmpresa[empresa.id].find((c: any) => c.id === e.target.value)
                                                             setFormData({
                                                                 ...formData,
                                                                 categoriaAdiantamentoId: e.target.value,
-                                                                categoriaAdiantamentoNome: selected ? (selected.name || selected.nome) : ""
+                                                                categoriaAdiantamentoNome: selected ? selected.nome : ""
                                                             })
                                                         }}
-                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white"
+                                                        className="w-full text-xs h-8 border rounded-md px-2 bg-white font-medium"
                                                     >
                                                         <option value="">Selecione a Categoria no Conta Azul...</option>
-                                                        {empresa.categories.map((c: any) => (
-                                                            <option key={c.id} value={c.id}>{c.name || c.nome || c.descricao || c.id}</option>
+                                                        {categoriesByEmpresa[empresa.id].map((c: any) => (
+                                                            <option key={c.id} value={c.id}>{c.nome}</option>
                                                         ))}
                                                     </select>
                                                 ) : (
@@ -989,7 +1016,7 @@ function ContaAzulTab() {
                                                         id={`cat-adiantamento-${empresa.id}`}
                                                         value={formData.categoriaAdiantamentoId}
                                                         onChange={e => setFormData({ ...formData, categoriaAdiantamentoId: e.target.value })}
-                                                        placeholder="ID da Categoria de Adiantamento no Conta Azul"
+                                                        placeholder={loadingCategories === empresa.id ? "Carregando categorias..." : "ID da Categoria de Adiantamento no Conta Azul"}
                                                         className="h-8 text-xs bg-white"
                                                     />
                                                 )}
