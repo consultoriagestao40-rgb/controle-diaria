@@ -378,6 +378,66 @@ export async function resolveFinancialAccountForEmpresa(
 }
 
 /**
+ * Calcula o 5º dia útil de um determinado mês (considerando Segunda a Sexta).
+ */
+export function getQuintoDiaUtil(ano: number, mesZeroIndexed: number): Date {
+    let current = new Date(ano, mesZeroIndexed, 1)
+    let businessDaysCount = 0
+
+    while (businessDaysCount < 5) {
+        const dayOfWeek = current.getDay() // 0 = Domingo, 6 = Sábado
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            businessDaysCount++
+            if (businessDaysCount === 5) {
+                return current
+            }
+        }
+        current = new Date(current.getTime() + 86400000)
+    }
+    return current
+}
+
+/**
+ * Calcula a data de vencimento da diária segundo a regra:
+ * - Vencimento em toda sexta-feira da semana do plantão.
+ * - Se a sexta-feira coincidir com a semana do 5º dia útil (semana da folha de pagamento),
+ *   o vencimento é prorrogado para a próxima sexta-feira (+7 dias).
+ */
+export function calculateDiariaVencimento(dataBaseInput: Date | string): Date {
+    const d = typeof dataBaseInput === "string" ? new Date(dataBaseInput) : new Date(dataBaseInput)
+
+    const dayOfWeek = d.getDay()
+    let daysToFriday = (5 - dayOfWeek + 7) % 7
+    if (dayOfWeek === 6) daysToFriday = 6
+
+    let targetFriday = new Date(d.getFullYear(), d.getMonth(), d.getDate() + daysToFriday)
+
+    // Identifica o 5º dia útil do mês da targetFriday
+    const quintoDiaUtil = getQuintoDiaUtil(targetFriday.getFullYear(), targetFriday.getMonth())
+
+    // Verifica se targetFriday está na mesma semana (segunda a domingo) que o 5º dia útil
+    const getMonday = (dt: Date) => {
+        const day = dt.getDay()
+        const diff = (day === 0 ? -6 : 1) - day
+        return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + diff)
+    }
+
+    const mondayTarget = getMonday(targetFriday)
+    const mondayQuinto = getMonday(quintoDiaUtil)
+
+    const isSameWeek = mondayTarget.getFullYear() === mondayQuinto.getFullYear() &&
+                       mondayTarget.getMonth() === mondayQuinto.getMonth() &&
+                       mondayTarget.getDate() === mondayQuinto.getDate()
+
+    if (isSameWeek) {
+        // Semana da folha: prorroga para a próxima sexta-feira (+7 dias)
+        targetFriday = new Date(targetFriday.getFullYear(), targetFriday.getMonth(), targetFriday.getDate() + 7)
+    }
+
+    return targetFriday
+}
+
+/**
  * Cria lançamento de Contas a Pagar no Conta Azul a partir de uma Cobertura (Diária) aprovada
  */
 export async function createPayableFromCobertura(coberturaId: string): Promise<ContaAzulPayableResult> {
@@ -434,7 +494,8 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
 
         const valor = Number(cobertura.valor)
         const dataCompetencia = format(new Date(cobertura.data), "yyyy-MM-dd")
-        const dataVencimento = format(cobertura.dataVencimento || new Date(cobertura.data), "yyyy-MM-dd")
+        const calculatedVencimento = calculateDiariaVencimento(cobertura.dataVencimento || cobertura.data)
+        const dataVencimento = format(calculatedVencimento, "yyyy-MM-dd")
         const descricao = `Diária Cobertura: ${cobertura.diarista.nome} - Posto ${cobertura.posto.nome} (Ref. ${format(new Date(cobertura.data), "dd/MM/yyyy")})`
 
         // 2. Resolução de Categoria Financeira
