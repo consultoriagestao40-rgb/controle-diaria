@@ -196,6 +196,11 @@ export async function getValidAccessToken(empresaId: string): Promise<string | n
         }
     }
 
+    // Se o token expirou e a renovação falhou, retorna null para indicar que precisa de reconexão
+    if (config.expiresAt && config.expiresAt.getTime() <= now.getTime()) {
+        return null
+    }
+
     return config.accessToken
 }
 
