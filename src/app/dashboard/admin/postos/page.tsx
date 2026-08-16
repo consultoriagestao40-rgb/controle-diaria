@@ -180,10 +180,18 @@ export default function PostosPage() {
         }
     }
 
-    const filteredPostos = postos.filter(p =>
-        p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.centroCustoContaAzulNome && p.centroCustoContaAzulNome.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+    const [filterVinculo, setFilterVinculo] = useState<"TODOS" | "VINCULADOS" | "SEM_VINCULO">("TODOS")
+
+    const filteredPostos = postos.filter(p => {
+        const matchesSearch = p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.centroCustoContaAzulNome && p.centroCustoContaAzulNome.toLowerCase().includes(searchTerm.toLowerCase()))
+        
+        if (!matchesSearch) return false
+
+        if (filterVinculo === "VINCULADOS") return !!p.centroCustoContaAzulId
+        if (filterVinculo === "SEM_VINCULO") return !p.centroCustoContaAzulId
+        return true
+    })
 
     const filteredCentrosCusto = centrosCusto.filter(cc =>
         cc.nome.toLowerCase().includes(ccSearch.toLowerCase()) ||
@@ -221,9 +229,12 @@ export default function PostosPage() {
                 </div>
             </div>
 
-            {/* Card de Estatísticas de Vínculo */}
+            {/* Card de Estatísticas de Vínculo (Clicáveis como filtro) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="border border-slate-200 shadow-sm bg-gradient-to-br from-white to-slate-50">
+                <Card
+                    onClick={() => setFilterVinculo("TODOS")}
+                    className={`border shadow-sm transition-all cursor-pointer ${filterVinculo === "TODOS" ? "ring-2 ring-slate-900 border-slate-900 bg-slate-50/80" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                >
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total de Postos</p>
@@ -235,7 +246,10 @@ export default function PostosPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="border border-emerald-200 shadow-sm bg-gradient-to-br from-white to-emerald-50/40">
+                <Card
+                    onClick={() => setFilterVinculo("VINCULADOS")}
+                    className={`border shadow-sm transition-all cursor-pointer ${filterVinculo === "VINCULADOS" ? "ring-2 ring-emerald-600 border-emerald-600 bg-emerald-50/80" : "border-emerald-200 hover:border-emerald-300 bg-white"}`}
+                >
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
                             <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Vinculados ao Conta Azul</p>
@@ -247,7 +261,10 @@ export default function PostosPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="border border-amber-200 shadow-sm bg-gradient-to-br from-white to-amber-50/40">
+                <Card
+                    onClick={() => setFilterVinculo("SEM_VINCULO")}
+                    className={`border shadow-sm transition-all cursor-pointer ${filterVinculo === "SEM_VINCULO" ? "ring-2 ring-amber-600 border-amber-600 bg-amber-50/80" : "border-amber-200 hover:border-amber-300 bg-white"}`}
+                >
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
                             <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Sem Centro de Custo</p>
@@ -263,15 +280,24 @@ export default function PostosPage() {
             <Card className="border border-slate-200 shadow-sm">
                 <CardHeader className="pb-3 border-b border-slate-100">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <CardTitle className="text-lg font-bold text-slate-800">Lista de Postos & Unidades</CardTitle>
-                        <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                            <Input
-                                placeholder="Buscar por posto ou centro de custo..."
-                                className="pl-9 w-full sm:w-80 bg-slate-50 focus:bg-white text-sm"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg font-bold text-slate-800">Lista de Postos</CardTitle>
+                            {filterVinculo !== "TODOS" && (
+                                <Badge variant="secondary" className="text-xs">
+                                    {filterVinculo === "VINCULADOS" ? "Filtrado: Apenas Vinculados" : "Filtrado: Apenas Sem Vínculo"}
+                                </Badge>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                                <Input
+                                    placeholder="Buscar por posto ou centro de custo..."
+                                    className="pl-9 w-full sm:w-80 bg-slate-50 focus:bg-white text-sm"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
