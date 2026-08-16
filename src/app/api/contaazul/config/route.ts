@@ -68,6 +68,10 @@ export async function GET(req: NextRequest) {
                         autoCriarAoAprovar: config.autoCriarAoAprovar,
                         categoriaDiariaId: config.categoriaDiariaId,
                         categoriaDiariaNome: config.categoriaDiariaNome,
+                        categoriaDiariaServicoVendidoId: config.categoriaDiariaServicoVendidoId,
+                        categoriaDiariaServicoVendidoNome: config.categoriaDiariaServicoVendidoNome,
+                        categoriaDiariaCoberturaId: config.categoriaDiariaCoberturaId,
+                        categoriaDiariaCoberturaNome: config.categoriaDiariaCoberturaNome,
                         categoriaReembolsoId: config.categoriaReembolsoId,
                         categoriaReembolsoNome: config.categoriaReembolsoNome,
                         categoriaAdiantamentoId: config.categoriaAdiantamentoId,
@@ -115,6 +119,10 @@ export async function POST(req: NextRequest) {
             autoCriarAoAprovar,
             categoriaDiariaId,
             categoriaDiariaNome,
+            categoriaDiariaServicoVendidoId,
+            categoriaDiariaServicoVendidoNome,
+            categoriaDiariaCoberturaId,
+            categoriaDiariaCoberturaNome,
             categoriaReembolsoId,
             categoriaReembolsoNome,
             categoriaAdiantamentoId,
@@ -139,6 +147,10 @@ export async function POST(req: NextRequest) {
 
         if (categoriaDiariaId !== undefined) dataUpdate.categoriaDiariaId = categoriaDiariaId
         if (categoriaDiariaNome !== undefined) dataUpdate.categoriaDiariaNome = categoriaDiariaNome
+        if (categoriaDiariaServicoVendidoId !== undefined) dataUpdate.categoriaDiariaServicoVendidoId = categoriaDiariaServicoVendidoId
+        if (categoriaDiariaServicoVendidoNome !== undefined) dataUpdate.categoriaDiariaServicoVendidoNome = categoriaDiariaServicoVendidoNome
+        if (categoriaDiariaCoberturaId !== undefined) dataUpdate.categoriaDiariaCoberturaId = categoriaDiariaCoberturaId
+        if (categoriaDiariaCoberturaNome !== undefined) dataUpdate.categoriaDiariaCoberturaNome = categoriaDiariaCoberturaNome
         if (categoriaReembolsoId !== undefined) dataUpdate.categoriaReembolsoId = categoriaReembolsoId
         if (categoriaReembolsoNome !== undefined) dataUpdate.categoriaReembolsoNome = categoriaReembolsoNome
         if (categoriaAdiantamentoId !== undefined) dataUpdate.categoriaAdiantamentoId = categoriaAdiantamentoId

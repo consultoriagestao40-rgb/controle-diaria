@@ -49,6 +49,7 @@ export async function POST(req: Request) {
                 cargaHorariaId,
                 meioPagamentoSolicitadoId, // Como a diarista quer receber
                 empresaId: body.empresaId,
+                categoriaFinanceira: body.categoriaFinanceira || "03.4.2 - Diária Coberturas",
                 valor: parseFloat(valor), // Ensure float
                 horaInicio,
                 horaFim,

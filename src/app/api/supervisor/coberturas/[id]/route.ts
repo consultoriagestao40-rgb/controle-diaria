@@ -80,6 +80,8 @@ export async function PUT(
                     motivoId,
                     cargaHorariaId,
                     meioPagamentoSolicitadoId,
+                    empresaId: body.empresaId !== undefined ? body.empresaId : existing.empresaId,
+                    categoriaFinanceira: body.categoriaFinanceira || existing.categoriaFinanceira || "03.4.2 - Diária Coberturas",
                     valor: parseFloat(valor),
                     observacao,
                     status: 'PENDENTE', // Resubmitting triggers Pending status

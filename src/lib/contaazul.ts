@@ -372,6 +372,17 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
         const descricao = `Diária Cobertura: ${cobertura.diarista.nome} - Posto ${cobertura.posto.nome} (Ref. ${format(new Date(cobertura.data), "dd/MM/yyyy")})`
 
         // 2. Monta o payload do Contas a Pagar (Evento Financeiro)
+        const catFin = (cobertura.categoriaFinanceira || "").toLowerCase()
+        let categoryId: string | null = null
+
+        if (catFin.includes("serviço vendido") || catFin.includes("servico vendido") || catFin.includes("03.4.1")) {
+            categoryId = config.categoriaDiariaServicoVendidoId || config.categoriaDiariaId
+        } else if (catFin.includes("cobertura") || catFin.includes("03.4.2")) {
+            categoryId = config.categoriaDiariaCoberturaId || config.categoriaDiariaId
+        } else {
+            categoryId = config.categoriaDiariaCoberturaId || config.categoriaDiariaId || config.categoriaDiariaServicoVendidoId
+        }
+
         const payload: any = {
             description: descricao,
             value: valor,
@@ -385,8 +396,8 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
             payload.contact_id = contactResult.contactId
         }
 
-        if (config.categoriaDiariaId) {
-            payload.category_id = config.categoriaDiariaId
+        if (categoryId) {
+            payload.category_id = categoryId
         }
 
         if (config.centroCustoPadraoId) {

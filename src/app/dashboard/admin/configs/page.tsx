@@ -842,6 +842,10 @@ function ContaAzulTab() {
             autoCriarAoAprovar: empresa.config?.autoCriarAoAprovar !== false,
             categoriaDiariaId: empresa.config?.categoriaDiariaId || "",
             categoriaDiariaNome: empresa.config?.categoriaDiariaNome || "",
+            categoriaDiariaCoberturaId: empresa.config?.categoriaDiariaCoberturaId || "",
+            categoriaDiariaCoberturaNome: empresa.config?.categoriaDiariaCoberturaNome || "",
+            categoriaDiariaServicoVendidoId: empresa.config?.categoriaDiariaServicoVendidoId || "",
+            categoriaDiariaServicoVendidoNome: empresa.config?.categoriaDiariaServicoVendidoNome || "",
             categoriaReembolsoId: empresa.config?.categoriaReembolsoId || "",
             categoriaReembolsoNome: empresa.config?.categoriaReembolsoNome || "",
             categoriaAdiantamentoId: empresa.config?.categoriaAdiantamentoId || "",
@@ -913,14 +917,15 @@ function ContaAzulTab() {
                             <CardTitle className="text-xl font-bold text-sky-950">Integração ERP Conta Azul (Multi-Empresas)</CardTitle>
                         </div>
                         <CardDescription className="text-slate-600 mt-1">
-                            Conecte e automatize o envio de <strong>Diárias</strong>, <strong>Reembolsos</strong> e <strong>Adiantamentos</strong> para as 4 empresas do grupo.
+                            Conecte e automatize o envio de <strong>Diárias</strong> (Coberturas e Serviço Vendido), <strong>Reembolsos</strong> e <strong>Adiantamentos</strong> para as 4 empresas do grupo.
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <Button
+                            variant="outline"
                             onClick={handleSyncAll}
                             disabled={syncingAll}
-                            className="bg-sky-600 hover:bg-sky-700 text-white font-semibold shadow-sm w-full md:w-auto"
+                            className="w-full md:w-auto border-sky-300 text-sky-700 hover:bg-sky-100 font-semibold"
                         >
                             {syncingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                             Sincronizar Todas as Empresas
@@ -928,18 +933,18 @@ function ContaAzulTab() {
                     </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-white/80 p-3 rounded-xl border border-sky-100">
-                        <div className="flex items-center gap-2 text-slate-700">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                            <span><strong>1. Aprovação:</strong> Criação automática de Contas a Pagar na empresa da diária.</span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600 border-t border-sky-100 pt-4">
+                        <div className="flex items-start gap-2">
+                            <span className="font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded">1. Aprovação:</span>
+                            <span>Criação automática de Contas a Pagar na empresa da diária com categoria financeira específica.</span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-700">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                            <span><strong>2. Baixa no ERP:</strong> Identifica quitações e marca como <code>PAGO</code>.</span>
+                        <div className="flex items-start gap-2">
+                            <span className="font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">2. Baixa no ERP:</span>
+                            <span>Identifica quitações e marca como PAGO no sistema.</span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-700">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                            <span><strong>3. Comprovantes:</strong> Vinculação automática do comprovante no histórico.</span>
+                        <div className="flex items-start gap-2">
+                            <span className="font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">3. Comprovantes:</span>
+                            <span>Vinculação automática do comprovante no histórico.</span>
                         </div>
                     </div>
                 </CardContent>
@@ -953,7 +958,7 @@ function ContaAzulTab() {
                     const isSyncing = syncingId === empresa.id
 
                     return (
-                        <Card key={empresa.id} className="border-slate-200 shadow-sm flex flex-col justify-between">
+                        <Card key={empresa.id} className="border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                             <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="space-y-1">
@@ -1050,17 +1055,23 @@ function ContaAzulTab() {
                                                 )}
                                             </div>
                                             
+                                            {/* 1. Diária - Coberturas */}
                                             <div>
-                                                <Label htmlFor={`cat-diaria-${empresa.id}`} className="text-xs">Categoria para Diárias / Coberturas *</Label>
+                                                <Label htmlFor={`cat-diaria-cob-${empresa.id}`} className="text-xs font-semibold text-slate-700">
+                                                    Categoria: Diária - Coberturas (03.4.2) *
+                                                </Label>
                                                 <SearchableCategorySelect
-                                                    value={formData.categoriaDiariaId}
-                                                    selectedName={formData.categoriaDiariaNome}
+                                                    value={formData.categoriaDiariaCoberturaId || formData.categoriaDiariaId}
+                                                    selectedName={formData.categoriaDiariaCoberturaNome || formData.categoriaDiariaNome}
                                                     categories={categoriesByEmpresa[empresa.id] || []}
                                                     placeholder="Selecione ou digite para filtrar categoria..."
                                                     disabled={loadingCategories === empresa.id}
                                                     onChange={(id, nome) => {
                                                         setFormData({
                                                             ...formData,
+                                                            categoriaDiariaCoberturaId: id,
+                                                            categoriaDiariaCoberturaNome: nome,
+                                                            // Fallback
                                                             categoriaDiariaId: id,
                                                             categoriaDiariaNome: nome
                                                         })
@@ -1068,8 +1079,32 @@ function ContaAzulTab() {
                                                 />
                                             </div>
 
+                                            {/* 2. Diária - Serviço Vendido */}
                                             <div>
-                                                <Label htmlFor={`cat-reembolso-${empresa.id}`} className="text-xs">Categoria para Reembolsos *</Label>
+                                                <Label htmlFor={`cat-diaria-vend-${empresa.id}`} className="text-xs font-semibold text-slate-700">
+                                                    Categoria: Diária - Serviço Vendido (03.4.1) *
+                                                </Label>
+                                                <SearchableCategorySelect
+                                                    value={formData.categoriaDiariaServicoVendidoId}
+                                                    selectedName={formData.categoriaDiariaServicoVendidoNome}
+                                                    categories={categoriesByEmpresa[empresa.id] || []}
+                                                    placeholder="Selecione ou digite para filtrar categoria..."
+                                                    disabled={loadingCategories === empresa.id}
+                                                    onChange={(id, nome) => {
+                                                        setFormData({
+                                                            ...formData,
+                                                            categoriaDiariaServicoVendidoId: id,
+                                                            categoriaDiariaServicoVendidoNome: nome
+                                                        })
+                                                    }}
+                                                />
+                                            </div>
+
+                                            {/* 3. Reembolsos */}
+                                            <div>
+                                                <Label htmlFor={`cat-reembolso-${empresa.id}`} className="text-xs font-semibold text-slate-700">
+                                                    Categoria: Reembolsos de Despesas *
+                                                </Label>
                                                 <SearchableCategorySelect
                                                     value={formData.categoriaReembolsoId}
                                                     selectedName={formData.categoriaReembolsoNome}
@@ -1086,8 +1121,11 @@ function ContaAzulTab() {
                                                 />
                                             </div>
 
+                                            {/* 4. Adiantamentos */}
                                             <div>
-                                                <Label htmlFor={`cat-adiantamento-${empresa.id}`} className="text-xs">Categoria para Adiantamentos *</Label>
+                                                <Label htmlFor={`cat-adiantamento-${empresa.id}`} className="text-xs font-semibold text-slate-700">
+                                                    Categoria: Adiantamentos *
+                                                </Label>
                                                 <SearchableCategorySelect
                                                     value={formData.categoriaAdiantamentoId}
                                                     selectedName={formData.categoriaAdiantamentoNome}
@@ -1203,27 +1241,27 @@ function ContaAzulTab() {
                                     <div className="space-y-2.5">
                                         <div className="grid grid-cols-2 gap-2 text-xs">
                                             <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
-                                                <span className="text-slate-400 font-medium block">Categoria Diárias:</span>
+                                                <span className="text-slate-400 font-medium block">Diária - Coberturas:</span>
                                                 <span className="font-semibold text-slate-800 truncate block">
-                                                    {empresa.config?.categoriaDiariaNome || empresa.config?.categoriaDiariaId || "Não configurada"}
+                                                    {empresa.config?.categoriaDiariaCoberturaNome || empresa.config?.categoriaDiariaNome || "Não configurada"}
                                                 </span>
                                             </div>
                                             <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
-                                                <span className="text-slate-400 font-medium block">Categoria Reembolsos:</span>
+                                                <span className="text-slate-400 font-medium block">Diária - Serviço Vendido:</span>
                                                 <span className="font-semibold text-slate-800 truncate block">
-                                                    {empresa.config?.categoriaReembolsoNome || empresa.config?.categoriaReembolsoId || "Não configurada"}
+                                                    {empresa.config?.categoriaDiariaServicoVendidoNome || "Não configurada"}
                                                 </span>
                                             </div>
                                             <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
-                                                <span className="text-slate-400 font-medium block">Categoria Adiantamentos:</span>
+                                                <span className="text-slate-400 font-medium block">Reembolsos:</span>
                                                 <span className="font-semibold text-slate-800 truncate block">
-                                                    {empresa.config?.categoriaAdiantamentoNome || empresa.config?.categoriaAdiantamentoId || "Não configurada"}
+                                                    {empresa.config?.categoriaReembolsoNome || "Não configurada"}
                                                 </span>
                                             </div>
                                             <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
-                                                <span className="text-slate-400 font-medium block">Envio Automático:</span>
-                                                <span className={`font-semibold ${empresa.config?.autoCriarAoAprovar !== false ? "text-emerald-600" : "text-slate-500"}`}>
-                                                    {empresa.config?.autoCriarAoAprovar !== false ? "Ativado na Aprovação" : "Desativado"}
+                                                <span className="text-slate-400 font-medium block">Adiantamentos:</span>
+                                                <span className="font-semibold text-slate-800 truncate block">
+                                                    {empresa.config?.categoriaAdiantamentoNome || "Não configurada"}
                                                 </span>
                                             </div>
                                         </div>

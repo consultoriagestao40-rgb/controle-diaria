@@ -167,12 +167,16 @@ model ContaAzulConfig {
   autoCriarAoAprovar      Boolean   @default(true)
   
   // Categorias Mapeadas no Conta Azul
-  categoriaDiariaId       String?
-  categoriaDiariaNome     String?
-  categoriaReembolsoId    String?
-  categoriaReembolsoNome  String?
-  categoriaAdiantamentoId String?
-  categoriaAdiantamentoNome String?
+  categoriaDiariaId                 String?
+  categoriaDiariaNome               String?
+  categoriaDiariaServicoVendidoId   String?
+  categoriaDiariaServicoVendidoNome String?
+  categoriaDiariaCoberturaId        String?
+  categoriaDiariaCoberturaNome      String?
+  categoriaReembolsoId              String?
+  categoriaReembolsoNome            String?
+  categoriaAdiantamentoId           String?
+  categoriaAdiantamentoNome         String?
   
   // Centros de Custo e Contas Financeiras Mapeadas
   centroCustoPadraoId     String?
@@ -283,6 +287,9 @@ model Cobertura {
   faturaClienteId  String?
   faturaCliente    FaturaCliente? @relation(fields: [faturaClienteId], references: [id])
   dataFaturamento  DateTime?
+
+  // Classificação Financeira / Alocação de Custo
+  categoriaFinanceira  String?   @default("03.4.2 - Diária Coberturas")
 
   // Integração ERP Conta Azul
   contaAzulPayableId   String?

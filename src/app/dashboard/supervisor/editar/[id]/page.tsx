@@ -47,8 +47,9 @@ const formSchema = z.object({
     reservaId: z.string().min(1),
     motivoId: z.string().min(1),
     cargaHorariaId: z.string().min(1),
-    valor: z.any().transform(v => String(v)),
+    valor: z.string().min(1),
     meioPagamentoSolicitadoId: z.string().min(1),
+    categoriaFinanceira: z.string().optional(),
     observacao: z.string().optional(),
 })
 
@@ -100,8 +101,9 @@ function EditarDiariaForm({ id }: { id: string }) {
                 reservaId: data.reservaId,
                 motivoId: data.motivoId,
                 cargaHorariaId: data.cargaHorariaId,
-                valor: data.valor,
+                valor: String(data.valor || ""),
                 meioPagamentoSolicitadoId: data.meioPagamentoSolicitadoId,
+                categoriaFinanceira: data.categoriaFinanceira || "03.4.2 - Diária Coberturas",
                 observacao: data.observacao || ""
             })
         } catch {
@@ -139,85 +141,47 @@ function EditarDiariaForm({ id }: { id: string }) {
                 <Link href="/dashboard/supervisor">
                     <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
                 </Link>
-                <div>
-                    <h1 className="text-xl font-bold">
-                        {isReadOnly ? "Detalhes da Diária" : "Editar Diária"}
-                    </h1>
-                    <p className="text-sm text-muted-foreground mr-2">
-                        {isReadOnly ? "Visualização apenas." : "Corrija os dados e reenvie para aprovação."}
-                    </p>
-                </div>
+                <h1 className="text-xl font-bold">Editar Diária</h1>
             </div>
 
             {originalData?.status === 'AJUSTE' && (
-                <Alert variant="destructive" className="bg-orange-50 text-orange-800 border-orange-200">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Solicitação de Ajuste</AlertTitle>
-                    <AlertDescription>
-                        {originalData.ajusteSolicitado || "O aprovador solicitou correções neste lançamento."}
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            {originalData?.status === 'REPROVADO' && (
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Reprovado</AlertTitle>
-                    <AlertDescription>
-                        {originalData.justificativaReprovacao}
+                <Alert className="bg-amber-50 border-amber-200">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertTitle className="text-amber-800">Ajuste Solicitado</AlertTitle>
+                    <AlertDescription className="text-amber-700 text-sm">
+                        {originalData.ajusteSolicitado || "O aprovador solicitou correções nesta diária."}
                     </AlertDescription>
                 </Alert>
             )}
 
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
- 
-                    <fieldset disabled={isReadOnly} className="space-y-6 group-disabled:opacity-50">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <fieldset disabled={isReadOnly} className="space-y-4 disabled:opacity-70">
                         {/* DATA */}
-                        <FormField
-                            control={form.control}
-                            name="data"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Data *</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    disabled={isReadOnly}
-                                                    variant={"outline"}
-                                                    className={cn(
-                                                        "w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all",
-                                                        !field.value && "text-slate-400"
-                                                    )}
-                                                >
-                                                    {field.value ? (
-                                                        format(field.value, "PPP", { locale: ptBR })
-                                                    ) : (
-                                                        <span>Selecione a data</span>
-                                                    )}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                        <FormField control={form.control} name="data" render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Data *</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button variant="outline" className={cn("w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all", !field.value && "text-slate-400")}>
+                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha a data</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    </PopoverContent>
+                                </Popover>
+                            </FormItem>
+                        )}
                         />
- 
+
                         {/* POSTO */}
                         <FormField control={form.control} name="postoId" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Posto de Trabalho *</FormLabel>
+                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Posto *</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
@@ -228,15 +192,14 @@ function EditarDiariaForm({ id }: { id: string }) {
                                         {options.postos.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>))}
                                     </SelectContent>
                                 </Select>
-                                <FormMessage />
                             </FormItem>
                         )}
                         />
- 
+
                         {/* DIARISTA */}
                         <FormField control={form.control} name="diaristaId" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Quem Cobriu? (Diarista) *</FormLabel>
+                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Diarista *</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
@@ -247,15 +210,14 @@ function EditarDiariaForm({ id }: { id: string }) {
                                         {options.diaristas.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>))}
                                     </SelectContent>
                                 </Select>
-                                <FormMessage />
                             </FormItem>
                         )}
                         />
- 
+
                         {/* RESERVA */}
                         <FormField control={form.control} name="reservaId" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Cobriu Quem? (Ausente) *</FormLabel>
+                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Quem Faltou? *</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
@@ -266,13 +228,11 @@ function EditarDiariaForm({ id }: { id: string }) {
                                         {options.reservas.map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>))}
                                     </SelectContent>
                                 </Select>
-                                <FormMessage />
                             </FormItem>
                         )}
                         />
- 
+
                         <div className="grid grid-cols-2 gap-4">
-                            {/* MOTIVO */}
                             <FormField control={form.control} name="motivoId" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Motivo *</FormLabel>
@@ -289,8 +249,6 @@ function EditarDiariaForm({ id }: { id: string }) {
                                 </FormItem>
                             )}
                             />
- 
-                            {/* CARGA */}
                             <FormField control={form.control} name="cargaHorariaId" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Carga *</FormLabel>
@@ -308,7 +266,7 @@ function EditarDiariaForm({ id }: { id: string }) {
                             )}
                             />
                         </div>
- 
+
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="valor" render={({ field }) => (
                                 <FormItem>
@@ -339,6 +297,25 @@ function EditarDiariaForm({ id }: { id: string }) {
                             )}
                             />
                         </div>
+
+                        {/* Categoria Financeira */}
+                        <FormField control={form.control} name="categoriaFinanceira" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Categoria Financeira (Alocação de Custos) *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value || "03.4.2 - Diária Coberturas"}>
+                                    <FormControl>
+                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                                        <SelectItem value="03.4.2 - Diária Coberturas">03.4.2 - Diária Coberturas (Padrão)</SelectItem>
+                                        <SelectItem value="03.4.1 - Diária Serviço Vendido">03.4.1 - Diária Serviço Vendido</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                        )}
+                        />
  
                         <FormField control={form.control} name="observacao" render={({ field }) => (
                             <FormItem>

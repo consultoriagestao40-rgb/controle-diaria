@@ -57,6 +57,7 @@ const formSchema = z.object({
     cargaHorariaId: z.string().min(1, "Carga horária é obrigatória."),
     valor: z.string().min(1, "Valor é obrigatório."),
     meioPagamentoSolicitadoId: z.string().min(1, "Meio de pagamento é obrigatório."),
+    categoriaFinanceira: z.string().optional(),
     horaInicio: z.string().optional(),
     horaFim: z.string().optional(),
     observacao: z.string().optional(),
@@ -85,6 +86,7 @@ export default function NovaDiariaPage() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             valor: "0",
+            categoriaFinanceira: "03.4.2 - Diária Coberturas"
         },
     })
 
@@ -535,28 +537,56 @@ export default function NovaDiariaPage() {
                                     <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Dados Corporativos</h2>
                                 </div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="empresaId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Empresa do Grupo</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
-                                                        <SelectValue placeholder="Selecione a empresa correlata" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent className="rounded-xl border-none shadow-2xl">
-                                                    {options.empresas.map((i: any) => (
-                                                        <SelectItem key={i.id} value={i.id} className="py-2.5">{i.nome}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="empresaId"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Empresa do Grupo</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                                            <SelectValue placeholder="Selecione a empresa correlata" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                        {options.empresas.map((i: any) => (
+                                                            <SelectItem key={i.id} value={i.id} className="py-2.5">{i.nome}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="categoriaFinanceira"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Categoria Financeira (Alocação de Custos) *</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value || "03.4.2 - Diária Coberturas"}>
+                                                    <FormControl>
+                                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                                            <SelectValue placeholder="Selecione a categoria financeira" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                        <SelectItem value="03.4.2 - Diária Coberturas" className="py-2.5 font-medium">
+                                                            03.4.2 - Diária Coberturas (Padrão)
+                                                        </SelectItem>
+                                                        <SelectItem value="03.4.1 - Diária Serviço Vendido" className="py-2.5 font-medium">
+                                                            03.4.1 - Diária Serviço Vendido
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
 
                                 <FormField
                                     control={form.control}
