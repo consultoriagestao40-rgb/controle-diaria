@@ -31,6 +31,13 @@ export default function AdminPage() {
         },
 
         {
+            title: "ERP Conta Azul",
+            description: "4 Empresas e Plano de Contas",
+            href: "/dashboard/admin/configs?tab=contaazul",
+            icon: Building2,
+            color: "text-sky-500",
+        },
+        {
             title: "Motivos & Configs",
             description: "Tabelas auxiliares e ajustes",
             href: "/dashboard/admin/configs",

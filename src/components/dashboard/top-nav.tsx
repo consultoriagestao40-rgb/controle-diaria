@@ -84,6 +84,7 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
             if (role === "ADMIN") {
                 diáriasItems.push(
                     { label: "Cadastros Gerais", href: "/dashboard/admin", icon: Settings, description: "Postos, diaristas e motivos de falta" },
+                    { label: "ERP Conta Azul", href: "/dashboard/admin/configs", icon: Settings, description: "Conectar e gerenciar 4 empresas" },
                     { label: "Usuários do Sistema", href: "/dashboard/admin/usuarios", icon: UserIcon, description: "Gestão de permissões e acessos" },
                     { label: "Nova Diária", href: "/dashboard/supervisor/nova", icon: FileText, description: "Lançamento de nova cobertura" },
                     { label: "Minhas Diárias", href: "/dashboard/supervisor", icon: FileText, description: "Lista de lançamentos sob sua gestão" },

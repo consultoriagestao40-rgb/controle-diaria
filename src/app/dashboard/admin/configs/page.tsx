@@ -20,6 +20,8 @@ import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+import { useSearchParams } from "next/navigation"
+
 interface Motivo {
     id: string
     descricao: string
@@ -33,12 +35,21 @@ interface CargaHoraria {
 }
 
 export default function ConfigsPage() {
-    const [activeTab, setActiveTab] = useState("motivos")
+    const searchParams = useSearchParams()
+    const tabParam = searchParams.get("tab")
+    const [activeTab, setActiveTab] = useState(tabParam || "motivos")
+
+    useEffect(() => {
+        if (tabParam) {
+            setActiveTab(tabParam)
+        }
+    }, [tabParam])
+
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
 
-            <Tabs defaultValue="motivos" className="w-full" onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="flex flex-wrap h-auto gap-1">
                     <TabsTrigger value="motivos">Motivos de Cobertura</TabsTrigger>
                     <TabsTrigger value="cargas">Cargas Horárias</TabsTrigger>
