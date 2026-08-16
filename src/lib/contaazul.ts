@@ -3,7 +3,7 @@ import { format } from "date-fns"
 
 const CONTA_AZUL_API_URL = (process.env.CONTA_AZUL_API_URL || "https://api-v2.contaazul.com").replace(/\/v1\/?$/, "")
 const CONTA_AZUL_AUTH_URL = process.env.CONTA_AZUL_AUTH_URL || "https://login.contaazul.com/#/oauth/authorize"
-const CONTA_AZUL_TOKEN_URL = process.env.CONTA_AZUL_TOKEN_URL || "https://api-v2.contaazul.com/oauth/token"
+const CONTA_AZUL_TOKEN_URL = process.env.CONTA_AZUL_TOKEN_URL || "https://api-v2.contaazul.com/oauth2/token"
 
 export interface ContaAzulTokenResult {
     success: boolean
