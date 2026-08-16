@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
 
-const CONTA_AZUL_API_URL = process.env.CONTA_AZUL_API_URL || "https://api-v2.contaazul.com/v1"
+const CONTA_AZUL_API_URL = (process.env.CONTA_AZUL_API_URL || "https://api-v2.contaazul.com").replace(/\/v1\/?$/, "")
 const CONTA_AZUL_AUTH_URL = process.env.CONTA_AZUL_AUTH_URL || "https://login.contaazul.com/#/oauth/authorize"
 const CONTA_AZUL_TOKEN_URL = process.env.CONTA_AZUL_TOKEN_URL || "https://api-v2.contaazul.com/oauth/token"
 
@@ -245,7 +245,7 @@ export async function fetchContaAzul(empresaId: string, endpoint: string, option
 }
 
 /**
- * Busca ou cadastra um fornecedor/contato no Conta Azul
+ * Busca ou cadastra um fornecedor/contato no Conta Azul (API v2 /v1/pessoas)
  */
 export async function findOrCreateContaAzulContact(empresaId: string, contactInfo: {
     nome: string
@@ -255,45 +255,53 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
 }): Promise<{ success: boolean; contactId?: string; error?: string }> {
     try {
         const cleanCpf = contactInfo.cpf?.replace(/\D/g, "")
+        const searchTerm = cleanCpf || contactInfo.nome
 
-        // 1. Tenta buscar por CPF se informado
-        if (cleanCpf) {
-            const searchRes = await fetchContaAzul(empresaId, `/v1/contacts?cpf_cnpj=${cleanCpf}`)
-            if (Array.isArray(searchRes) && searchRes.length > 0) {
-                return { success: true, contactId: searchRes[0].id }
+        // 1. Tenta buscar por CPF ou Nome via /v1/pessoas
+        const searchRes = await fetchContaAzul(empresaId, `/v1/pessoas?busca=${encodeURIComponent(searchTerm)}`)
+        const items = searchRes?.itens || (Array.isArray(searchRes) ? searchRes : [])
+
+        if (items.length > 0) {
+            // Se temos CPF, tenta achar match exato
+            if (cleanCpf) {
+                const exactCpf = items.find((p: any) => 
+                    p.documentos?.some((d: any) => d.numero?.replace(/\D/g, "") === cleanCpf)
+                )
+                if (exactCpf) return { success: true, contactId: exactCpf.id }
             }
-            if (searchRes?.items && searchRes.items.length > 0) {
-                return { success: true, contactId: searchRes.items[0].id }
-            }
+
+            // Match por nome
+            const exactName = items.find((p: any) => 
+                p.nome?.toLowerCase().trim() === contactInfo.nome.toLowerCase().trim()
+            )
+            if (exactName) return { success: true, contactId: exactName.id }
+
+            // Caso não tenha exato, pega o primeiro retornado da busca
+            return { success: true, contactId: items[0].id }
         }
 
-        // 2. Tenta buscar por Nome
-        const searchNameRes = await fetchContaAzul(empresaId, `/v1/contacts?search=${encodeURIComponent(contactInfo.nome)}`)
-        const contactsList = Array.isArray(searchNameRes) ? searchNameRes : (searchNameRes?.items || [])
-        const exactMatch = contactsList.find((c: any) => c.name?.toLowerCase().trim() === contactInfo.nome.toLowerCase().trim())
-        if (exactMatch) {
-            return { success: true, contactId: exactMatch.id }
-        }
-
-        // 3. Cadastra novo Contato / Fornecedor
+        // 2. Se não encontrou, cadastra nova Pessoa (Fornecedor) na API v2
         const payload: any = {
-            name: contactInfo.nome,
-            company_name: contactInfo.nome,
-            person_type: cleanCpf && cleanCpf.length > 11 ? "LEGAL_PERSON" : "NATURAL_PERSON",
-            roles: ["SUPPLIER"]
+            nome: contactInfo.nome.trim(),
+            tipo_pessoa: "Física",
+            perfis: [{ tipo_perfil: "Fornecedor" }]
         }
 
-        if (cleanCpf) {
-            payload.document = cleanCpf
+        if (cleanCpf && cleanCpf.length === 11) {
+            payload.documentos = [{ tipo: "CPF", numero: cleanCpf }]
+        } else if (cleanCpf && cleanCpf.length === 14) {
+            payload.tipo_pessoa = "Jurídica"
+            payload.documentos = [{ tipo: "CNPJ", numero: cleanCpf }]
         }
+
         if (contactInfo.email) {
             payload.email = contactInfo.email
         }
         if (contactInfo.telefone) {
-            payload.business_phone = contactInfo.telefone
+            payload.telefone = contactInfo.telefone
         }
 
-        const createRes = await fetchContaAzul(empresaId, "/v1/contacts", {
+        const createRes = await fetchContaAzul(empresaId, "/v1/pessoas", {
             method: "POST",
             body: JSON.stringify(payload)
         })
@@ -304,11 +312,64 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
             return { success: false, error: createRes.error }
         }
 
-        return { success: true, contactId: createRes?.id || createRes?.contact_id }
+        return { success: true, contactId: createRes?.id }
     } catch (error: any) {
         console.error("[CONTA AZUL CONTACT ERROR]", error)
         return { success: false, error: error.message || "Erro ao gerenciar contato no Conta Azul." }
     }
+}
+
+/**
+ * Resolve o Centro de Custo específico da empresa no Conta Azul
+ */
+export async function resolveCostCenterForEmpresa(
+    empresaId: string,
+    posto?: { nome: string; centroCustoContaAzulNome?: string | null; centroCustoContaAzulId?: string | null } | null,
+    fallbackCostCenterId?: string | null
+): Promise<string | null> {
+    try {
+        const queryTerm = posto?.centroCustoContaAzulNome || posto?.nome
+        if (queryTerm) {
+            const res = await fetchContaAzul(empresaId, `/v1/centro-de-custo?busca=${encodeURIComponent(queryTerm)}`)
+            const itens = res?.itens || []
+            if (itens.length > 0) {
+                // Tenta match exato por nome
+                const exact = itens.find((c: any) => c.nome?.toLowerCase().trim() === queryTerm.toLowerCase().trim())
+                if (exact) return exact.id
+                return itens[0].id
+            }
+        }
+    } catch (e) {
+        console.error("[RESOLVE COST CENTER ERROR]", e)
+    }
+
+    return posto?.centroCustoContaAzulId || fallbackCostCenterId || null
+}
+
+/**
+ * Resolve a Conta Financeira (Banco) da empresa no Conta Azul
+ */
+export async function resolveFinancialAccountForEmpresa(
+    empresaId: string,
+    fallbackAccountId?: string | null
+): Promise<string | null> {
+    if (fallbackAccountId && fallbackAccountId.trim() !== "") return fallbackAccountId
+
+    try {
+        const res = await fetchContaAzul(empresaId, "/v1/conta-financeira")
+        const itens = res?.itens || []
+        if (itens.length > 0) {
+            const contaPj = itens.find((c: any) => c.nome?.toLowerCase().includes("conta pj") || c.nome?.toLowerCase().includes("pj"))
+            if (contaPj) return contaPj.id
+            const active = itens.find((c: any) => c.ativo)
+            if (active) return active.id
+            return itens[0].id
+        }
+    } catch (e) {
+        console.error("[RESOLVE FINANCIAL ACCOUNT ERROR]", e)
+    }
+
+    return null
 }
 
 /**
@@ -371,7 +432,7 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
         const dataVencimento = format(cobertura.dataVencimento || new Date(cobertura.data), "yyyy-MM-dd")
         const descricao = `Diária Cobertura: ${cobertura.diarista.nome} - Posto ${cobertura.posto.nome} (Ref. ${format(new Date(cobertura.data), "dd/MM/yyyy")})`
 
-        // 2. Monta o payload do Contas a Pagar (Evento Financeiro)
+        // 2. Resolução de Categoria Financeira
         const catFin = (cobertura.categoriaFinanceira || "").toLowerCase()
         let categoryId: string | null = null
 
@@ -383,48 +444,90 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
             categoryId = config.categoriaDiariaCoberturaId || config.categoriaDiariaId || config.categoriaDiariaServicoVendidoId
         }
 
-        const payload: any = {
-            description: descricao,
-            value: valor,
-            due_date: dataVencimento,
-            competence_date: dataCompetencia,
-            event_type: "EXPENSE",
-            status: "PENDING"
+        // Fallback de categoria se não configurada
+        if (!categoryId) {
+            const categories = await getContaAzulCategories(empresaId)
+            const defaultCat = categories.find((c: any) => c.nome?.includes("Diária") || c.nome?.includes("03.4"))
+            if (defaultCat) categoryId = defaultCat.id
         }
 
-        if (contactResult.success && contactResult.contactId) {
-            payload.contact_id = contactResult.contactId
+        // 3. Resolução de Centro de Custo e Conta Financeira da Empresa
+        const costCenterId = await resolveCostCenterForEmpresa(empresaId, cobertura.posto, config.centroCustoPadraoId)
+        const bankAccountId = await resolveFinancialAccountForEmpresa(empresaId, config.contaFinanceiraPadraoId)
+
+        if (!bankAccountId) {
+            return { success: false, error: "Nenhuma conta financeira/bancária localizada no Conta Azul para esta empresa." }
         }
 
-        if (categoryId) {
-            payload.category_id = categoryId
+        // 4. Monta o payload oficial da API v2 de Contas a Pagar
+        const rateioObj: any = {
+            id_categoria: categoryId,
+            valor: valor
         }
 
-        // Prioridade de Centro de Custo: Posto de Trabalho -> Padrão da Empresa
-        const costCenterId = cobertura.posto?.centroCustoContaAzulId || config.centroCustoPadraoId
         if (costCenterId) {
-            payload.cost_center_id = costCenterId
+            rateioObj.rateio_centro_custo = [
+                {
+                    id_centro_custo: costCenterId,
+                    valor: valor
+                }
+            ]
         }
 
-        if (config.contaFinanceiraPadraoId) {
-            payload.bank_account_id = config.contaFinanceiraPadraoId
+        const payload: any = {
+            data_competencia: dataCompetencia,
+            valor: valor,
+            descricao: descricao,
+            observacao: `Lançamento via ReembolsaFácil - Diária ID ${cobertura.id.slice(-6).toUpperCase()}`,
+            contato: contactResult.contactId,
+            conta_financeira: bankAccountId,
+            rateio: [rateioObj],
+            condicao_pagamento: {
+                parcelas: [
+                    {
+                        descricao: "Parcela 1/1",
+                        data_vencimento: dataVencimento,
+                        nota: "Pagamento via PIX",
+                        conta_financeira: bankAccountId,
+                        metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
+                        detalhe_valor: {
+                            valor_bruto: valor,
+                            valor_liquido: valor
+                        }
+                    }
+                ]
+            }
         }
 
-        // 3. Envia para a API da Conta Azul
-        const response = await fetchContaAzul(empresaId, "/v1/finance/events", {
+        // 5. Envia para a API da Conta Azul
+        const response = await fetchContaAzul(empresaId, "/v1/financeiro/eventos-financeiros/contas-a-pagar", {
             method: "POST",
             body: JSON.stringify(payload)
         })
 
-        const payableId = response?.id || response?.event_id || response?.data?.id
-
-        if (!payableId && response?.error) {
+        if (response?.error) {
             return { success: false, error: response.error }
         }
 
-        const finalPayableId = payableId || `CA-DIARIA-${cobertura.id.slice(-6).toUpperCase()}`
+        let finalPayableId = response?.protocolo || response?.id || `CA-DIARIA-${cobertura.id.slice(-6).toUpperCase()}`
 
-        // 4. Atualiza a Cobertura com o ID gerado e status
+        // Se retornou protocolo assíncrono, aguarda 1.5s e consulta o ID final do evento
+        if (response?.protocolo) {
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1500))
+                const protRes = await fetchContaAzul(empresaId, `/v1/protocolo/${response.protocolo}`)
+                if (protRes?.status === "SUCCESS" && protRes.evento_financeiro_id) {
+                    finalPayableId = protRes.evento_financeiro_id
+                } else if (protRes?.status === "ERROR") {
+                    console.error("[CONTA AZUL PROTOCOL ERROR]", protRes)
+                    return { success: false, error: protRes.resposta || "Erro no processamento do lançamento no Conta Azul." }
+                }
+            } catch (protErr) {
+                console.error("[CONTA AZUL PROTOCOL FETCH ERROR]", protErr)
+            }
+        }
+
+        // 6. Atualiza a Cobertura com o ID gerado e status
         await prisma.cobertura.update({
             where: { id: coberturaId },
             data: {
@@ -508,43 +611,77 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             ? (config.categoriaReembolsoId || config.categoriaDiariaId)
             : (config.categoriaAdiantamentoId || config.categoriaDiariaId)
 
+        const costCenterId = await resolveCostCenterForEmpresa(empresaId, null, config.centroCustoPadraoId)
+        const bankAccountId = await resolveFinancialAccountForEmpresa(empresaId, config.contaFinanceiraPadraoId)
+
+        if (!bankAccountId) {
+            return { success: false, error: "Nenhuma conta financeira/bancária localizada no Conta Azul para esta empresa." }
+        }
+
+        const rateioObj: any = {
+            id_categoria: categoriaId,
+            valor: valor
+        }
+
+        if (costCenterId) {
+            rateioObj.rateio_centro_custo = [
+                {
+                    id_centro_custo: costCenterId,
+                    valor: valor
+                }
+            ]
+        }
+
         const payload: any = {
-            description: descricao,
-            value: valor,
-            due_date: dataHoje,
-            competence_date: dataHoje,
-            event_type: "EXPENSE",
-            status: "PENDING"
+            data_competencia: dataHoje,
+            valor: valor,
+            descricao: descricao,
+            observacao: `Lançamento via ReembolsaFácil - Despesa ID ${despesa.id.slice(-6).toUpperCase()}`,
+            contato: contactResult.contactId,
+            conta_financeira: bankAccountId,
+            rateio: [rateioObj],
+            condicao_pagamento: {
+                parcelas: [
+                    {
+                        descricao: "Parcela 1/1",
+                        data_vencimento: dataHoje,
+                        nota: "Pagamento via PIX / Transferência",
+                        conta_financeira: bankAccountId,
+                        metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
+                        detalhe_valor: {
+                            valor_bruto: valor,
+                            valor_liquido: valor
+                        }
+                    }
+                ]
+            }
         }
 
-        if (contactResult.success && contactResult.contactId) {
-            payload.contact_id = contactResult.contactId
-        }
-
-        if (categoriaId) {
-            payload.category_id = categoriaId
-        }
-
-        if (config.centroCustoPadraoId) {
-            payload.cost_center_id = config.centroCustoPadraoId
-        }
-
-        if (config.contaFinanceiraPadraoId) {
-            payload.bank_account_id = config.contaFinanceiraPadraoId
-        }
-
-        const response = await fetchContaAzul(empresaId, "/v1/finance/events", {
+        const response = await fetchContaAzul(empresaId, "/v1/financeiro/eventos-financeiros/contas-a-pagar", {
             method: "POST",
             body: JSON.stringify(payload)
         })
 
-        const payableId = response?.id || response?.event_id || response?.data?.id
-
-        if (!payableId && response?.error) {
+        if (response?.error) {
             return { success: false, error: response.error }
         }
 
-        const finalPayableId = payableId || `CA-DESPESA-${despesa.id.slice(-6).toUpperCase()}`
+        let finalPayableId = response?.protocolo || response?.id || `CA-DESPESA-${despesa.id.slice(-6).toUpperCase()}`
+
+        if (response?.protocolo) {
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1500))
+                const protRes = await fetchContaAzul(empresaId, `/v1/protocolo/${response.protocolo}`)
+                if (protRes?.status === "SUCCESS" && protRes.evento_financeiro_id) {
+                    finalPayableId = protRes.evento_financeiro_id
+                } else if (protRes?.status === "ERROR") {
+                    console.error("[CONTA AZUL PROTOCOL ERROR]", protRes)
+                    return { success: false, error: protRes.resposta || "Erro no processamento do lançamento no Conta Azul." }
+                }
+            } catch (protErr) {
+                console.error("[CONTA AZUL PROTOCOL FETCH ERROR]", protErr)
+            }
+        }
 
         await prisma.despesa.update({
             where: { id: despesaId },
@@ -571,9 +708,9 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
  */
 export async function getContaAzulCategories(empresaId: string) {
     try {
-        const res = await fetchContaAzul(empresaId, "/v1/categories")
+        const res = await fetchContaAzul(empresaId, "/v1/categorias?tamanho_pagina=100")
         if (Array.isArray(res)) return res
-        if (res?.items) return res.items
+        if (res?.itens) return res.itens
         return []
     } catch {
         return []
@@ -585,9 +722,9 @@ export async function getContaAzulCategories(empresaId: string) {
  */
 export async function getContaAzulCostCenters(empresaId: string) {
     try {
-        const res = await fetchContaAzul(empresaId, "/v1/cost-centers")
+        const res = await fetchContaAzul(empresaId, "/v1/centro-de-custo?tamanho_pagina=100")
         if (Array.isArray(res)) return res
-        if (res?.items) return res.items
+        if (res?.itens) return res.itens
         return []
     } catch {
         return []
@@ -599,9 +736,9 @@ export async function getContaAzulCostCenters(empresaId: string) {
  */
 export async function getContaAzulBankAccounts(empresaId: string) {
     try {
-        const res = await fetchContaAzul(empresaId, "/v1/bank-accounts")
+        const res = await fetchContaAzul(empresaId, "/v1/conta-financeira")
         if (Array.isArray(res)) return res
-        if (res?.items) return res.items
+        if (res?.itens) return res.itens
         return []
     } catch {
         return []
@@ -646,17 +783,17 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                 if (!cob.contaAzulPayableId) continue
 
                 try {
-                    // Consulta o status do evento financeiro no Conta Azul
-                    const eventData = await fetchContaAzul(empresa.id, `/v1/finance/events/${cob.contaAzulPayableId}`)
+                    // Consulta as parcelas do evento financeiro no Conta Azul
+                    const parcelas = await fetchContaAzul(empresa.id, `/v1/financeiro/eventos-financeiros/${cob.contaAzulPayableId}/parcelas`)
+                    const list = Array.isArray(parcelas) ? parcelas : (parcelas?.itens || [])
                     
-                    const isPaid = eventData?.status === "ACQUITTED" || 
-                                   eventData?.status === "PAID" || 
-                                   eventData?.status === "BAIXADO" || 
-                                   eventData?.paid === true
+                    const isPaid = list.length > 0 && list.every((p: any) => 
+                        p.status === "PAGO" || p.status === "BAIXADO" || (p.baixas && p.baixas.length > 0) || (p.nao_pago === 0 && p.valor_pago > 0)
+                    )
 
                     if (isPaid) {
-                        const dataPagamento = eventData.payment_date ? new Date(eventData.payment_date) : new Date()
-                        const receiptUrl = eventData.receipt_url || `/api/contaazul/comprovante/${cob.contaAzulPayableId}?empresaId=${empresa.id}`
+                        const dataPagamento = list[0]?.baixas?.[0]?.data_baixa ? new Date(list[0].baixas[0].data_baixa) : new Date()
+                        const receiptUrl = `/api/contaazul/comprovante/${cob.contaAzulPayableId}?empresaId=${empresa.id}`
 
                         // Atualiza a cobertura para PAGO e anexa o comprovante
                         await prisma.$transaction([
@@ -667,16 +804,7 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                                     dataPagamento,
                                     contaAzulStatus: "PAGO",
                                     contaAzulReceiptUrl: receiptUrl,
-                                    contaAzulSyncedAt: new Date(),
-                                    anexos: {
-                                        create: {
-                                            url: receiptUrl,
-                                            nomeOriginal: `Comprovante_ContaAzul_${empresa.nome.replace(/\s+/g, "_")}_${cob.id.slice(-6)}.pdf`,
-                                            tamanho: 2048,
-                                            tipo: "application/pdf",
-                                            usuarioId: cob.supervisorId
-                                        }
-                                    }
+                                    contaAzulSyncedAt: new Date()
                                 }
                             }),
                             prisma.historicoWorkflow.create({
@@ -685,7 +813,7 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                                     deStatus: "APROVADO",
                                     paraStatus: "PAGO",
                                     usuarioId: cob.supervisorId,
-                                    observacao: `[Conta Azul - ${empresa.nome}] Pagamento/Baixa confirmada no ERP. Comprovante importado automaticamente.`
+                                    observacao: `[Conta Azul - ${empresa.nome}] Baixa/Pagamento confirmado no ERP. Sincronizado automaticamente.`
                                 }
                             })
                         ])
@@ -713,16 +841,16 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                 if (!desp.contaAzulPayableId) continue
 
                 try {
-                    const eventData = await fetchContaAzul(empresa.id, `/v1/finance/events/${desp.contaAzulPayableId}`)
+                    const parcelas = await fetchContaAzul(empresa.id, `/v1/financeiro/eventos-financeiros/${desp.contaAzulPayableId}/parcelas`)
+                    const list = Array.isArray(parcelas) ? parcelas : (parcelas?.itens || [])
                     
-                    const isPaid = eventData?.status === "ACQUITTED" || 
-                                   eventData?.status === "PAID" || 
-                                   eventData?.status === "BAIXADO" || 
-                                   eventData?.paid === true
+                    const isPaid = list.length > 0 && list.every((p: any) => 
+                        p.status === "PAGO" || p.status === "BAIXADO" || (p.baixas && p.baixas.length > 0) || (p.nao_pago === 0 && p.valor_pago > 0)
+                    )
 
                     if (isPaid) {
-                        const dataPagamento = eventData.payment_date ? new Date(eventData.payment_date) : new Date()
-                        const receiptUrl = eventData.receipt_url || `/api/contaazul/comprovante/${desp.contaAzulPayableId}?empresaId=${empresa.id}`
+                        const dataPagamento = list[0]?.baixas?.[0]?.data_baixa ? new Date(list[0].baixas[0].data_baixa) : new Date()
+                        const receiptUrl = `/api/contaazul/comprovante/${desp.contaAzulPayableId}?empresaId=${empresa.id}`
                         const nextStatus = desp.tipo === "REEMBOLSO" ? "PAGO" : "AGUARDANDO_PRESTACAO"
 
                         await prisma.$transaction([
@@ -733,16 +861,7 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                                     dataPagamento,
                                     contaAzulStatus: "PAGO",
                                     contaAzulReceiptUrl: receiptUrl,
-                                    contaAzulSyncedAt: new Date(),
-                                    anexos: {
-                                        create: {
-                                            url: receiptUrl,
-                                            nomeOriginal: `Comprovante_ContaAzul_${desp.tipo}_${desp.id.slice(-6)}.pdf`,
-                                            tamanho: 2048,
-                                            tipo: "application/pdf",
-                                            usuarioId: desp.solicitanteId
-                                        }
-                                    }
+                                    contaAzulSyncedAt: new Date()
                                 }
                             }),
                             prisma.historicoDespesa.create({
@@ -751,7 +870,7 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                                     deStatus: "APROVADO",
                                     paraStatus: nextStatus as any,
                                     usuarioId: desp.solicitanteId,
-                                    observacao: `[Conta Azul - ${empresa.nome}] Pagamento confirmado no ERP. Comprovante importado.`
+                                    observacao: `[Conta Azul - ${empresa.nome}] Baixa/Pagamento confirmado no ERP. Sincronizado automaticamente.`
                                 }
                             })
                         ])
