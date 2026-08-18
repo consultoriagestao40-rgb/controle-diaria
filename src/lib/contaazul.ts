@@ -257,6 +257,7 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
     cpf?: string | null
     email?: string | null
     telefone?: string | null
+    chavePix?: string | null
 }): Promise<{ success: boolean; contactId?: string; error?: string }> {
     try {
         const cleanCpf = contactInfo.cpf?.replace(/\D/g, "")
@@ -304,6 +305,9 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
         }
         if (contactInfo.telefone) {
             payload.telefone = contactInfo.telefone
+        }
+        if (contactInfo.chavePix) {
+            payload.informacoes_adicionais = `CHAVE PIX: ${contactInfo.chavePix.trim()}`
         }
 
         const createRes = await fetchContaAzul(empresaId, "/v1/pessoas", {
@@ -489,14 +493,17 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
         const contactResult = await findOrCreateContaAzulContact(empresaId, {
             nome: cobertura.diarista.nome,
             cpf: cobertura.diarista.cpf,
-            telefone: cobertura.diarista.telefone
+            telefone: cobertura.diarista.telefone,
+            chavePix: cobertura.diarista.chavePix
         })
 
+        const cleanPix = cobertura.diarista.chavePix?.trim()
+        const pixInfo = cleanPix ? ` - PIX: ${cleanPix}` : ""
         const valor = Number(cobertura.valor)
         const dataCompetencia = format(new Date(cobertura.data), "yyyy-MM-dd")
         const calculatedVencimento = calculateDiariaVencimento(cobertura.dataVencimento || cobertura.data)
         const dataVencimento = format(calculatedVencimento, "yyyy-MM-dd")
-        const descricao = `Diária Cobertura: ${cobertura.diarista.nome} - Posto ${cobertura.posto.nome} (Ref. ${format(new Date(cobertura.data), "dd/MM/yyyy")})`
+        const descricao = `Diária: ${cobertura.diarista.nome}${pixInfo} - Posto ${cobertura.posto.nome} (Ref. ${format(new Date(cobertura.data), "dd/MM/yyyy")})`
 
         // 2. Resolução de Categoria Financeira
         const catFin = (cobertura.categoriaFinanceira || "").toLowerCase()
@@ -540,11 +547,13 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
             ]
         }
 
+        const observacao = `Beneficiário: ${cobertura.diarista.nome} | CPF: ${cobertura.diarista.cpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Posto: ${cobertura.posto.nome} | Ref: ${format(new Date(cobertura.data), "dd/MM/yyyy")} | Diária ID: ${cobertura.id.slice(-6).toUpperCase()}`
+
         const payload: any = {
             data_competencia: dataCompetencia,
             valor: valor,
             descricao: descricao,
-            observacao: `Lançamento via ReembolsaFácil - Diária ID ${cobertura.id.slice(-6).toUpperCase()}`,
+            observacao: observacao,
             contato: contactResult.contactId,
             conta_financeira: bankAccountId,
             rateio: [rateioObj],
@@ -553,7 +562,7 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
                     {
                         descricao: "Parcela 1/1",
                         data_vencimento: dataVencimento,
-                        nota: "Pagamento via PIX",
+                        nota: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
                         conta_financeira: bankAccountId,
                         metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
                         detalhe_valor: {
@@ -827,6 +836,16 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
         erros: [] as string[]
     }
 
+    // Garante que o meio de pagamento "Conta Azul (ERP)" exista
+    let meioContaAzul = await prisma.meioPagamento.findFirst({
+        where: { descricao: { in: ["Conta Azul (ERP)", "Conta Azul", "ERP Conta Azul"] } }
+    })
+    if (!meioContaAzul) {
+        meioContaAzul = await prisma.meioPagamento.create({
+            data: { descricao: "Conta Azul (ERP)", ativo: true }
+        })
+    }
+
     for (const empresa of empresas) {
         const config = empresa.contaAzulConfig
         if (!config || !config.ativo || !config.accessToken) continue
@@ -861,8 +880,11 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                         const dataPagamento = list[0]?.baixas?.[0]?.data_baixa ? new Date(list[0].baixas[0].data_baixa) : new Date()
                         const receiptUrl = `/api/contaazul/comprovante/${cob.contaAzulPayableId}?empresaId=${empresa.id}`
 
-                        // Atualiza a cobertura para PAGO e anexa o comprovante
-                        await prisma.$transaction([
+                        const existingAnexo = await prisma.anexo.findFirst({
+                            where: { coberturaId: cob.id }
+                        })
+
+                        const transactions: any[] = [
                             prisma.cobertura.update({
                                 where: { id: cob.id },
                                 data: {
@@ -870,7 +892,8 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                                     dataPagamento,
                                     contaAzulStatus: "PAGO",
                                     contaAzulReceiptUrl: receiptUrl,
-                                    contaAzulSyncedAt: new Date()
+                                    contaAzulSyncedAt: new Date(),
+                                    meioPagamentoEfetivadoId: meioContaAzul.id
                                 }
                             }),
                             prisma.historicoWorkflow.create({
@@ -879,11 +902,27 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                                     deStatus: "APROVADO",
                                     paraStatus: "PAGO",
                                     usuarioId: cob.supervisorId,
-                                    observacao: `[Conta Azul - ${empresa.nome}] Baixa/Pagamento confirmado no ERP. Sincronizado automaticamente.`
+                                    observacao: `[Conta Azul - ${empresa.nome}] Baixa/Pagamento confirmado no ERP. Comprovante anexado automaticamente.`
                                 }
                             })
-                        ])
+                        ]
 
+                        if (!existingAnexo) {
+                            transactions.push(
+                                prisma.anexo.create({
+                                    data: {
+                                        url: receiptUrl,
+                                        nomeOriginal: `Comprovante_ContaAzul_${cob.id.slice(-6)}.pdf`,
+                                        tamanho: 2048,
+                                        tipo: "application/pdf",
+                                        usuarioId: cob.supervisorId,
+                                        coberturaId: cob.id
+                                    }
+                                })
+                            )
+                        }
+
+                        await prisma.$transaction(transactions)
                         results.coberturasAtualizadas++
                     }
                 } catch (cobErr: any) {
@@ -919,7 +958,11 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                         const receiptUrl = `/api/contaazul/comprovante/${desp.contaAzulPayableId}?empresaId=${empresa.id}`
                         const nextStatus = desp.tipo === "REEMBOLSO" ? "PAGO" : "AGUARDANDO_PRESTACAO"
 
-                        await prisma.$transaction([
+                        const existingAnexoDesp = await prisma.anexo.findFirst({
+                            where: { despesaId: desp.id }
+                        })
+
+                        const despTransactions: any[] = [
                             prisma.despesa.update({
                                 where: { id: desp.id },
                                 data: {
@@ -936,15 +979,66 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                                     deStatus: "APROVADO",
                                     paraStatus: nextStatus as any,
                                     usuarioId: desp.solicitanteId,
-                                    observacao: `[Conta Azul - ${empresa.nome}] Baixa/Pagamento confirmado no ERP. Sincronizado automaticamente.`
+                                    observacao: `[Conta Azul - ${empresa.nome}] Baixa/Pagamento confirmado no ERP. Comprovante anexado automaticamente.`
                                 }
                             })
-                        ])
+                        ]
 
+                        if (!existingAnexoDesp) {
+                            despTransactions.push(
+                                prisma.anexo.create({
+                                    data: {
+                                        url: receiptUrl,
+                                        nomeOriginal: `Comprovante_ContaAzul_${desp.tipo}_${desp.id.slice(-6)}.pdf`,
+                                        tamanho: 2048,
+                                        tipo: "application/pdf",
+                                        usuarioId: desp.solicitanteId,
+                                        despesaId: desp.id
+                                    }
+                                })
+                            )
+                        }
+
+                        await prisma.$transaction(despTransactions)
                         results.despesasAtualizadas++
                     }
                 } catch (despErr: any) {
                     console.error(`[SYNC DESPESA ERROR ${desp.id}]`, despErr)
+                }
+            }
+
+            // 3. Auto-recuperação: Coberturas já em PAGO pelo Conta Azul mas sem Anexo ou Meio vinculado
+            const coberturasPagasSemAnexo = await prisma.cobertura.findMany({
+                where: {
+                    empresaId: empresa.id,
+                    contaAzulPayableId: { not: null },
+                    status: "PAGO",
+                    anexos: { none: {} }
+                }
+            })
+
+            for (const cob of coberturasPagasSemAnexo) {
+                try {
+                    const receiptUrl = `/api/contaazul/comprovante/${cob.contaAzulPayableId}?empresaId=${empresa.id}`
+                    await prisma.cobertura.update({
+                        where: { id: cob.id },
+                        data: {
+                            contaAzulReceiptUrl: receiptUrl,
+                            meioPagamentoEfetivadoId: cob.meioPagamentoEfetivadoId || meioContaAzul.id
+                        }
+                    })
+                    await prisma.anexo.create({
+                        data: {
+                            url: receiptUrl,
+                            nomeOriginal: `Comprovante_ContaAzul_${cob.id.slice(-6)}.pdf`,
+                            tamanho: 2048,
+                            tipo: "application/pdf",
+                            usuarioId: cob.supervisorId,
+                            coberturaId: cob.id
+                        }
+                    })
+                } catch (recovErr) {
+                    console.error(`[AUTO-HEAL COBERTURA ${cob.id}]`, recovErr)
                 }
             }
 

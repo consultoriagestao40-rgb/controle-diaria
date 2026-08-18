@@ -16,12 +16,16 @@ interface Item {
     data: string
     dataPagamento: string
     posto: { nome: string }
-    diarista: { nome: string; cpf?: string }
+    diarista: { nome: string; cpf?: string; chavePix?: string }
+    empresa?: { id: string; nome: string }
     valor: string
     meioPagamentoEfetivado?: { descricao: string }
     justificativaPagamento?: string
-    financeiro: { nome: string }
+    financeiro?: { nome: string }
     anexos: { id: string; url: string; nomeOriginal: string }[]
+    contaAzulPayableId?: string
+    contaAzulStatus?: string
+    contaAzulReceiptUrl?: string
 }
 
 export default function FinanceHistoryPage() {
@@ -194,7 +198,21 @@ export default function FinanceHistoryPage() {
                             </TableHeader>
                             <TableBody>
                                 {items.map((item) => {
-                                    const temComprovante = item.anexos && item.anexos.length > 0
+                                    const isContaAzul = !!item.contaAzulPayableId || 
+                                                        item.meioPagamentoEfetivado?.descricao?.toLowerCase().includes("conta azul") ||
+                                                        item.anexos?.some(a => a.nomeOriginal?.toLowerCase().includes("contaazul") || a.url?.includes("contaazul"))
+
+                                    const rawUrl = (item.anexos && item.anexos.length > 0)
+                                        ? item.anexos[0].url
+                                        : item.contaAzulReceiptUrl || (item.contaAzulPayableId ? `/api/contaazul/comprovante/${item.contaAzulPayableId}?empresaId=${item.empresa?.id || ''}` : null)
+
+                                    const receiptHref = rawUrl
+                                        ? (rawUrl.includes("asaas.com/comprovantes/") ? `/api/asaas/comprovante/${rawUrl.split("asaas.com/comprovantes/")[1]}` : rawUrl)
+                                        : (isContaAzul && item.contaAzulPayableId ? `/api/contaazul/comprovante/${item.contaAzulPayableId}?empresaId=${item.empresa?.id || ''}` : null)
+
+                                    const temComprovante = !!receiptHref
+                                    const meioDescricao = item.meioPagamentoEfetivado?.descricao || (isContaAzul ? 'Conta Azul (ERP)' : 'Pix Asaas')
+                                    const responsavelDescricao = item.financeiro?.nome || (isContaAzul ? 'ERP Conta Azul' : 'Sistema (Asaas)')
 
                                     return (
                                         <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
@@ -215,43 +233,46 @@ export default function FinanceHistoryPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className="rounded-lg text-xs border-slate-200 bg-white font-medium text-slate-700">
-                                                    {item.meioPagamentoEfetivado?.descricao || 'Pix Asaas'}
+                                                <Badge
+                                                    variant="outline"
+                                                    className={`rounded-lg text-xs font-semibold ${
+                                                        isContaAzul
+                                                            ? "border-sky-200 bg-sky-50 text-sky-800"
+                                                            : "border-slate-200 bg-white text-slate-700"
+                                                    }`}
+                                                >
+                                                    {meioDescricao}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="font-extrabold text-sm text-emerald-600">
                                                 {formatCurrency(item.valor)}
                                             </TableCell>
                                             <TableCell>
-                                                {temComprovante ? (() => {
-                                                    const rawUrl = item.anexos[0].url
-                                                    const isContaAzul = rawUrl.includes("contaazul") || item.anexos[0].nomeOriginal.toLowerCase().includes("contaazul")
-                                                    const receiptHref = rawUrl.includes("asaas.com/comprovantes/")
-                                                        ? `/api/asaas/comprovante/${rawUrl.split("asaas.com/comprovantes/")[1]}`
-                                                        : rawUrl
-
-                                                    return (
-                                                        <a
-                                                            href={receiptHref}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 shadow-xs ${
-                                                                isContaAzul
-                                                                    ? "text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200/80"
-                                                                    : "text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80"
-                                                            }`}
-                                                            title={isContaAzul ? "Baixar Comprovante Oficial Conta Azul (PDF)" : "Baixar Comprovante Pix Oficial Asaas (PDF)"}
-                                                        >
-                                                            <Download className={`h-3.5 w-3.5 ${isContaAzul ? "text-sky-600" : "text-indigo-600"}`} />
-                                                            <span>{isContaAzul ? "Comprovante ERP" : "Baixar Comprovante"}</span>
-                                                        </a>
-                                                    )
-                                                })() : (
+                                                {temComprovante ? (
+                                                    <a
+                                                        href={receiptHref!}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 shadow-xs ${
+                                                            isContaAzul
+                                                                ? "text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200/80"
+                                                                : "text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80"
+                                                        }`}
+                                                        title={isContaAzul ? "Visualizar e Imprimir Comprovante ERP Conta Azul (PDF)" : "Baixar Comprovante Pix Oficial Asaas (PDF)"}
+                                                    >
+                                                        {isContaAzul ? (
+                                                            <FileText className="h-3.5 w-3.5 text-sky-600" />
+                                                        ) : (
+                                                            <Download className="h-3.5 w-3.5 text-indigo-600" />
+                                                        )}
+                                                        <span>{isContaAzul ? "Comprovante ERP" : "Baixar Comprovante"}</span>
+                                                    </a>
+                                                ) : (
                                                     <span className="text-slate-400 text-xs italic font-medium">Processado</span>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-xs font-medium text-slate-500">
-                                                {item.financeiro?.nome || 'Sistema (Asaas)'}
+                                                {responsavelDescricao}
                                             </TableCell>
                                         </TableRow>
                                     )

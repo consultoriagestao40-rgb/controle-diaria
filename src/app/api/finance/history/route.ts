@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
             include: {
                 posto: true,
                 diarista: true,
+                empresa: { select: { id: true, nome: true } },
                 meioPagamentoEfetivado: true,
                 financeiro: { select: { nome: true } },
                 anexos: true // To show receipt link
