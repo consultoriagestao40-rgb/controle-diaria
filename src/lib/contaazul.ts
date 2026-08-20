@@ -337,22 +337,40 @@ export async function resolveCostCenterForEmpresa(
     fallbackCostCenterId?: string | null
 ): Promise<string | null> {
     try {
-        const queryTerm = posto?.centroCustoContaAzulNome || posto?.nome
+        const costCenters = await getContaAzulCostCenters(empresaId)
+        if (!costCenters || costCenters.length === 0) {
+            return null
+        }
+
+        const queryTerm = (posto?.centroCustoContaAzulNome || posto?.nome || "").trim().toLowerCase()
         if (queryTerm) {
-            const res = await fetchContaAzul(empresaId, `/v1/centro-de-custo?busca=${encodeURIComponent(queryTerm)}`)
-            const itens = res?.itens || []
-            if (itens.length > 0) {
-                // Tenta match exato por nome
-                const exact = itens.find((c: any) => c.nome?.toLowerCase().trim() === queryTerm.toLowerCase().trim())
-                if (exact) return exact.id
-                return itens[0].id
-            }
+            // 1. Match exato por nome
+            const exact = costCenters.find((c: any) => c.nome?.toLowerCase().trim() === queryTerm)
+            if (exact) return exact.id
+
+            // 2. Match parcial
+            const partial = costCenters.find((c: any) => 
+                c.nome?.toLowerCase().includes(queryTerm) || queryTerm.includes(c.nome?.toLowerCase().trim())
+            )
+            if (partial) return partial.id
+        }
+
+        // 3. Verifica se o centroCustoContaAzulId salvo no posto pertence de fato a esta empresa no Conta Azul
+        if (posto?.centroCustoContaAzulId) {
+            const existsInEmpresa = costCenters.find((c: any) => c.id === posto.centroCustoContaAzulId)
+            if (existsInEmpresa) return existsInEmpresa.id
+        }
+
+        // 4. Fallback padrão da empresa se existir e for válido
+        if (fallbackCostCenterId) {
+            const fallbackExists = costCenters.find((c: any) => c.id === fallbackCostCenterId)
+            if (fallbackExists) return fallbackExists.id
         }
     } catch (e) {
         console.error("[RESOLVE COST CENTER ERROR]", e)
     }
 
-    return posto?.centroCustoContaAzulId || fallbackCostCenterId || null
+    return null
 }
 
 /**
@@ -520,8 +538,16 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
         // Fallback de categoria se não configurada
         if (!categoryId) {
             const categories = await getContaAzulCategories(empresaId)
-            const defaultCat = categories.find((c: any) => c.nome?.includes("Diária") || c.nome?.includes("03.4"))
+            const defaultCat = categories.find((c: any) => 
+                c.nome?.toLowerCase().includes("diária") || 
+                c.nome?.toLowerCase().includes("diaria") || 
+                c.nome?.includes("03.4")
+            )
             if (defaultCat) categoryId = defaultCat.id
+        }
+
+        if (!categoryId) {
+            return { success: false, error: "Nenhuma categoria financeira de Diária configurada no Conta Azul para esta empresa." }
         }
 
         // 3. Resolução de Centro de Custo e Conta Financeira da Empresa
