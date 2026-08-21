@@ -261,16 +261,18 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
 }): Promise<{ success: boolean; contactId?: string; error?: string }> {
     try {
         const cleanCpf = contactInfo.cpf?.replace(/\D/g, "")
-        const searchTerm = cleanCpf || contactInfo.nome
+        const cleanPix = contactInfo.chavePix?.trim()
+        const searchTerm = cleanCpf || contactInfo.nome.trim()
 
         // 1. Tenta buscar por CPF ou Nome via /v1/pessoas
         const searchRes = await fetchContaAzul(empresaId, `/v1/pessoas?busca=${encodeURIComponent(searchTerm)}`)
-        const items = searchRes?.itens || (Array.isArray(searchRes) ? searchRes : [])
+        const items = searchRes?.items || searchRes?.itens || (Array.isArray(searchRes) ? searchRes : [])
 
         if (items.length > 0) {
-            // Se temos CPF, tenta achar match exato
+            // Se temos CPF, tenta achar match exato por documento
             if (cleanCpf) {
                 const exactCpf = items.find((p: any) => 
+                    p.documento?.replace(/\D/g, "") === cleanCpf ||
                     p.documentos?.some((d: any) => d.numero?.replace(/\D/g, "") === cleanCpf)
                 )
                 if (exactCpf) return { success: true, contactId: exactCpf.id }
@@ -286,28 +288,25 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
             return { success: true, contactId: items[0].id }
         }
 
-        // 2. Se não encontrou, cadastra nova Pessoa (Fornecedor) na API v2
+        // 2. Se não encontrou, cadastra nova Pessoa (Fornecedor) na API v2 com CPF e PIX
         const payload: any = {
             nome: contactInfo.nome.trim(),
-            tipo_pessoa: "Física",
-            perfis: [{ tipo_perfil: "Fornecedor" }]
+            tipo_pessoa: cleanCpf && cleanCpf.length === 14 ? "Jurídica" : "Física",
+            perfis: [{ tipo_perfil: "Fornecedor" }],
+            observacao: cleanPix ? `CHAVE PIX: ${cleanPix}` : undefined
         }
 
         if (cleanCpf && cleanCpf.length === 11) {
-            payload.documentos = [{ tipo: "CPF", numero: cleanCpf }]
+            payload.cpf = cleanCpf
         } else if (cleanCpf && cleanCpf.length === 14) {
-            payload.tipo_pessoa = "Jurídica"
-            payload.documentos = [{ tipo: "CNPJ", numero: cleanCpf }]
+            payload.cnpj = cleanCpf
         }
 
         if (contactInfo.email) {
             payload.email = contactInfo.email
         }
         if (contactInfo.telefone) {
-            payload.telefone = contactInfo.telefone
-        }
-        if (contactInfo.chavePix) {
-            payload.informacoes_adicionais = `CHAVE PIX: ${contactInfo.chavePix.trim()}`
+            payload.telefone_celular = contactInfo.telefone
         }
 
         const createRes = await fetchContaAzul(empresaId, "/v1/pessoas", {
@@ -318,6 +317,14 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
         if (createRes?.id) {
             return { success: true, contactId: createRes.id }
         } else if (createRes?.error) {
+            // Se erro for de pessoa já cadastrada com o CPF, faz busca pelo CPF e recupera o ID
+            if (cleanCpf) {
+                const retrySearch = await fetchContaAzul(empresaId, `/v1/pessoas?busca=${encodeURIComponent(cleanCpf)}`)
+                const retryItems = retrySearch?.items || retrySearch?.itens || []
+                if (retryItems.length > 0) {
+                    return { success: true, contactId: retryItems[0].id }
+                }
+            }
             return { success: false, error: createRes.error }
         }
 
