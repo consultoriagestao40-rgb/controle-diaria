@@ -13,6 +13,7 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn, formatCurrency } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
+import { DatePicker } from "@/components/ui/date-picker"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -135,8 +136,10 @@ export default function AdminCoberturasPage() {
             let url = "/api/admin/coberturas"
             const params = new URLSearchParams()
 
-            if (startDate && endDate) {
+            if (startDate) {
                 params.append("start", startDate)
+            }
+            if (endDate) {
                 params.append("end", endDate)
             }
 
@@ -188,6 +191,7 @@ export default function AdminCoberturasPage() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'PENDENTE': return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pendente</Badge>
+            case 'APROVADO_N1': return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Aprovado N1</Badge>
             case 'APROVADO': return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Aprovado</Badge>
             case 'PAGO': return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Pago</Badge>
             case 'REPROVADO': return <Badge variant="destructive">Reprovado</Badge>
@@ -353,40 +357,29 @@ export default function AdminCoberturasPage() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                            <Input
-                                type="text"
-                                placeholder="dd/mm/aaaa"
-                                className="w-[110px] text-sm text-center"
-                                maxLength={10}
-                                value={startInput}
-                                onChange={(e) => {
-                                    const masked = maskDate(e.target.value)
-                                    setStartInput(masked)
-                                    const iso = parseToISODate(masked)
-                                    if (iso) setStartDate(iso)
-                                }}
+                            <DatePicker
+                                value={startDate}
+                                onChange={setStartDate}
+                                placeholder="Início"
+                                variant="compact"
+                                className="w-[125px]"
                             />
                             <span className="text-muted-foreground">-</span>
-                            <Input
-                                type="text"
-                                placeholder="dd/mm/aaaa"
-                                className="w-[110px] text-sm text-center"
-                                maxLength={10}
-                                value={endInput}
-                                onChange={(e) => {
-                                    const masked = maskDate(e.target.value)
-                                    setEndInput(masked)
-                                    const iso = parseToISODate(masked)
-                                    if (iso) setEndDate(iso)
-                                }}
+                            <DatePicker
+                                value={endDate}
+                                onChange={setEndDate}
+                                placeholder="Fim"
+                                variant="compact"
+                                className="w-[125px]"
                             />
                             <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger className="w-[140px]">
+                                <SelectTrigger className="w-[150px]">
                                     <SelectValue placeholder="Status" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="ALL">Status: Todos</SelectItem>
                                     <SelectItem value="PENDENTE">Pendente</SelectItem>
+                                    <SelectItem value="APROVADO_N1">Aprovado N1</SelectItem>
                                     <SelectItem value="APROVADO">Aprovado</SelectItem>
                                     <SelectItem value="PAGO">Pago</SelectItem>
                                     <SelectItem value="REPROVADO">Reprovado</SelectItem>
@@ -403,10 +396,8 @@ export default function AdminCoberturasPage() {
                             </Button>
                             <Button variant="outline" onClick={() => {
                                 const params = new URLSearchParams()
-                                if (startDate && endDate) {
-                                    params.append("start", startDate)
-                                    params.append("end", endDate)
-                                }
+                                if (startDate) params.append("start", startDate)
+                                if (endDate) params.append("end", endDate)
                                 if (status && status !== "ALL") params.append("status", status)
                                 if (filters.diaristaId !== "ALL") params.append("diaristaId", filters.diaristaId)
                                 if (filters.postoId !== "ALL") params.append("postoId", filters.postoId)

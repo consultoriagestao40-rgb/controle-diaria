@@ -11,6 +11,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { DatePicker } from "@/components/ui/date-picker"
 import {
     Card,
     CardContent,
@@ -176,47 +177,37 @@ export default function RelatoriosPage() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 p-3 bg-white rounded-2xl border shadow-sm w-full sm:w-auto">
                     <div className="grid grid-cols-2 gap-3 w-full sm:w-auto">
                         {/* Data Início */}
-                        <div className="flex flex-col gap-1.5 w-full sm:w-[140px] relative group">
+                        <div className="flex flex-col gap-1.5 w-full sm:w-[140px]">
                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Início</Label>
-                            <div className="relative w-full">
-                                <div className="absolute inset-0 bg-slate-50 border border-slate-200 group-hover:border-slate-300 shadow-sm rounded-xl px-3 flex items-center justify-between pointer-events-none transition-all font-semibold text-sm text-slate-700 h-10">
-                                    <span>{formatDateToBr(dateRange.start)}</span>
-                                    <CalendarIcon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                                </div>
-                                <input
-                                    type="date"
-                                    value={formatDateToIso(dateRange.start)}
-                                    onChange={(e) => {
-                                        const parsed = parseFromIso(e.target.value)
-                                        if (parsed) {
-                                            setDateRange(prev => ({ ...prev, start: parsed }))
-                                        }
-                                    }}
-                                    className="h-10 w-full opacity-0 cursor-pointer block"
-                                />
-                            </div>
+                            <DatePicker
+                                value={formatDateToIso(dateRange.start)}
+                                onChange={(val) => {
+                                    const parsed = parseFromIso(val)
+                                    if (parsed) {
+                                        setDateRange(prev => ({ ...prev, start: parsed }))
+                                    }
+                                }}
+                                placeholder="dd/mm/aaaa"
+                                variant="compact"
+                                className="h-10 text-sm"
+                            />
                         </div>
 
                         {/* Data Fim */}
-                        <div className="flex flex-col gap-1.5 w-full sm:w-[140px] relative group">
+                        <div className="flex flex-col gap-1.5 w-full sm:w-[140px]">
                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fim</Label>
-                            <div className="relative w-full">
-                                <div className="absolute inset-0 bg-slate-50 border border-slate-200 group-hover:border-slate-300 shadow-sm rounded-xl px-3 flex items-center justify-between pointer-events-none transition-all font-semibold text-sm text-slate-700 h-10">
-                                    <span>{formatDateToBr(dateRange.end)}</span>
-                                    <CalendarIcon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                                </div>
-                                <input
-                                    type="date"
-                                    value={formatDateToIso(dateRange.end)}
-                                    onChange={(e) => {
-                                        const parsed = parseFromIso(e.target.value)
-                                        if (parsed) {
-                                            setDateRange(prev => ({ ...prev, end: parsed }))
-                                        }
-                                    }}
-                                    className="h-10 w-full opacity-0 cursor-pointer block"
-                                />
-                            </div>
+                            <DatePicker
+                                value={formatDateToIso(dateRange.end)}
+                                onChange={(val) => {
+                                    const parsed = parseFromIso(val)
+                                    if (parsed) {
+                                        setDateRange(prev => ({ ...prev, end: parsed }))
+                                    }
+                                }}
+                                placeholder="dd/mm/aaaa"
+                                variant="compact"
+                                className="h-10 text-sm"
+                            />
                         </div>
                     </div>
                     <Button 

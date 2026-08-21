@@ -24,14 +24,15 @@ export async function GET(req: Request) {
 
         const where: any = {}
 
-        if (start && end) {
-            const startDate = new Date(start)
-            const endDate = new Date(end)
-            endDate.setHours(23, 59, 59, 999) // End of day
-
-            where.data = {
-                gte: startDate,
-                lte: endDate
+        if (start || end) {
+            where.data = {}
+            if (start) {
+                where.data.gte = new Date(start)
+            }
+            if (end) {
+                const endDate = new Date(end)
+                endDate.setHours(23, 59, 59, 999)
+                where.data.lte = endDate
             }
         }
 

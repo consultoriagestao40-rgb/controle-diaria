@@ -25,14 +25,15 @@ export async function GET(req: Request) {
     const supervisorId = searchParams.get('supervisorId')
 
     let where: any = {}
-    if (startStr && endStr) {
-        const startDate = new Date(startStr)
-        const endDate = new Date(endStr)
-        endDate.setHours(23, 59, 59, 999) // End of day
-
-        where.data = {
-            gte: startDate,
-            lte: endDate
+    if (startStr || endStr) {
+        where.data = {}
+        if (startStr) {
+            where.data.gte = new Date(startStr)
+        }
+        if (endStr) {
+            const endDate = new Date(endStr)
+            endDate.setHours(23, 59, 59, 999)
+            where.data.lte = endDate
         }
     }
 

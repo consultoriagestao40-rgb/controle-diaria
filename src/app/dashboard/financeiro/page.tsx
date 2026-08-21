@@ -20,6 +20,7 @@ import {
     DialogClose,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -183,13 +184,26 @@ export default function FinanceDashboard() {
     }
 
     const filteredItems = items.filter(item => {
-        if (startDate) {
-            const itemDate = item.data.split('T')[0]
-            if (itemDate < startDate) return false
-        }
-        if (endDate) {
-            const itemDate = item.data.split('T')[0]
-            if (itemDate > endDate) return false
+        if (startDate || endDate) {
+            let itemDateStr = ""
+            if (item.data) {
+                try {
+                    const d = new Date(item.data)
+                    if (!isNaN(d.getTime())) {
+                        const y = d.getFullYear()
+                        const m = String(d.getMonth() + 1).padStart(2, '0')
+                        const day = String(d.getDate()).padStart(2, '0')
+                        itemDateStr = `${y}-${m}-${day}`
+                    } else {
+                        itemDateStr = item.data.split('T')[0]
+                    }
+                } catch {
+                    itemDateStr = item.data.split('T')[0]
+                }
+            }
+
+            if (startDate && itemDateStr < startDate) return false
+            if (endDate && itemDateStr > endDate) return false
         }
         return true
     })
@@ -528,41 +542,23 @@ export default function FinanceDashboard() {
                     {/* Datas lado a lado no celular, juntas ocupando o espaço restante no desktop */}
                     <div className="grid grid-cols-2 gap-2 md:flex md:gap-4 shrink-0">
                         {/* Data Início */}
-                        <div className="space-y-1 md:space-y-1.5">
+                        <div className="space-y-1 md:space-y-1.5 w-full md:w-44">
                             <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Período (Início)</label>
-                            <div className="relative w-full md:w-44 group">
-                                <div className="absolute inset-0 bg-white border border-slate-200 group-hover:border-slate-300 shadow-xs rounded-xl px-3 md:px-4 flex items-center justify-between pointer-events-none transition-all font-semibold text-xs md:text-sm text-slate-700 group-focus-within:ring-2 group-focus-within:ring-primary/10 group-focus-within:border-primary">
-                                    <span className={startDate ? "text-slate-700" : "text-slate-300 font-medium"}>
-                                        {formatDateToBr(startDate) || "dd/mm/aaaa"}
-                                    </span>
-                                    <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                                </div>
-                                <input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="h-10 md:h-12 w-full opacity-0 cursor-pointer block"
-                                />
-                            </div>
+                            <DatePicker
+                                value={startDate}
+                                onChange={setStartDate}
+                                placeholder="dd/mm/aaaa"
+                            />
                         </div>
 
                         {/* Data Fim */}
-                        <div className="space-y-1 md:space-y-1.5">
+                        <div className="space-y-1 md:space-y-1.5 w-full md:w-44">
                             <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Período (Término)</label>
-                            <div className="relative w-full md:w-44 group">
-                                <div className="absolute inset-0 bg-white border border-slate-200 group-hover:border-slate-300 shadow-xs rounded-xl px-3 md:px-4 flex items-center justify-between pointer-events-none transition-all font-semibold text-xs md:text-sm text-slate-700 group-focus-within:ring-2 group-focus-within:ring-primary/10 group-focus-within:border-primary">
-                                    <span className={endDate ? "text-slate-700" : "text-slate-300 font-medium"}>
-                                        {formatDateToBr(endDate) || "dd/mm/aaaa"}
-                                    </span>
-                                    <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                                </div>
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    className="h-10 md:h-12 w-full opacity-0 cursor-pointer block"
-                                />
-                            </div>
+                            <DatePicker
+                                value={endDate}
+                                onChange={setEndDate}
+                                placeholder="dd/mm/aaaa"
+                            />
                         </div>
                     </div>
 
