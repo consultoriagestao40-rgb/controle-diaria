@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { CheckCircle, DollarSign, Loader2, Calendar, MapPin, User, FileText, CreditCard, Upload, Download, Search, AlertTriangle, XCircle, X, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
@@ -45,6 +45,7 @@ interface Item {
     justificativaAprovacaoN2?: string
     dataAprovacao?: string
     createdAt?: string
+    empresa?: { id?: string; nome: string }
 }
 
 interface Meio {
@@ -65,9 +66,11 @@ export default function FinanceDashboard() {
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
 
-    // Date filters
+    // Date & Empresa filters
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
+    const [selectedEmpresa, setSelectedEmpresa] = useState("ALL")
+    const [optionsEmpresas, setOptionsEmpresas] = useState<{ id: string; nome: string }[]>([])
 
     // Grouping & Batching states
     const [groupBy, setGroupBy] = useState<'NONE' | 'DIARISTA' | 'POSTO' | 'EMPRESA' | 'RESERVA' | 'MOTIVO'>('NONE')
@@ -128,6 +131,15 @@ export default function FinanceDashboard() {
 
     // Sincronização automática em segundo plano ao abrir a tela
     useEffect(() => {
+        fetch("/api/admin/options").then(res => {
+            if (res.ok) return res.json()
+            return null
+        }).then(data => {
+            if (data?.empresas) {
+                setOptionsEmpresas(data.empresas)
+            }
+        }).catch(() => {})
+
         const autoSync = async () => {
             try {
                 const res = await fetch("/api/contaazul/sync", {
@@ -145,6 +157,22 @@ export default function FinanceDashboard() {
         }
         autoSync()
     }, [])
+
+    const empresaList = useMemo(() => {
+        const map = new Map<string, string>()
+        optionsEmpresas.forEach(e => {
+            if (e.id && e.nome) map.set(e.id, e.nome)
+        })
+        items.forEach(item => {
+            if (item.empresa?.nome) {
+                const id = (item.empresa as any).id || item.empresa.nome
+                if (!map.has(id)) {
+                    map.set(id, item.empresa.nome)
+                }
+            }
+        })
+        return Array.from(map.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome))
+    }, [optionsEmpresas, items])
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -183,30 +211,43 @@ export default function FinanceDashboard() {
         }
     }
 
-    const filteredItems = items.filter(item => {
-        if (startDate || endDate) {
-            let itemDateStr = ""
-            if (item.data) {
-                try {
-                    const d = new Date(item.data)
-                    if (!isNaN(d.getTime())) {
-                        const y = d.getFullYear()
-                        const m = String(d.getMonth() + 1).padStart(2, '0')
-                        const day = String(d.getDate()).padStart(2, '0')
-                        itemDateStr = `${y}-${m}-${day}`
-                    } else {
-                        itemDateStr = item.data.split('T')[0]
+    const filteredItems = useMemo(() => {
+        return items.filter(item => {
+            if (selectedEmpresa !== "ALL") {
+                if (selectedEmpresa === "SEM_EMPRESA") {
+                    if (item.empresa?.nome) return false
+                } else {
+                    const empId = (item.empresa as any)?.id || item.empresa?.nome
+                    if (empId !== selectedEmpresa && item.empresa?.nome !== selectedEmpresa) {
+                        return false
                     }
-                } catch {
-                    itemDateStr = item.data.split('T')[0]
                 }
             }
 
-            if (startDate && itemDateStr < startDate) return false
-            if (endDate && itemDateStr > endDate) return false
-        }
-        return true
-    })
+            if (startDate || endDate) {
+                let itemDateStr = ""
+                if (item.data) {
+                    try {
+                        const d = new Date(item.data)
+                        if (!isNaN(d.getTime())) {
+                            const y = d.getFullYear()
+                            const m = String(d.getMonth() + 1).padStart(2, '0')
+                            const day = String(d.getDate()).padStart(2, '0')
+                            itemDateStr = `${y}-${m}-${day}`
+                        } else {
+                            itemDateStr = item.data.split('T')[0]
+                        }
+                    } catch {
+                        itemDateStr = item.data.split('T')[0]
+                    }
+                }
+
+                if (startDate && itemDateStr < startDate) return false
+                if (endDate && itemDateStr > endDate) return false
+            }
+            return true
+        })
+    }, [items, selectedEmpresa, startDate, endDate])
 
     const openPayDialog = (item: Item) => {
         setSelectedItem(item)
@@ -480,7 +521,7 @@ export default function FinanceDashboard() {
                             <div className="flex md:hidden items-center justify-between bg-white/60 backdrop-blur-sm px-3.5 py-2.5 rounded-xl border border-slate-100/50 w-full shadow-2xs">
                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Total à pagar</span>
                                 <span className="text-sm font-black text-slate-900 tracking-tight">
-                                    {formatCurrency(items.reduce((acc, item) => acc + Number(item.valor), 0))}
+                                    {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
                                 </span>
                             </div>
 
@@ -489,7 +530,7 @@ export default function FinanceDashboard() {
                                 <div className="text-right">
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total à pagar</span>
                                     <div className="text-3xl font-black text-slate-900 tracking-tighter mt-1">
-                                        {formatCurrency(items.reduce((acc, item) => acc + Number(item.valor), 0))}
+                                        {formatCurrency(filteredItems.reduce((acc, item) => acc + Number(item.valor), 0))}
                                     </div>
                                 </div>
                                 <div className="h-10 w-0.5 bg-slate-200 rounded-full" />
@@ -524,9 +565,9 @@ export default function FinanceDashboard() {
 
             {/* Filters Area */}
             <div className="space-y-2 md:space-y-3">
-                <div className="flex flex-col gap-2.5 md:flex-row md:items-end max-w-5xl px-1">
+                <div className="flex flex-col gap-2.5 lg:flex-row lg:items-end w-full px-1">
                     {/* Search */}
-                    <div className="relative group flex-1 space-y-1 md:space-y-1.5">
+                    <div className="relative group flex-1 min-w-[200px] space-y-1 md:space-y-1.5">
                         <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Filtro de busca</label>
                         <div className="relative">
                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
@@ -539,10 +580,32 @@ export default function FinanceDashboard() {
                         </div>
                     </div>
 
+                    {/* Filtro Empresa */}
+                    <div className="space-y-1 md:space-y-1.5 w-full sm:w-56 shrink-0">
+                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Empresa (Grupo)</label>
+                        <select
+                            value={selectedEmpresa}
+                            onChange={(e) => {
+                                setSelectedEmpresa(e.target.value)
+                                setSelectedGroup(null)
+                                setSelectedItemIds([])
+                                setSelectedItemIdsForBatch([])
+                            }}
+                            className="h-10 md:h-12 bg-white border border-slate-200 hover:border-slate-300 shadow-xs rounded-xl px-3 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all font-semibold text-xs md:text-sm text-slate-700 w-full outline-none appearance-none cursor-pointer"
+                            style={{ backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px' }}
+                        >
+                            <option value="ALL">Todas as Empresas</option>
+                            {empresaList.map((emp) => (
+                                <option key={emp.id} value={emp.id}>{emp.nome}</option>
+                            ))}
+                            <option value="SEM_EMPRESA">Sem Empresa</option>
+                        </select>
+                    </div>
+
                     {/* Datas lado a lado no celular, juntas ocupando o espaço restante no desktop */}
-                    <div className="grid grid-cols-2 gap-2 md:flex md:gap-4 shrink-0">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 shrink-0">
                         {/* Data Início */}
-                        <div className="space-y-1 md:space-y-1.5 w-full md:w-44">
+                        <div className="space-y-1 md:space-y-1.5 w-full sm:w-36 md:w-40">
                             <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Período (Início)</label>
                             <DatePicker
                                 value={startDate}
@@ -552,7 +615,7 @@ export default function FinanceDashboard() {
                         </div>
 
                         {/* Data Fim */}
-                        <div className="space-y-1 md:space-y-1.5 w-full md:w-44">
+                        <div className="space-y-1 md:space-y-1.5 w-full sm:w-36 md:w-40">
                             <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Período (Término)</label>
                             <DatePicker
                                 value={endDate}
@@ -563,7 +626,7 @@ export default function FinanceDashboard() {
                     </div>
 
                     {/* Agrupar por */}
-                    <div className="space-y-1 md:space-y-1.5 w-full md:w-52">
+                    <div className="space-y-1 md:space-y-1.5 w-full sm:w-52 shrink-0">
                         <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Visualização (Agrupar)</label>
                         <select
                             value={groupBy}
@@ -586,7 +649,7 @@ export default function FinanceDashboard() {
                     </div>
                 </div>
 
-                {(search || startDate || endDate || groupBy !== 'NONE') && (
+                {(search || startDate || endDate || groupBy !== 'NONE' || selectedEmpresa !== 'ALL') && (
                     <div className="flex justify-start gap-2 px-1">
                         <Button
                             variant="ghost"
@@ -594,6 +657,7 @@ export default function FinanceDashboard() {
                                 setSearch("")
                                 setStartDate("")
                                 setEndDate("")
+                                setSelectedEmpresa("ALL")
                                 setGroupBy("NONE")
                                 setSelectedGroup(null)
                                 setSelectedItemIds([])
