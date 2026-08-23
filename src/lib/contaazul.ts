@@ -657,6 +657,214 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
 }
 
 /**
+ * Cria 1 lançamento CONSOLIDADO de Contas a Pagar no Conta Azul com RATEIO de múltiplos centros de custo
+ * para um grupo de diárias aprovadas em lote de um mesmo diarista e mesma empresa.
+ */
+export async function createPayableFromGroupedCoberturas(coberturaIds: string[]): Promise<ContaAzulPayableResult> {
+    if (!coberturaIds || coberturaIds.length === 0) {
+        return { success: false, error: "Nenhuma diária fornecida para consolidação." }
+    }
+
+    if (coberturaIds.length === 1) {
+        return createPayableFromCobertura(coberturaIds[0])
+    }
+
+    try {
+        const coberturas = await prisma.cobertura.findMany({
+            where: { id: { in: coberturaIds } },
+            include: {
+                diarista: true,
+                posto: true,
+                empresa: true
+            },
+            orderBy: { data: 'asc' }
+        })
+
+        if (coberturas.length === 0) {
+            return { success: false, error: "Coberturas não encontradas." }
+        }
+
+        const primary = coberturas[0]
+        const diarista = primary.diarista
+
+        // 1. Resolve empresa
+        let empresaId: string | null = primary.empresaId
+        if (!empresaId) {
+            const defaultEmpresa = await prisma.empresa.findFirst({ where: { ativo: true } })
+            empresaId = defaultEmpresa?.id || null
+        }
+
+        if (!empresaId) {
+            return { success: false, error: "Nenhuma empresa associada a estas diárias." }
+        }
+
+        const config = await prisma.contaAzulConfig.findUnique({
+            where: { empresaId }
+        })
+
+        if (!config || !config.ativo || !config.autoCriarAoAprovar) {
+            return { success: false, error: "Integração Conta Azul inativa para esta empresa." }
+        }
+
+        const token = await getValidAccessToken(empresaId)
+        if (!token) {
+            return { success: false, error: "Empresa não conectada ao Conta Azul (OAuth pendente)." }
+        }
+
+        // 2. Busca ou cria o Diarista como fornecedor no Conta Azul
+        const contactResult = await findOrCreateContaAzulContact(empresaId, {
+            nome: diarista.nome,
+            cpf: diarista.cpf,
+            telefone: diarista.telefone,
+            chavePix: diarista.chavePix
+        })
+
+        const cleanPix = diarista.chavePix?.trim()
+        const pixInfo = cleanPix ? ` - PIX: ${cleanPix}` : ""
+        const valorTotal = coberturas.reduce((acc, c) => acc + Number(c.valor), 0)
+
+        // Datas de referência
+        const datesFormatted = coberturas.map(c => format(new Date(c.data), "dd/MM")).join(", ")
+        const dataCompetencia = format(new Date(coberturas[coberturas.length - 1].data), "yyyy-MM-dd")
+        const calculatedVencimento = calculateDiariaVencimento(coberturas[coberturas.length - 1].dataVencimento || coberturas[coberturas.length - 1].data)
+        const dataVencimento = format(calculatedVencimento, "yyyy-MM-dd")
+
+        const descricao = `Diárias Lote (${coberturas.length}x): ${diarista.nome}${pixInfo} (Ref: ${datesFormatted})`
+
+        // 3. Resolução de Categorias Financeiras e Centros de Custo para cada Cobertura (Rateio)
+        const categories = await getContaAzulCategories(empresaId)
+        const defaultCat = categories.find((c: any) => 
+            c.nome?.toLowerCase().includes("diária") || 
+            c.nome?.toLowerCase().includes("diaria") || 
+            c.nome?.includes("03.4")
+        )
+
+        const rateio: any[] = []
+        const plantoesDetalhados: string[] = []
+
+        for (const cob of coberturas) {
+            const cobVal = Number(cob.valor)
+            const catFin = (cob.categoriaFinanceira || "").toLowerCase()
+            let catId: string | null = null
+
+            if (catFin.includes("serviço vendido") || catFin.includes("servico vendido") || catFin.includes("03.4.1")) {
+                catId = config.categoriaDiariaServicoVendidoId || config.categoriaDiariaId
+            } else if (catFin.includes("cobertura") || catFin.includes("03.4.2")) {
+                catId = config.categoriaDiariaCoberturaId || config.categoriaDiariaId
+            } else {
+                catId = config.categoriaDiariaCoberturaId || config.categoriaDiariaId || config.categoriaDiariaServicoVendidoId || defaultCat?.id
+            }
+
+            if (!catId) {
+                catId = defaultCat?.id || null
+            }
+
+            if (!catId) {
+                return { success: false, error: "Nenhuma categoria financeira de Diária configurada no Conta Azul." }
+            }
+
+            const costCenterId = await resolveCostCenterForEmpresa(empresaId, cob.posto, config.centroCustoPadraoId)
+
+            const rateioItem: any = {
+                id_categoria: catId,
+                valor: cobVal
+            }
+
+            if (costCenterId) {
+                rateioItem.rateio_centro_custo = [
+                    {
+                        id_centro_custo: costCenterId,
+                        valor: cobVal
+                    }
+                ]
+            }
+
+            rateio.push(rateioItem)
+            plantoesDetalhados.push(`${format(new Date(cob.data), "dd/MM/yyyy")} [${cob.posto.nome} - R$ ${cobVal.toFixed(2)}]`)
+        }
+
+        const bankAccountId = await resolveFinancialAccountForEmpresa(empresaId, config.contaFinanceiraPadraoId)
+        if (!bankAccountId) {
+            return { success: false, error: "Nenhuma conta financeira/bancária localizada no Conta Azul para esta empresa." }
+        }
+
+        const observacao = `Beneficiário: ${diarista.nome} | CPF: ${diarista.cpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Lote: ${coberturas.length} plantões (Total: R$ ${valorTotal.toFixed(2)}) | Detalhes: ${plantoesDetalhados.join(" | ")}`
+
+        const payload: any = {
+            data_competencia: dataCompetencia,
+            valor: valorTotal,
+            descricao: descricao,
+            observacao: observacao,
+            contato: contactResult.contactId,
+            conta_financeira: bankAccountId,
+            rateio: rateio,
+            condicao_pagamento: {
+                parcelas: [
+                    {
+                        descricao: "Parcela 1/1",
+                        data_vencimento: dataVencimento,
+                        nota: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
+                        conta_financeira: bankAccountId,
+                        metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
+                        detalhe_valor: {
+                            valor_bruto: valorTotal,
+                            valor_liquido: valorTotal
+                        }
+                    }
+                ]
+            }
+        }
+
+        // 4. Envia para a API do Conta Azul
+        const response = await fetchContaAzul(empresaId, "/v1/financeiro/eventos-financeiros/contas-a-pagar", {
+            method: "POST",
+            body: JSON.stringify(payload)
+        })
+
+        if (response?.error) {
+            return { success: false, error: response.error }
+        }
+
+        let finalPayableId = response?.protocolo || response?.id || `CA-LOTE-${primary.id.slice(-6).toUpperCase()}`
+
+        if (response?.protocolo) {
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1500))
+                const protRes = await fetchContaAzul(empresaId, `/v1/protocolo/${response.protocolo}`)
+                if (protRes?.status === "SUCCESS" && protRes.evento_financeiro_id) {
+                    finalPayableId = protRes.evento_financeiro_id
+                } else if (protRes?.status === "ERROR") {
+                    console.error("[CONTA AZUL PROTOCOL ERROR]", protRes)
+                    return { success: false, error: protRes.resposta || "Erro no processamento do lote no Conta Azul." }
+                }
+            } catch (protErr) {
+                console.error("[CONTA AZUL PROTOCOL FETCH ERROR]", protErr)
+            }
+        }
+
+        // 5. Atualiza TODAS as Coberturas do lote com o mesmo ID do Conta Azul
+        await prisma.cobertura.updateMany({
+            where: { id: { in: coberturaIds } },
+            data: {
+                empresaId,
+                contaAzulPayableId: finalPayableId,
+                contaAzulStatus: "PENDENTE",
+                contaAzulSyncedAt: new Date()
+            }
+        })
+
+        return {
+            success: true,
+            payableId: finalPayableId,
+            status: "PENDENTE"
+        }
+    } catch (error: any) {
+        console.error("[CONTA AZUL GROUPED PAYABLE ERROR]", error)
+        return { success: false, error: error.message || "Erro ao criar lançamento consolidado no Conta Azul." }
+    }
+}
+
+/**
  * Cria lançamento de Contas a Pagar no Conta Azul a partir de uma Despesa (Reembolso / Adiantamento) aprovada
  */
 export async function createPayableFromDespesa(despesaId: string): Promise<ContaAzulPayableResult> {

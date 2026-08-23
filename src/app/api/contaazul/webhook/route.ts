@@ -17,46 +17,48 @@ export async function POST(req: NextRequest) {
 
         if (eventId && isPaid) {
             // Procura cobertura vinculada
-            const cobertura = await prisma.cobertura.findFirst({
+            const coberturas = await prisma.cobertura.findMany({
                 where: { contaAzulPayableId: eventId },
                 include: { empresa: true }
             })
 
-            if (cobertura && cobertura.status !== "PAGO") {
-                const receiptUrl = eventData?.receipt_url || `/api/contaazul/comprovante/${eventId}?empresaId=${cobertura.empresaId}`
-                const dataPagamento = eventData?.payment_date ? new Date(eventData.payment_date) : new Date()
+            for (const cobertura of coberturas) {
+                if (cobertura && cobertura.status !== "PAGO") {
+                    const receiptUrl = eventData?.receipt_url || `/api/contaazul/comprovante/${eventId}?empresaId=${cobertura.empresaId}`
+                    const dataPagamento = eventData?.payment_date ? new Date(eventData.payment_date) : new Date()
 
-                await prisma.$transaction([
-                    prisma.cobertura.update({
-                        where: { id: cobertura.id },
-                        data: {
-                            status: "PAGO",
-                            dataPagamento,
-                            contaAzulStatus: "PAGO",
-                            contaAzulReceiptUrl: receiptUrl,
-                            contaAzulSyncedAt: new Date(),
-                            anexos: {
-                                create: {
-                                    url: receiptUrl,
-                                    nomeOriginal: `Comprovante_ContaAzul_${cobertura.id.slice(-6)}.pdf`,
-                                    tamanho: 2048,
-                                    tipo: "application/pdf",
-                                    usuarioId: cobertura.supervisorId
+                    await prisma.$transaction([
+                        prisma.cobertura.update({
+                            where: { id: cobertura.id },
+                            data: {
+                                status: "PAGO",
+                                dataPagamento,
+                                contaAzulStatus: "PAGO",
+                                contaAzulReceiptUrl: receiptUrl,
+                                contaAzulSyncedAt: new Date(),
+                                anexos: {
+                                    create: {
+                                        url: receiptUrl,
+                                        nomeOriginal: `Comprovante_ContaAzul_${cobertura.id.slice(-6)}.pdf`,
+                                        tamanho: 2048,
+                                        tipo: "application/pdf",
+                                        usuarioId: cobertura.supervisorId
+                                    }
                                 }
                             }
-                        }
-                    }),
-                    prisma.historicoWorkflow.create({
-                        data: {
-                            coberturaId: cobertura.id,
-                            deStatus: cobertura.status,
-                            paraStatus: "PAGO",
-                            usuarioId: cobertura.supervisorId,
-                            observacao: "[Conta Azul Webhook] Pagamento liquidado no ERP. Comprovante anexado automaticamente."
-                        }
-                    })
-                ])
-                console.log(`[CONTA AZUL WEBHOOK] Cobertura ${cobertura.id} atualizada para PAGO`)
+                        }),
+                        prisma.historicoWorkflow.create({
+                            data: {
+                                coberturaId: cobertura.id,
+                                deStatus: cobertura.status,
+                                paraStatus: "PAGO",
+                                usuarioId: cobertura.supervisorId,
+                                observacao: "[Conta Azul Webhook] Pagamento liquidado no ERP. Comprovante anexado automaticamente."
+                            }
+                        })
+                    ])
+                    console.log(`[CONTA AZUL WEBHOOK] Cobertura ${cobertura.id} atualizada para PAGO`)
+                }
             }
 
             // Procura despesa vinculada

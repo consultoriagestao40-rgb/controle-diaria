@@ -236,39 +236,35 @@ export default function ApproverDashboard() {
     const submitBatchAction = async (justif?: string) => {
         if (!batchItemsToApprove || batchItemsToApprove.length === 0) return
         setProcessing(true)
-        
-        let successCount = 0
-        let failCount = 0
 
-        for (const item of batchItemsToApprove) {
-            try {
-                const res = await fetch("/api/approver/items", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: item.id, acao: 'APROVAR', justificativa: justif })
+        try {
+            const res = await fetch("/api/approver/batch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ids: batchItemsToApprove.map(i => i.id),
+                    acao: 'APROVAR',
+                    justificativa: justif
                 })
-                if (res.ok) {
-                    successCount++
-                } else {
-                    failCount++
-                }
-            } catch {
-                failCount++
+            })
+
+            if (!res.ok) throw new Error()
+            const data = await res.json()
+
+            if (data.payablesCreated && data.payablesCreated > 0) {
+                toast.success(`${data.processedCount} diárias aprovadas! (${data.payablesCreated} lote(s) consolidado(s) no Conta Azul com rateio)`)
+            } else {
+                toast.success(`${data.processedCount} itens aprovados com sucesso!`)
             }
+        } catch {
+            toast.error("Erro ao processar aprovação em lote.")
+        } finally {
+            setBatchItemsToApprove(null)
+            setSelectedGroup(null)
+            setSelectedItemIdsForBatch([])
+            fetchItems()
+            setProcessing(false)
         }
-
-        if (successCount > 0) {
-            toast.success(`${successCount} itens aprovados com sucesso!`)
-        }
-        if (failCount > 0) {
-            toast.error(`Erro ao aprovar ${failCount} itens.`)
-        }
-
-        setBatchItemsToApprove(null)
-        setSelectedGroup(null)
-        setSelectedItemIdsForBatch([])
-        fetchItems()
-        setProcessing(false)
     }
 
     const toggleItemSelection = (id: string) => {
