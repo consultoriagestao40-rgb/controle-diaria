@@ -739,7 +739,7 @@ export async function createPayableFromGroupedCoberturas(coberturaIds: string[])
             c.nome?.includes("03.4")
         )
 
-        const rateio: any[] = []
+        const categoryMap = new Map<string, { totalValor: number; costCenters: Map<string, number> }>()
         const plantoesDetalhados: string[] = []
 
         for (const cob of coberturas) {
@@ -765,22 +765,40 @@ export async function createPayableFromGroupedCoberturas(coberturaIds: string[])
 
             const costCenterId = await resolveCostCenterForEmpresa(empresaId, cob.posto, config.centroCustoPadraoId)
 
-            const rateioItem: any = {
-                id_categoria: catId,
-                valor: cobVal
+            if (!categoryMap.has(catId)) {
+                categoryMap.set(catId, {
+                    totalValor: 0,
+                    costCenters: new Map()
+                })
             }
 
+            const catGroup = categoryMap.get(catId)!
+            catGroup.totalValor += cobVal
+
             if (costCenterId) {
-                rateioItem.rateio_centro_custo = [
-                    {
-                        id_centro_custo: costCenterId,
-                        valor: cobVal
-                    }
-                ]
+                const currentCcVal = catGroup.costCenters.get(costCenterId) || 0
+                catGroup.costCenters.set(costCenterId, currentCcVal + cobVal)
+            }
+
+            plantoesDetalhados.push(`${format(new Date(cob.data), "dd/MM/yyyy")} [${cob.posto.nome} - R$ ${cobVal.toFixed(2)}]`)
+        }
+
+        // Monta o array oficial de rateio agrupado por categoria sem duplicatas
+        const rateio: any[] = []
+        for (const [catId, group] of Array.from(categoryMap.entries())) {
+            const rateioItem: any = {
+                id_categoria: catId,
+                valor: group.totalValor
+            }
+
+            if (group.costCenters.size > 0) {
+                rateioItem.rateio_centro_custo = Array.from(group.costCenters.entries()).map(([ccId, ccVal]) => ({
+                    id_centro_custo: ccId,
+                    valor: ccVal
+                }))
             }
 
             rateio.push(rateioItem)
-            plantoesDetalhados.push(`${format(new Date(cob.data), "dd/MM/yyyy")} [${cob.posto.nome} - R$ ${cobVal.toFixed(2)}]`)
         }
 
         const bankAccountId = await resolveFinancialAccountForEmpresa(empresaId, config.contaFinanceiraPadraoId)
