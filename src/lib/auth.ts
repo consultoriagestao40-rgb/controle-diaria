@@ -49,6 +49,7 @@ export const authOptions: NextAuthOptions = {
                 token.id = user.id
                 token.acessoDespesas = (user as any).acessoDespesas
                 token.acessoCoberturas = (user as any).acessoCoberturas
+                token.acessoCompras = (user as any).acessoCompras !== undefined ? (user as any).acessoCompras : true
                 token.avatarUrl = (user as any).avatarUrl
                 token.cargo = (user as any).cargo
             }
@@ -60,6 +61,7 @@ export const authOptions: NextAuthOptions = {
                 (session.user as any).id = token.id;
                 (session.user as any).acessoDespesas = token.acessoDespesas;
                 (session.user as any).acessoCoberturas = token.acessoCoberturas;
+                (session.user as any).acessoCompras = token.acessoCompras;
                 (session.user as any).avatarUrl = token.avatarUrl;
                 (session.user as any).cargo = token.cargo;
             }

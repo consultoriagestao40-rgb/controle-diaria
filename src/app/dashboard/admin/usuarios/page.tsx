@@ -33,6 +33,7 @@ interface User {
     ativo: boolean
     acessoDespesas: boolean
     acessoCoberturas: boolean
+    acessoCompras: boolean
     postosAutorizados: Posto[]
     centroCustoId?: string | null
     centroCusto?: { id: string, nome: string } | null
@@ -58,6 +59,7 @@ export default function UsuariosPage() {
         ativo: true,
         acessoDespesas: true,
         acessoCoberturas: true,
+        acessoCompras: true,
         postosIds: [] as string[],
         centroCustoId: "none",
         cargo: ""
@@ -128,7 +130,19 @@ export default function UsuariosPage() {
 
     const openNew = () => {
         setEditingId(null)
-        setFormData({ nome: "", email: "", password: "", role: "SUPERVISOR", ativo: true, acessoDespesas: true, acessoCoberturas: true, postosIds: [], centroCustoId: "none", cargo: "" })
+        setFormData({
+            nome: "",
+            email: "",
+            password: "",
+            role: "SUPERVISOR",
+            ativo: true,
+            acessoDespesas: true,
+            acessoCoberturas: true,
+            acessoCompras: true,
+            postosIds: [],
+            centroCustoId: "none",
+            cargo: ""
+        })
         setIsDialogOpen(true)
     }
 
@@ -142,6 +156,7 @@ export default function UsuariosPage() {
             ativo: u.ativo,
             acessoDespesas: u.acessoDespesas !== undefined ? u.acessoDespesas : true,
             acessoCoberturas: u.acessoCoberturas !== undefined ? u.acessoCoberturas : true,
+            acessoCompras: u.acessoCompras !== undefined ? u.acessoCompras : true,
             postosIds: u.postosAutorizados.map(p => p.id),
             centroCustoId: u.centroCustoId || "none",
             cargo: u.cargo || ""
@@ -180,6 +195,7 @@ export default function UsuariosPage() {
         switch (role) {
             case 'ADMIN': return <Badge>Admin</Badge>
             case 'SUPERVISOR': return <Badge variant="secondary">Supervisor</Badge>
+            case 'COMPRADOR': return <Badge variant="default" className="bg-amber-600 hover:bg-amber-700 text-white">Comprador (Suprimentos)</Badge>
             case 'APROVADOR': return <Badge variant="default" className="bg-purple-600">Aprovador (N2 Legado)</Badge>
             case 'APROVADOR_N1': return <Badge variant="default" className="bg-purple-400">Aprovador N1</Badge>
             case 'APROVADOR_N2': return <Badge variant="default" className="bg-purple-700">Aprovador N2</Badge>
@@ -262,30 +278,27 @@ export default function UsuariosPage() {
                                                 <Badge variant={u.acessoCoberturas ? "default" : "outline"} className={u.acessoCoberturas ? "bg-cyan-600 hover:bg-cyan-700 text-white text-[9px]" : "text-[9px] text-slate-400 line-through"}>
                                                     Diárias
                                                 </Badge>
+                                                <Badge variant={u.acessoCompras ? "default" : "outline"} className={u.acessoCompras ? "bg-amber-600 hover:bg-amber-700 text-white text-[9px]" : "text-[9px] text-slate-400 line-through"}>
+                                                    Compras
+                                                </Badge>
                                             </div>
                                         </TableCell>
                                         <TableCell>
                                             {u.role !== 'ADMIN' && (
                                                 <div className="flex flex-wrap gap-1">
-                                                    {u.postosAutorizados.length > 0 ? (
-                                                        u.postosAutorizados.slice(0, 2).map(p => (
-                                                            <Badge key={p.id} variant="outline" className="text-[10px]">
-                                                                {p.nome}
-                                                            </Badge>
-                                                        ))
-                                                    ) : (
-                                                        <span className="text-muted-foreground text-xs italic">Nenhum posto</span>
-                                                    )}
-                                                    {u.postosAutorizados.length > 2 && (
-                                                        <Badge variant="outline" className="text-[10px]">+{u.postosAutorizados.length - 2}</Badge>
+                                                    {u.postosAutorizados.slice(0, 3).map(p => (
+                                                        <span key={p.id} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{p.nome}</span>
+                                                    ))}
+                                                    {u.postosAutorizados.length > 3 && (
+                                                        <span className="text-[10px] bg-muted px-1 py-0.5 rounded text-muted-foreground font-bold">+{u.postosAutorizados.length - 3}</span>
                                                     )}
                                                 </div>
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`text-xs px-2 py-1 rounded-full ${u.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                {u.ativo ? 'Ativo' : 'Inativo'}
-                                            </span>
+                                            <Badge variant={u.ativo ? "default" : "destructive"} className={u.ativo ? "bg-emerald-600" : ""}>
+                                                {u.ativo ? "Ativo" : "Inativo"}
+                                            </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
@@ -326,7 +339,7 @@ export default function UsuariosPage() {
                             <Label htmlFor="cargo">Cargo dentro da Organização</Label>
                             <Input
                                 id="cargo"
-                                placeholder="Ex: Diretor Geral, Supervisor Operacional"
+                                placeholder="Ex: Diretor Geral, Supervisor Operacional, Comprador"
                                 value={formData.cargo}
                                 onChange={e => setFormData({ ...formData, cargo: e.target.value })}
                             />
@@ -341,6 +354,7 @@ export default function UsuariosPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="ADMIN">Administrador</SelectItem>
+                                        <SelectItem value="COMPRADOR">Comprador (Suprimentos)</SelectItem>
                                         <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
                                         <SelectItem value="APROVADOR_N1">Aprovador N1</SelectItem>
                                         <SelectItem value="APROVADOR_N2">Aprovador N2</SelectItem>
@@ -362,6 +376,18 @@ export default function UsuariosPage() {
                                     placeholder={editingId ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
                                 />
                             </div>
+                        </div>
+
+                        {/* GUIA DE PAPÉIS NO MÓDULO DE COMPRAS */}
+                        <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 text-xs space-y-1.5 text-slate-700">
+                            <p className="font-bold text-amber-900 flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                                💡 Como funcionam os papéis no Módulo de Compras:
+                            </p>
+                            <ul className="space-y-1 text-[11px] text-slate-600">
+                                <li>• <strong>Quem emite pedidos (Solicitante):</strong> Qualquer usuário com o módulo <em>Compras & Suprimentos</em> ativo abaixo (Supervisores, Encarregados, etc.).</li>
+                                <li>• <strong>Quem cota e gera a Ordem de Compra:</strong> Usuários com perfil <em>Comprador (Suprimentos)</em>, <em>Financeiro</em> ou <em>Administrador</em>.</li>
+                                <li>• <strong>Quem aprova compras:</strong> Gestores com perfil <em>Aprovador N1</em>, <em>Aprovador N2</em> ou <em>Administrador</em>.</li>
+                            </ul>
                         </div>
 
                         <div>
@@ -410,14 +436,18 @@ export default function UsuariosPage() {
 
                         <div className="border-t pt-4 space-y-3">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Módulos Liberados</h4>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
                                     <Switch id="acessoDespesas" checked={formData.acessoDespesas} onCheckedChange={c => setFormData({ ...formData, acessoDespesas: c })} />
-                                    <Label htmlFor="acessoDespesas" className="text-sm font-medium cursor-pointer">Despesas Corporativas</Label>
+                                    <Label htmlFor="acessoDespesas" className="text-xs font-medium cursor-pointer">Despesas Corporativas</Label>
                                 </div>
                                 <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
                                     <Switch id="acessoCoberturas" checked={formData.acessoCoberturas} onCheckedChange={c => setFormData({ ...formData, acessoCoberturas: c })} />
-                                    <Label htmlFor="acessoCoberturas" className="text-sm font-medium cursor-pointer">Diárias e Coberturas</Label>
+                                    <Label htmlFor="acessoCoberturas" className="text-xs font-medium cursor-pointer">Diárias e Coberturas</Label>
+                                </div>
+                                <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <Switch id="acessoCompras" checked={formData.acessoCompras} onCheckedChange={c => setFormData({ ...formData, acessoCompras: c })} />
+                                    <Label htmlFor="acessoCompras" className="text-xs font-medium cursor-pointer">Compras & Suprimentos</Label>
                                 </div>
                             </div>
                         </div>

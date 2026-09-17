@@ -28,6 +28,7 @@ export default async function DashboardLayout({
     const role = dbUser.role
     const acessoDespesas = dbUser.acessoDespesas !== false
     const acessoCoberturas = dbUser.acessoCoberturas !== false
+    const acessoCompras = dbUser.acessoCompras !== false
 
     // Buscar logo personalizado da empresa no banco
     const config = await prisma.configuracaoAuditoria.findFirst({
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
                 logoUrl={logoUrl}
                 acessoDespesas={acessoDespesas}
                 acessoCoberturas={acessoCoberturas}
+                acessoCompras={acessoCompras}
             />
 
             {/* Main Content Body Area */}

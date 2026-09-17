@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     const search = searchParams.get("search")
 
     try {
-        const isBuyerOrAdmin = ['ADMIN', 'FINANCEIRO', 'APROVADOR', 'APROVADOR_N1', 'APROVADOR_N2'].includes(user.role)
+        const isBuyerOrAdmin = ['ADMIN', 'COMPRADOR', 'FINANCEIRO', 'APROVADOR', 'APROVADOR_N1', 'APROVADOR_N2'].includes(user.role)
 
         const filter: any = {}
 

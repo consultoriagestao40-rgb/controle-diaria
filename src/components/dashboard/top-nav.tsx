@@ -29,6 +29,7 @@ interface TopNavProps {
     logoUrl?: string
     acessoDespesas?: boolean
     acessoCoberturas?: boolean
+    acessoCompras?: boolean
 }
 
 interface NavItem {
@@ -44,7 +45,7 @@ interface NavGroup {
     items: NavItem[]
 }
 
-export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas = true }: TopNavProps) {
+export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas = true, acessoCompras = true }: TopNavProps) {
     const pathname = usePathname()
     const role = user.role || ""
     const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -206,25 +207,33 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
         }
 
         // 4. Compras & Suprimentos (BudgetHub)
-        const comprasItems: NavItem[] = [
-            { label: "Novo Pedido", href: "/dashboard/compras/novo", icon: ShoppingCart, description: "Solicitação de EPIs, uniformes e materiais" },
-            { label: "Meus Pedidos", href: "/dashboard/compras", icon: FileText, description: "Acompanhamento das suas solicitações" }
-        ]
+        if (acessoCompras) {
+            const comprasItems: NavItem[] = [
+                { label: "Novo Pedido", href: "/dashboard/compras/novo", icon: ShoppingCart, description: "Solicitação de EPIs, uniformes e materiais" },
+                { label: "Meus Pedidos", href: "/dashboard/compras", icon: FileText, description: "Acompanhamento das suas solicitações" }
+            ]
 
-        if (["ADMIN", "FINANCEIRO", "APROVADOR_N2", "APROVADOR", "APROVADOR_N1"].includes(role)) {
-            comprasItems.push(
-                { label: "Fila de Cotações", href: "/dashboard/compras?tab=cotacoes", icon: Tag, description: "Lançar cotações e leitura inteligente por IA" },
-                { label: "Aprovar Compras", href: "/dashboard/compras?tab=aprovacoes", icon: CheckSquare, description: "Análise de pedidos e aprovação de gastos" },
-                { label: "Ordens de Compra", href: "/dashboard/compras?tab=aprovados", icon: Receipt, description: "Exportação de pedidos aprovados para fornecedores" }
-            )
-        }
+            if (["ADMIN", "COMPRADOR", "FINANCEIRO", "APROVADOR_N2", "APROVADOR", "APROVADOR_N1"].includes(role)) {
+                comprasItems.push(
+                    { label: "Fila de Cotações", href: "/dashboard/compras?tab=cotacoes", icon: Tag, description: "Lançar cotações e leitura inteligente por IA" },
+                    { label: "Aprovar Compras", href: "/dashboard/compras?tab=aprovacoes", icon: CheckSquare, description: "Análise de pedidos e aprovação de gastos" },
+                    { label: "Ordens de Compra", href: "/dashboard/compras?tab=aprovados", icon: Receipt, description: "Exportação de pedidos aprovados para fornecedores" }
+                )
+            }
 
-        if (comprasItems.length > 0) {
-            groups.push({
-                title: "Compras & Suprimentos",
-                color: "amber",
-                items: comprasItems
-            })
+            if (role === "ADMIN") {
+                comprasItems.push(
+                    { label: "Gestão de Usuários", href: "/dashboard/admin/usuarios", icon: UserIcon, description: "Definir quem emite, cota e aprova compras" }
+                )
+            }
+
+            if (comprasItems.length > 0) {
+                groups.push({
+                    title: "Compras & Suprimentos",
+                    color: "amber",
+                    items: comprasItems
+                })
+            }
         }
 
         return groups
