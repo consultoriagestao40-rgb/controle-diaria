@@ -317,23 +317,23 @@ export default function NovoPedidoCompraPage() {
     }
 
     return (
-        <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
+        <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300 text-slate-900">
             {/* Header com Navegação */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
                 <div>
                     <button
                         type="button"
                         onClick={() => router.back()}
-                        className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors mb-2 cursor-pointer"
+                        className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-sm transition-colors mb-2 cursor-pointer"
                     >
                         <ArrowLeft className="w-4 h-4" />
                         Voltar para Pedidos
                     </button>
-                    <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 tracking-tight">
-                        <ShoppingCart className="w-8 h-8 text-amber-400" />
+                    <h1 className="text-2xl md:text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+                        <ShoppingCart className="w-8 h-8 text-indigo-600" />
                         Novo Pedido de Compras
                     </h1>
-                    <p className="text-slate-400 text-sm mt-1">
+                    <p className="text-slate-500 text-sm mt-1">
                         Solicitação de suprimentos, EPIs, uniformes e materiais com validação de orçamento no BudgetHub.
                     </p>
                 </div>
@@ -341,10 +341,10 @@ export default function NovoPedidoCompraPage() {
 
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* 1. SELEÇÃO DE EMPRESA & CENTRO DE CUSTO VIA LISTA SUSPENSA */}
-                <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-6">
-                    <div className="flex items-center gap-2.5 border-b border-white/10 pb-3">
-                        <Building2 className="w-5 h-5 text-amber-400" />
-                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+                    <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                        <Building2 className="w-5 h-5 text-indigo-600" />
+                        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
                             1. Empresa & Alocação de Custo
                         </h2>
                     </div>
@@ -352,20 +352,20 @@ export default function NovoPedidoCompraPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Lista Suspensa de Empresa */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-300 uppercase flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
                                 <span>Empresa / Tenant do Grupo *</span>
-                                <span className="text-[11px] text-amber-400 font-mono">BudgetHub</span>
+                                <span className="text-[11px] text-indigo-600 font-bold">BudgetHub</span>
                             </label>
                             {loadingTenants ? (
-                                <div className="flex items-center gap-2 py-3 text-slate-400 text-xs">
-                                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                                <div className="flex items-center gap-2 py-3 text-slate-500 text-xs font-medium">
+                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
                                     Carregando empresas...
                                 </div>
                             ) : (
                                 <select
                                     value={selectedTenantId}
                                     onChange={(e) => setSelectedTenantId(e.target.value)}
-                                    className="w-full bg-slate-950 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-amber-400 transition-colors"
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors"
                                     required
                                 >
                                     <option value="" disabled>Selecione a Empresa...</option>
@@ -380,22 +380,22 @@ export default function NovoPedidoCompraPage() {
 
                         {/* Lista Suspensa de Centro de Custo */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-300 uppercase flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
                                 <span>Centro de Custo / Posto de Serviço *</span>
-                                <span className="text-[11px] text-cyan-400 font-mono">
+                                <span className="text-[11px] text-slate-500 font-semibold">
                                     {costCenters.length} disponíveis
                                 </span>
                             </label>
                             {loadingCCs ? (
-                                <div className="flex items-center gap-2 py-3 text-slate-400 text-xs">
-                                    <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                                <div className="flex items-center gap-2 py-3 text-slate-500 text-xs font-medium">
+                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
                                     Carregando centros de custo...
                                 </div>
                             ) : (
                                 <select
                                     value={selectedCostCenterId}
                                     onChange={(e) => setSelectedCostCenterId(e.target.value)}
-                                    className="w-full bg-slate-950 border border-white/15 rounded-xl px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:border-cyan-400 transition-colors"
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors"
                                     required
                                 >
                                     <option value="" disabled>Selecione o Centro de Custo...</option>
@@ -411,10 +411,10 @@ export default function NovoPedidoCompraPage() {
                 </div>
 
                 {/* 2. CONTA PAI, SUBCONTA E COMPETÊNCIA (CASCATA DE LISTAS SUSPENSAS) */}
-                <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-6">
-                    <div className="flex items-center gap-2.5 border-b border-white/10 pb-3">
-                        <FolderTree className="w-5 h-5 text-indigo-400" />
-                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+                    <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                        <FolderTree className="w-5 h-5 text-indigo-600" />
+                        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
                             2. Classificação Orçamentária & Competência
                         </h2>
                     </div>
@@ -422,19 +422,19 @@ export default function NovoPedidoCompraPage() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                         {/* LISTA SUSPENSA 1: CONTA PAI */}
                         <div className="md:col-span-4 space-y-2">
-                            <label className="text-xs font-bold text-slate-300 uppercase">
+                            <label className="text-xs font-bold text-slate-700 uppercase">
                                 Conta Pai (Grupo Orçamentário) *
                             </label>
                             {loadingCats ? (
-                                <div className="flex items-center gap-2 py-3 text-slate-400 text-xs">
-                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                                <div className="flex items-center gap-2 py-3 text-slate-500 text-xs font-medium">
+                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
                                     Carregando contas pai...
                                 </div>
                             ) : (
                                 <select
                                     value={selectedContaPai}
                                     onChange={(e) => handleContaPaiChange(e.target.value)}
-                                    className="w-full bg-slate-950 border border-indigo-500/30 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-indigo-400 transition-colors"
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors"
                                     required
                                 >
                                     <option value="" disabled>Selecione a Conta Pai...</option>
@@ -445,16 +445,16 @@ export default function NovoPedidoCompraPage() {
                                     ))}
                                 </select>
                             )}
-                            <p className="text-[11px] text-slate-400">
+                            <p className="text-[11px] text-slate-500">
                                 Filtra estritamente as contas de orçamento permitidas.
                             </p>
                         </div>
 
                         {/* LISTA SUSPENSA 2: SUBCONTA (HABILITADA APENAS PELA CONTA PAI) */}
                         <div className="md:col-span-5 space-y-2">
-                            <label className="text-xs font-bold text-slate-300 uppercase flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
                                 <span>Subconta / Conta de Orçamento *</span>
-                                <span className="text-[11px] text-indigo-400">
+                                <span className="text-[11px] text-indigo-600 font-bold">
                                     {subcontasHabilitadas.length} subconta(s)
                                 </span>
                             </label>
@@ -462,7 +462,7 @@ export default function NovoPedidoCompraPage() {
                                 value={selectedCategoryId}
                                 onChange={(e) => setSelectedCategoryId(e.target.value)}
                                 disabled={subcontasHabilitadas.length === 0}
-                                className="w-full bg-slate-950 border border-white/15 rounded-xl px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:border-indigo-400 transition-colors disabled:opacity-50"
+                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors disabled:opacity-50"
                                 required
                             >
                                 <option value="" disabled>
@@ -476,21 +476,21 @@ export default function NovoPedidoCompraPage() {
                                     </option>
                                 ))}
                             </select>
-                            <p className="text-[11px] text-slate-400">
+                            <p className="text-[11px] text-slate-500">
                                 Conta onde a despesa do pedido será provisionada no BudgetHub.
                             </p>
                         </div>
 
                         {/* LISTA SUSPENSA 3: MÊS E ANO */}
                         <div className="md:col-span-3 space-y-2">
-                            <label className="text-xs font-bold text-slate-300 uppercase">
+                            <label className="text-xs font-bold text-slate-700 uppercase">
                                 Mês de Competência *
                             </label>
                             <div className="grid grid-cols-2 gap-2">
                                 <select
                                     value={selectedMonth}
                                     onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                                    className="w-full bg-slate-950 border border-white/15 rounded-xl px-3 py-3 text-xs font-bold text-white focus:outline-none focus:border-emerald-400 transition-colors"
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors"
                                 >
                                     {MESES.map(m => (
                                         <option key={m.value} value={m.value}>{m.label}</option>
@@ -500,7 +500,7 @@ export default function NovoPedidoCompraPage() {
                                 <select
                                     value={selectedYear}
                                     onChange={(e) => setSelectedYear(Number(e.target.value))}
-                                    className="w-full bg-slate-950 border border-white/15 rounded-xl px-3 py-3 text-xs font-bold text-white focus:outline-none focus:border-emerald-400 transition-colors"
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors"
                                 >
                                     <option value={2025}>2025</option>
                                     <option value={2026}>2026</option>
@@ -512,16 +512,16 @@ export default function NovoPedidoCompraPage() {
                 </div>
 
                 {/* 3. PAINEL DE SALDO ORÇAMENTÁRIO (BUDGET EM TEMPO REAL) */}
-                <div className="bg-slate-950 border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
                         <div className="flex items-center gap-2.5">
                             <Sparkles className="w-5 h-5 text-amber-400" />
                             <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                                Saldo de Budget em Tempo Real (BudgetHub)
+                                Monitoramento de Orçamento em Tempo Real (BudgetHub)
                             </h3>
                         </div>
                         {checkingBudget && (
-                            <span className="flex items-center gap-2 text-xs text-amber-400 animate-pulse">
+                            <span className="flex items-center gap-2 text-xs text-amber-300 animate-pulse">
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                 Consultando orçamento na matriz...
                             </span>
@@ -530,19 +530,19 @@ export default function NovoPedidoCompraPage() {
 
                     {budgetData ? (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                            <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5">
+                            <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/60">
                                 <p className="text-[11px] font-bold text-slate-400 uppercase">Orçado no Mês</p>
                                 <p className="text-xl font-black text-white mt-1">
                                     {budgetData.orcado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                                 </p>
                             </div>
-                            <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5">
+                            <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/60">
                                 <p className="text-[11px] font-bold text-slate-400 uppercase">Já Realizado (Gasto)</p>
                                 <p className="text-xl font-black text-slate-300 mt-1">
                                     {budgetData.realizado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                                 </p>
                             </div>
-                            <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5">
+                            <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/60">
                                 <p className="text-[11px] font-bold text-slate-400 uppercase">Pedidos em Aberto</p>
                                 <p className="text-xl font-black text-amber-400 mt-1">
                                     {budgetData.comprometidoPedidos.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
@@ -550,8 +550,8 @@ export default function NovoPedidoCompraPage() {
                             </div>
                             <div className={`p-4 rounded-xl border ${
                                 budgetData.saldoDisponivel >= 0
-                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                                    : "bg-red-500/10 border-red-500/30 text-red-400"
+                                    ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-400"
+                                    : "bg-rose-950/80 border-rose-500/50 text-rose-400"
                             }`}>
                                 <p className="text-[11px] font-bold uppercase tracking-wider">Saldo Disponível</p>
                                 <p className="text-2xl font-black mt-1">
@@ -567,18 +567,18 @@ export default function NovoPedidoCompraPage() {
                 </div>
 
                 {/* 4. DETALHES DO PEDIDO: TIPO & JUSTIFICATIVA */}
-                <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
-                    <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
                         3. Detalhes da Solicitação
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="text-xs font-bold text-slate-400 uppercase">Tipo de Compra</label>
+                            <label className="text-xs font-bold text-slate-700 uppercase">Tipo de Compra</label>
                             <select
                                 value={tipoCompra}
                                 onChange={(e) => setTipoCompra(e.target.value)}
-                                className="w-full mt-1.5 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                                className="w-full mt-1.5 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm"
                             >
                                 {TIPOS_COMPRA.map(t => (
                                     <option key={t.id} value={t.id}>{t.label}</option>
@@ -587,7 +587,7 @@ export default function NovoPedidoCompraPage() {
                         </div>
 
                         <div className="md:col-span-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase">
+                            <label className="text-xs font-bold text-slate-700 uppercase">
                                 Justificativa / Destinação da Compra *
                             </label>
                             <input
@@ -595,7 +595,7 @@ export default function NovoPedidoCompraPage() {
                                 placeholder="Ex: Reposição mensal de EPIs e uniformes para equipe do posto Balneário Shopping"
                                 value={justificativa}
                                 onChange={(e) => setJustificativa(e.target.value)}
-                                className="w-full mt-1.5 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                                className="w-full mt-1.5 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm"
                                 required
                             />
                         </div>
@@ -603,20 +603,20 @@ export default function NovoPedidoCompraPage() {
                 </div>
 
                 {/* 5. ITENS DO PEDIDO */}
-                <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
                                 4. Itens a Serem Cotados
                             </h2>
-                            <p className="text-xs text-slate-400 mt-0.5">
+                            <p className="text-xs text-slate-500 mt-0.5">
                                 Informe os produtos, especificações e quantidades necessárias. Os preços unitários serão cotados pelo setor de suprimentos.
                             </p>
                         </div>
                         <button
                             type="button"
                             onClick={handleAddItem}
-                            className="flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                            className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
                         >
                             <Plus className="w-4 h-4" />
                             Adicionar Item
@@ -627,10 +627,10 @@ export default function NovoPedidoCompraPage() {
                         {itens.map((item, index) => (
                             <div
                                 key={index}
-                                className="grid grid-cols-12 gap-3 items-center bg-slate-950/70 p-3.5 rounded-xl border border-white/5"
+                                className="grid grid-cols-12 gap-3 items-center bg-slate-50 p-4 rounded-xl border border-slate-200"
                             >
                                 <div className="col-span-12 md:col-span-5">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                    <label className="text-[10px] font-bold text-slate-600 uppercase">
                                         Item / Descrição *
                                     </label>
                                     <input
@@ -638,13 +638,13 @@ export default function NovoPedidoCompraPage() {
                                         placeholder="Ex: Luva nitrílica cano longo tam G"
                                         value={item.descricao}
                                         onChange={(e) => handleItemChange(index, "descricao", e.target.value)}
-                                        className="w-full mt-1 bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                                        className="w-full mt-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                                         required
                                     />
                                 </div>
 
                                 <div className="col-span-12 md:col-span-4">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                    <label className="text-[10px] font-bold text-slate-600 uppercase">
                                         Especificação / Marca / Tamanho
                                     </label>
                                     <input
@@ -652,12 +652,12 @@ export default function NovoPedidoCompraPage() {
                                         placeholder="Ex: Danny, CA 12345, cor verde"
                                         value={item.especificacao}
                                         onChange={(e) => handleItemChange(index, "especificacao", e.target.value)}
-                                        className="w-full mt-1 bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                                        className="w-full mt-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                                     />
                                 </div>
 
                                 <div className="col-span-6 md:col-span-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                    <label className="text-[10px] font-bold text-slate-600 uppercase">
                                         Qtd *
                                     </label>
                                     <input
@@ -666,19 +666,19 @@ export default function NovoPedidoCompraPage() {
                                         step="1"
                                         value={item.quantidade}
                                         onChange={(e) => handleItemChange(index, "quantidade", Number(e.target.value))}
-                                        className="w-full mt-1 bg-slate-900 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white text-center focus:outline-none focus:border-amber-400"
+                                        className="w-full mt-1 bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 text-center font-bold focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                                         required
                                     />
                                 </div>
 
                                 <div className="col-span-4 md:col-span-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                    <label className="text-[10px] font-bold text-slate-600 uppercase">
                                         Unid.
                                     </label>
                                     <select
                                         value={item.unidade}
                                         onChange={(e) => handleItemChange(index, "unidade", e.target.value)}
-                                        className="w-full mt-1 bg-slate-900 border border-white/10 rounded-lg px-1.5 py-2 text-xs text-white text-center focus:outline-none focus:border-amber-400"
+                                        className="w-full mt-1 bg-white border border-slate-200 rounded-lg px-1.5 py-2 text-xs text-slate-900 text-center font-bold focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                                     >
                                         {UNIDADES.map(u => (
                                             <option key={u} value={u}>{u}</option>
@@ -690,7 +690,7 @@ export default function NovoPedidoCompraPage() {
                                     <button
                                         type="button"
                                         onClick={() => handleRemoveItem(index)}
-                                        className="text-slate-500 hover:text-red-400 p-1.5 transition-colors cursor-pointer"
+                                        className="text-slate-400 hover:text-rose-600 p-1.5 transition-colors cursor-pointer"
                                         title="Remover item"
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -702,11 +702,11 @@ export default function NovoPedidoCompraPage() {
                 </div>
 
                 {/* BOTÕES DE AÇÃO */}
-                <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
+                <div className="flex items-center justify-end gap-4 pt-4 border-t border-slate-200">
                     <button
                         type="button"
                         onClick={() => router.back()}
-                        className="px-6 py-3 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:bg-white/5 font-bold text-sm transition-all cursor-pointer"
+                        className="px-6 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-bold text-sm transition-all cursor-pointer shadow-sm"
                     >
                         Cancelar
                     </button>
@@ -714,7 +714,7 @@ export default function NovoPedidoCompraPage() {
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-8 py-3 rounded-xl text-sm shadow-xl shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-xl text-sm shadow-lg shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                     >
                         {submitting ? (
                             <>

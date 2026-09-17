@@ -80,6 +80,9 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                 if (res.ok) {
                     const data = await res.json()
                     setPedido(data)
+                    if (data?.numeroPedido && data?.centroCustoNome) {
+                        document.title = `${data.numeroPedido} - ${data.centroCustoNome}`
+                    }
                 }
             } catch (e) {
                 console.error("Erro ao carregar pedido para impressão:", e)
@@ -88,16 +91,23 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
             }
         }
         fetchPedido()
+
+        return () => {
+            document.title = "ReembolsaFácil"
+        }
     }, [id])
 
     const handlePrint = () => {
+        if (pedido?.numeroPedido && pedido?.centroCustoNome) {
+            document.title = `${pedido.numeroPedido} - ${pedido.centroCustoNome}`
+        }
         window.print()
     }
 
     if (loading || !pedido) {
         return (
-            <div className="py-32 flex flex-col items-center justify-center gap-3 text-slate-400">
-                <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+            <div className="py-32 flex flex-col items-center justify-center gap-3 text-slate-500">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
                 <p className="text-sm font-medium">Carregando Ordem de Compra...</p>
             </div>
         )
@@ -106,13 +116,13 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
     const valorTotal = Number(pedido.valorTotalCotado || 0)
 
     return (
-        <div className="min-h-screen bg-slate-950 py-8 px-4 font-sans print:p-0 print:bg-white print:text-black">
+        <div className="min-h-screen bg-slate-100 py-8 px-4 font-sans print:p-0 print:bg-white print:text-black">
             {/* BARRA DE AÇÕES NO TOPO (NÃO IMPRIME) */}
             <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between print:hidden">
                 <button
                     type="button"
                     onClick={() => router.push(`/dashboard/compras/${pedido.id}`)}
-                    className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Voltar ao Pedido
@@ -122,7 +132,7 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                     <button
                         type="button"
                         onClick={handlePrint}
-                        className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs shadow-xl shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-lg shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer"
                     >
                         <Printer className="w-4 h-4" />
                         Imprimir / Salvar em PDF
