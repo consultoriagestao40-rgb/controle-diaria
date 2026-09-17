@@ -11,7 +11,9 @@ import {
     Mail,
     FileText,
     ShieldCheck,
-    Loader2
+    Loader2,
+    Split,
+    Layers
 } from "lucide-react"
 
 interface Item {
@@ -22,6 +24,21 @@ interface Item {
     unidade: string
     precoUnitario?: number
     precoTotal?: number
+    fornecedor?: string
+    fornecedorCnpj?: string
+}
+
+interface FornecedorCotacao {
+    id: string
+    nome: string
+    cnpj?: string
+    email?: string
+    telefone?: string
+    contato?: string
+    condicoesPagamento?: string
+    dataVencimentoSugerida?: string
+    emailEnvioNf?: string
+    enderecoEntrega?: string
 }
 
 interface Pedido {
@@ -46,6 +63,7 @@ interface Pedido {
     enderecoEntrega?: string
     observacoesFiscais?: string
     valorTotalCotado?: number
+    cotacoesFornecedores?: string
     createdAt: string
     dataAprovacao?: string
     justificativaAprovacao?: string
@@ -71,6 +89,8 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
 
     const [pedido, setPedido] = useState<Pedido | null>(null)
     const [loading, setLoading] = useState(true)
+    const [fornecedoresCotados, setFornecedoresCotados] = useState<FornecedorCotacao[]>([])
+    const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null) // null = consolidado
 
     useEffect(() => {
         async function fetchPedido() {
@@ -78,8 +98,21 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                 setLoading(true)
                 const res = await fetch(`/api/compras/${id}`)
                 if (res.ok) {
-                    const data = await res.json()
+                    const data: Pedido = await res.json()
                     setPedido(data)
+
+                    // Parse fornecedores cotados se houver
+                    if (data.cotacoesFornecedores) {
+                        try {
+                            const parsed = JSON.parse(data.cotacoesFornecedores)
+                            if (Array.isArray(parsed)) {
+                                setFornecedoresCotados(parsed)
+                            }
+                        } catch (e) {
+                            console.warn("Aviso ao carregar fornecedores cotados:", e)
+                        }
+                    }
+
                     if (data?.numeroPedido && data?.centroCustoNome) {
                         document.title = `${data.numeroPedido} - ${data.centroCustoNome}`
                     }
@@ -97,10 +130,23 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
         }
     }, [id])
 
-    const handlePrint = () => {
+    // Lista de fornecedores distintos que ganharam itens neste pedido
+    const distinctSuppliers = Array.from(
+        new Set(pedido?.itens.map((i) => i.fornecedor?.trim()).filter(Boolean))
+    ) as string[]
+
+    // Atualizar título do documento quando o usuário seleciona fornecedor para imprimir
+    useEffect(() => {
         if (pedido?.numeroPedido && pedido?.centroCustoNome) {
-            document.title = `${pedido.numeroPedido} - ${pedido.centroCustoNome}`
+            if (selectedSupplier) {
+                document.title = `${pedido.numeroPedido} (${selectedSupplier}) - ${pedido.centroCustoNome}`
+            } else {
+                document.title = `${pedido.numeroPedido} - ${pedido.centroCustoNome}`
+            }
         }
+    }, [selectedSupplier, pedido])
+
+    const handlePrint = () => {
         window.print()
     }
 
@@ -113,31 +159,118 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
         )
     }
 
-    const valorTotal = Number(pedido.valorTotalCotado || 0)
+    // Filtrar itens se um fornecedor específico estiver selecionado
+    const displayItens = selectedSupplier
+        ? pedido.itens.filter((i) => i.fornecedor === selectedSupplier)
+        : pedido.itens
+
+    // Dados do fornecedor selecionado
+    const matchedForn = fornecedoresCotados.find(
+        (f) => f.nome.trim().toLowerCase() === selectedSupplier?.trim().toLowerCase()
+    )
+
+    const fornecedorNomeExibicao = selectedSupplier
+        ? selectedSupplier
+        : pedido.fornecedorNome || "N/A"
+
+    const fornecedorCnpjExibicao = selectedSupplier
+        ? matchedForn?.cnpj || displayItens[0]?.fornecedorCnpj || pedido.fornecedorCnpj
+        : pedido.fornecedorCnpj
+
+    const fornecedorEmailExibicao = selectedSupplier
+        ? matchedForn?.email || pedido.fornecedorEmail
+        : pedido.fornecedorEmail
+
+    const fornecedorTelefoneExibicao = selectedSupplier
+        ? matchedForn?.telefone || pedido.fornecedorTelefone
+        : pedido.fornecedorTelefone
+
+    const condicoesPagamentoExibicao = selectedSupplier
+        ? matchedForn?.condicoesPagamento || pedido.condicoesPagamento
+        : pedido.condicoesPagamento
+
+    const valorTotalExibicao = displayItens.reduce((acc, it) => {
+        const u = Number(it.precoUnitario) || 0
+        const q = Number(it.quantidade) || 1
+        return acc + (Number(it.precoTotal) || u * q)
+    }, 0)
 
     return (
         <div className="min-h-screen bg-slate-100 py-8 px-4 font-sans print:p-0 print:bg-white print:text-black">
             {/* BARRA DE AÇÕES NO TOPO (NÃO IMPRIME) */}
-            <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between print:hidden">
-                <button
-                    type="button"
-                    onClick={() => router.push(`/dashboard/compras/${pedido.id}`)}
-                    className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Voltar ao Pedido
-                </button>
-
-                <div className="flex items-center gap-3">
+            <div className="max-w-4xl mx-auto mb-6 space-y-4 print:hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <button
                         type="button"
-                        onClick={handlePrint}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-lg shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer"
+                        onClick={() => router.push(`/dashboard/compras/${pedido.id}`)}
+                        className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm self-start"
                     >
-                        <Printer className="w-4 h-4" />
-                        Imprimir / Salvar em PDF
+                        <ArrowLeft className="w-4 h-4" />
+                        Voltar ao Pedido
                     </button>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={handlePrint}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-lg shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer"
+                        >
+                            <Printer className="w-4 h-4" />
+                            Imprimir / Salvar em PDF
+                        </button>
+                    </div>
                 </div>
+
+                {/* SELETOR DE ORDENS DE COMPRA SE HOUVER SPLIT ENTRE FORNECEDORES */}
+                {distinctSuppliers.length > 1 && (
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-black text-slate-800 uppercase tracking-wider">
+                            <Split className="w-4 h-4 text-indigo-600" />
+                            Este pedido foi dividido entre {distinctSuppliers.length} Fornecedores. Selecione a Ordem de Compra para emissão:
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedSupplier(null)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                                    selectedSupplier === null
+                                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200"
+                                }`}
+                            >
+                                Todas as OCs (Consolidado)
+                            </button>
+
+                            {distinctSuppliers.map((forn, idx) => {
+                                const isSelected = selectedSupplier === forn
+                                const count = pedido.itens.filter((i) => i.fornecedor === forn).length
+
+                                return (
+                                    <button
+                                        key={forn}
+                                        type="button"
+                                        onClick={() => setSelectedSupplier(forn)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                                            isSelected
+                                                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                                                : "bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200"
+                                        }`}
+                                    >
+                                        <span>OC #{idx + 1}: {forn}</span>
+                                        <span
+                                            className={`px-1.5 py-0.5 rounded text-[10px] ${
+                                                isSelected ? "bg-white text-indigo-900 font-black" : "bg-indigo-100 text-indigo-800"
+                                            }`}
+                                        >
+                                            {count} {count === 1 ? "item" : "itens"}
+                                        </span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* DOCUMENTO OFICIAL A4 PARA IMPRESSÃO */}
@@ -156,12 +289,20 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                         <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-950 mt-2 uppercase">
                             Ordem de Compra / Autorização de Fornecimento
                         </h1>
+                        {selectedSupplier && (
+                            <p className="text-xs font-bold text-indigo-700 mt-1 uppercase tracking-wider">
+                                Emissão Exclusiva: {selectedSupplier}
+                            </p>
+                        )}
                     </div>
 
                     <div className="text-left sm:text-right bg-slate-100 p-4 rounded-xl border border-slate-300">
-                        <p className="text-[10px] font-black text-slate-500 uppercase">Número do Pedido</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase">Número da Ordem</p>
                         <p className="text-xl font-black text-slate-950 font-mono mt-0.5">
                             {pedido.numeroPedido}
+                            {selectedSupplier && distinctSuppliers.length > 1
+                                ? `-${String.fromCharCode(65 + distinctSuppliers.indexOf(selectedSupplier))}`
+                                : ""}
                         </p>
                         <p className="text-[11px] font-semibold text-slate-600 mt-1">
                             Emissão: {new Date(pedido.createdAt).toLocaleDateString("pt-BR")}
@@ -198,20 +339,20 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                             <h2 className="font-black text-slate-900 uppercase">Fornecedor Contratado</h2>
                         </div>
                         <div>
-                            <p className="font-bold text-slate-900 text-sm">{pedido.fornecedorNome || "N/A"}</p>
-                            {pedido.fornecedorCnpj && (
+                            <p className="font-bold text-slate-900 text-sm">{fornecedorNomeExibicao}</p>
+                            {fornecedorCnpjExibicao && (
                                 <p className="text-slate-600 mt-0.5">
-                                    <span className="font-semibold">CNPJ:</span> {pedido.fornecedorCnpj}
+                                    <span className="font-semibold">CNPJ:</span> {fornecedorCnpjExibicao}
                                 </p>
                             )}
-                            {pedido.fornecedorEmail && (
+                            {fornecedorEmailExibicao && (
                                 <p className="text-slate-600">
-                                    <span className="font-semibold">E-mail:</span> {pedido.fornecedorEmail}
+                                    <span className="font-semibold">E-mail:</span> {fornecedorEmailExibicao}
                                 </p>
                             )}
-                            {pedido.fornecedorTelefone && (
+                            {fornecedorTelefoneExibicao && (
                                 <p className="text-slate-600">
-                                    <span className="font-semibold">Telefone:</span> {pedido.fornecedorTelefone}
+                                    <span className="font-semibold">Telefone:</span> {fornecedorTelefoneExibicao}
                                 </p>
                             )}
                         </div>
@@ -220,9 +361,11 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
 
                 {/* TABELA DE PRODUTOS/ITENS */}
                 <div className="space-y-2">
-                    <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                        Itens Autorizados para Faturamento & Entrega
-                    </h2>
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                            Itens Autorizados para Faturamento & Entrega ({displayItens.length})
+                        </h2>
+                    </div>
 
                     <div className="border border-slate-300 rounded-xl overflow-hidden">
                         <table className="w-full text-left border-collapse">
@@ -230,6 +373,9 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                                 <tr>
                                     <th className="py-2.5 px-4 w-12 text-center">Item</th>
                                     <th className="py-2.5 px-4">Descrição do Produto / Material</th>
+                                    {!selectedSupplier && distinctSuppliers.length > 1 && (
+                                        <th className="py-2.5 px-4">Fornecedor</th>
+                                    )}
                                     <th className="py-2.5 px-4 text-center">Qtd</th>
                                     <th className="py-2.5 px-4 text-center">Unid</th>
                                     <th className="py-2.5 px-4 text-right">Valor Unitário</th>
@@ -237,7 +383,7 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 text-xs text-slate-800">
-                                {pedido.itens.map((item, idx) => (
+                                {displayItens.map((item, idx) => (
                                     <tr key={item.id}>
                                         <td className="py-3 px-4 text-center font-bold text-slate-500">
                                             {String(idx + 1).padStart(2, "0")}
@@ -248,6 +394,11 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                                                 <p className="text-[11px] text-slate-500 mt-0.5">{item.especificacao}</p>
                                             )}
                                         </td>
+                                        {!selectedSupplier && distinctSuppliers.length > 1 && (
+                                            <td className="py-3 px-4 font-semibold text-indigo-900">
+                                                {item.fornecedor || "N/A"}
+                                            </td>
+                                        )}
                                         <td className="py-3 px-4 text-center font-bold text-slate-950">
                                             {item.quantidade}
                                         </td>
@@ -265,11 +416,14 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                             </tbody>
                             <tfoot className="bg-slate-50 border-t-2 border-slate-300">
                                 <tr>
-                                    <td colSpan={5} className="py-4 px-4 text-right font-black text-sm uppercase text-slate-700">
+                                    <td
+                                        colSpan={!selectedSupplier && distinctSuppliers.length > 1 ? 6 : 5}
+                                        className="py-4 px-4 text-right font-black text-sm uppercase text-slate-700"
+                                    >
                                         Valor Total da Ordem de Compra:
                                     </td>
                                     <td className="py-4 px-4 text-right font-black text-lg text-slate-950">
-                                        {valorTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                        {valorTotalExibicao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                                     </td>
                                 </tr>
                             </tfoot>
@@ -282,7 +436,7 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-1.5">
                         <p className="font-black text-slate-900 uppercase">Condições de Pagamento</p>
                         <p className="text-slate-800">
-                            <span className="font-bold">Forma:</span> {pedido.condicoesPagamento || "Boleto 28 DDL"}
+                            <span className="font-bold">Forma:</span> {condicoesPagamentoExibicao || "Boleto 28 DDL"}
                         </p>
                         {pedido.dataVencimentoSugerida && (
                             <p className="text-slate-800">

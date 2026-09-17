@@ -602,6 +602,7 @@ model PedidoCompra {
   anexoCotacaoUrl         String?
   anexoCotacaoNome        String?
   dadosExtracaoIA         String?            // JSON com o resultado retornado pelo Gemini
+  cotacoesFornecedores    String?            // JSON com os dados e matriz de preços de todos os fornecedores concorrentes cotados
   
   itens                   ItemPedidoCompra[]
   historico               HistoricoPedidoCompra[]
@@ -622,6 +623,7 @@ model ItemPedidoCompra {
   precoUnitario  Decimal?
   precoTotal     Decimal?
   fornecedor     String?
+  fornecedorCnpj String?
   
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -639,5 +641,24 @@ model HistoricoPedidoCompra {
   observacao   String?
   data         DateTime           @default(now())
 }
+
+model Fornecedor {
+  id                  String   @id @default(uuid())
+  nome                String   // Razão Social ou Nome Fantasia
+  cnpj                String?  // CNPJ formatado ou apenas números
+  email               String?  // E-mail para envio de pedidos/NF
+  telefone            String?
+  contato             String?  // Vendedor ou representante
+  condicoesPagamento String?  // Ex: Boleto 28 DDL, 30/60 dias, À vista
+  chavePix            String?
+  dadosBancarios      String?
+  ativo               Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([nome])
+  @@index([cnpj])
+}
+
 
 
