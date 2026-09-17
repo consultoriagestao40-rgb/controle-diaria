@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { getBudgetAvailability } from "@/lib/budgethub"
+import { getBudgetAvailability, budgetHubPrisma } from "@/lib/budgethub"
 
 export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
@@ -63,7 +63,49 @@ export async function GET(req: Request) {
             orderBy: { createdAt: 'desc' }
         })
 
-        return NextResponse.json(pedidos)
+        // Enriquecer cada pedido com o valor orçado mensal e o saving / estouro
+        const enrichedPedidos = await Promise.all(
+            pedidos.map(async (p) => {
+                let orcado = 0
+                try {
+                    const cleanCat = p.categoriaId.includes(":") ? p.categoriaId.split(":").pop()! : p.categoriaId
+                    const cleanCc = p.centroCustoId.includes(":") ? p.centroCustoId.split(":").pop()! : p.centroCustoId
+
+                    const b = await budgetHubPrisma.$queryRaw<any[]>`
+                        SELECT amount 
+                        FROM "BudgetEntry" 
+                        WHERE "tenantId" = ${p.tenantId}
+                          AND ("categoryId" = ${p.categoriaId} OR "categoryId" = ${cleanCat} OR "categoryId" LIKE ${'%' + cleanCat})
+                          AND ("costCenterId" = ${p.centroCustoId} OR "costCenterId" = ${cleanCc} OR "costCenterId" LIKE ${'%' + cleanCc})
+                          AND month = ${p.mesCompetencia}
+                          AND year = ${p.anoCompetencia}
+                        LIMIT 1
+                    `
+                    if (b.length > 0 && b[0].amount) {
+                        orcado = Number(b[0].amount)
+                    } else if (p.budgetDisponivel) {
+                        orcado = Number(p.budgetDisponivel)
+                    }
+                } catch (e) {
+                    if (p.budgetDisponivel) orcado = Number(p.budgetDisponivel)
+                }
+
+                const valorCotado = Number(p.valorTotalCotado) || Number(p.valorTotalEstimado) || 0
+                const saving = orcado > valorCotado ? orcado - valorCotado : 0
+                const valorEstourado = valorCotado > orcado && orcado > 0 ? valorCotado - orcado : 0
+                const isEstourado = valorCotado > orcado && orcado > 0
+
+                return {
+                    ...p,
+                    valorOrcado: orcado,
+                    saving,
+                    valorEstourado,
+                    isEstourado
+                }
+            })
+        )
+
+        return NextResponse.json(enrichedPedidos)
     } catch (error: any) {
         console.error("Erro ao listar pedidos de compra:", error)
         return NextResponse.json({ error: error.message }, { status: 500 })
