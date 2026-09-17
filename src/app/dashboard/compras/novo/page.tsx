@@ -1,0 +1,698 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import {
+    ShoppingCart,
+    Building2,
+    Landmark,
+    FolderTree,
+    Calendar,
+    Plus,
+    Trash2,
+    ArrowLeft,
+    CheckCircle2,
+    AlertTriangle,
+    Sparkles,
+    Loader2,
+    DollarSign
+} from "lucide-react"
+
+interface Tenant {
+    id: string
+    name: string
+    cnpj: string
+}
+
+interface CostCenter {
+    id: string
+    name: string
+    tenantId: string
+}
+
+interface Category {
+    id: string
+    name: string
+    tenantId: string
+    type: string
+    isMateriais036: boolean
+    isEpiUniforme035: boolean
+    grupo: string
+}
+
+interface ItemRow {
+    descricao: string
+    especificacao: string
+    quantidade: number
+    unidade: string
+}
+
+const MESES = [
+    { value: 1, label: "Janeiro" },
+    { value: 2, label: "Fevereiro" },
+    { value: 3, label: "Março" },
+    { value: 4, label: "Abril" },
+    { value: 5, label: "Maio" },
+    { value: 6, label: "Junho" },
+    { value: 7, label: "Julho" },
+    { value: 8, label: "Agosto" },
+    { value: 9, label: "Setembro" },
+    { value: 10, label: "Outubro" },
+    { value: 11, label: "Novembro" },
+    { value: 12, label: "Dezembro" },
+]
+
+const UNIDADES = ["UN", "PAR", "CX", "PCT", "L", "KG", "KIT", "MT", "ROLO", "GL"]
+
+const TIPOS_COMPRA = [
+    { id: "EPI", label: "EPI (Proteção Individual)" },
+    { id: "UNIFORME", label: "Uniformes & Vestuário" },
+    { id: "LIMPEZA", label: "Materiais de Limpeza & Higiene" },
+    { id: "ESCRITORIO", label: "Materiais de Escritório" },
+    { id: "MANUTENCAO", label: "Manutenção & Equipamentos" },
+    { id: "TI", label: "Informática & Tecnologia" },
+    { id: "OUTROS", label: "Outros Insumos" },
+]
+
+export default function NovoPedidoCompraPage() {
+    const router = useRouter()
+
+    const [tenants, setTenants] = useState<Tenant[]>([])
+    const [costCenters, setCostCenters] = useState<CostCenter[]>([])
+    const [categories, setCategories] = useState<Category[]>([])
+
+    const [loadingTenants, setLoadingTenants] = useState(true)
+    const [loadingCCs, setLoadingCCs] = useState(false)
+    const [loadingCats, setLoadingCats] = useState(false)
+    const [checkingBudget, setCheckingBudget] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
+
+    // Form fields
+    const [selectedTenantId, setSelectedTenantId] = useState("")
+    const [selectedCostCenterId, setSelectedCostCenterId] = useState("")
+    const [selectedCategoryId, setSelectedCategoryId] = useState("")
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+    const [tipoCompra, setTipoCompra] = useState("EPI")
+    const [justificativa, setJustificativa] = useState("")
+
+    // Budget Availability Snapshot
+    const [budgetData, setBudgetData] = useState<{
+        orcado: number
+        realizado: number
+        comprometidoPedidos: number
+        saldoDisponivel: number
+        isNegative: boolean
+    } | null>(null)
+
+    // Search Category filter
+    const [catSearch, setCatSearch] = useState("")
+
+    // Items list
+    const [itens, setItens] = useState<ItemRow[]>([
+        { descricao: "", especificacao: "", quantidade: 1, unidade: "UN" }
+    ])
+
+    // 1. Carregar Empresas (Tenants) do BudgetHub
+    useEffect(() => {
+        async function loadTenants() {
+            try {
+                setLoadingTenants(true)
+                const res = await fetch("/api/budgethub/tenants")
+                if (res.ok) {
+                    const data = await res.json()
+                    setTenants(data)
+                    if (data.length > 0) {
+                        setSelectedTenantId(data[0].id)
+                    }
+                }
+            } catch (error) {
+                console.error("Erro ao carregar tenants:", error)
+                toast.error("Falha ao carregar empresas do BudgetHub.")
+            } finally {
+                setLoadingTenants(false)
+            }
+        }
+        loadTenants()
+    }, [])
+
+    // 2. Carregar Centros de Custo e Categorias da Empresa Selecionada
+    useEffect(() => {
+        if (!selectedTenantId) return
+
+        async function loadCCsAndCats() {
+            try {
+                setLoadingCCs(true)
+                setLoadingCats(true)
+                setSelectedCostCenterId("")
+                setSelectedCategoryId("")
+                setBudgetData(null)
+
+                const [resCC, resCats] = await Promise.all([
+                    fetch(`/api/budgethub/cost-centers?tenantId=${selectedTenantId}`),
+                    fetch(`/api/budgethub/categories?tenantId=${selectedTenantId}`)
+                ])
+
+                if (resCC.ok) {
+                    const ccData = await resCC.json()
+                    setCostCenters(ccData)
+                    if (ccData.length > 0) {
+                        setSelectedCostCenterId(ccData[0].id)
+                    }
+                }
+
+                if (resCats.ok) {
+                    const catsData = await resCats.json()
+                    setCategories(catsData)
+                    // Pré-selecionar uma de materiais 03.6 se existir
+                    const defaultCat = catsData.find((c: Category) => c.isMateriais036) || catsData[0]
+                    if (defaultCat) {
+                        setSelectedCategoryId(defaultCat.id)
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar dados da empresa:", err)
+            } finally {
+                setLoadingCCs(false)
+                setLoadingCats(false)
+            }
+        }
+
+        loadCCsAndCats()
+    }, [selectedTenantId])
+
+    // 3. Consultar Saldo Orçamentário ao mudar parâmetros de competência/categoria/cc
+    useEffect(() => {
+        if (!selectedTenantId || !selectedCostCenterId || !selectedCategoryId) {
+            setBudgetData(null)
+            return
+        }
+
+        async function checkBudget() {
+            try {
+                setCheckingBudget(true)
+                const url = `/api/budgethub/availability?tenantId=${selectedTenantId}&costCenterId=${encodeURIComponent(selectedCostCenterId)}&categoryId=${encodeURIComponent(selectedCategoryId)}&mes=${selectedMonth}&ano=${selectedYear}`
+                const res = await fetch(url)
+                if (res.ok) {
+                    const data = await res.json()
+                    setBudgetData(data)
+                }
+            } catch (err) {
+                console.error("Erro ao checar saldo de budget:", err)
+            } finally {
+                setCheckingBudget(false)
+            }
+        }
+
+        checkBudget()
+    }, [selectedTenantId, selectedCostCenterId, selectedCategoryId, selectedMonth, selectedYear])
+
+    // Adicionar item
+    const handleAddItem = () => {
+        setItens([...itens, { descricao: "", especificacao: "", quantidade: 1, unidade: "UN" }])
+    }
+
+    // Remover item
+    const handleRemoveItem = (index: number) => {
+        if (itens.length === 1) {
+            toast.warning("O pedido deve conter no mínimo 1 item.")
+            return
+        }
+        setItens(itens.filter((_, i) => i !== index))
+    }
+
+    // Alterar campo de item
+    const handleItemChange = (index: number, field: keyof ItemRow, value: any) => {
+        const updated = [...itens]
+        updated[index] = { ...updated[index], [field]: value }
+        setItens(updated)
+    }
+
+    // Submissão do pedido
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        const currentTenant = tenants.find(t => t.id === selectedTenantId)
+        const currentCC = costCenters.find(cc => cc.id === selectedCostCenterId)
+        const currentCat = categories.find(c => c.id === selectedCategoryId)
+
+        if (!currentTenant || !currentCC || !currentCat) {
+            toast.error("Por favor, selecione Empresa, Centro de Custo e Conta Orçamentária.")
+            return
+        }
+
+        if (!justificativa.trim()) {
+            toast.error("Informe a justificativa/destinação da compra.")
+            return
+        }
+
+        const validItens = itens.filter(it => it.descricao.trim().length > 0)
+        if (validItens.length === 0) {
+            toast.error("Preencha a descrição de pelo menos um item.")
+            return
+        }
+
+        try {
+            setSubmitting(true)
+
+            const payload = {
+                tenantId: currentTenant.id,
+                tenantNome: currentTenant.name,
+                centroCustoId: currentCC.id,
+                centroCustoNome: currentCC.name,
+                categoriaId: currentCat.id,
+                categoriaNome: currentCat.name,
+                mesCompetencia: selectedMonth,
+                anoCompetencia: selectedYear,
+                tipoCompra,
+                justificativa,
+                itens: validItens
+            }
+
+            const res = await fetch("/api/compras", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+
+            if (!res.ok) {
+                const errData = await res.json()
+                throw new Error(errData.error || "Erro ao criar pedido.")
+            }
+
+            const novoPedido = await res.json()
+            toast.success(`Pedido ${novoPedido.numeroPedido} criado e enviado para cotação!`)
+            router.push(`/dashboard/compras/${novoPedido.id}`)
+        } catch (err: any) {
+            toast.error(err.message || "Falha ao enviar pedido.")
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    const filteredCategories = categories.filter(c =>
+        c.name.toLowerCase().includes(catSearch.toLowerCase())
+    )
+
+    return (
+        <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
+            {/* Header com Navegação */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
+                <div>
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors mb-2 cursor-pointer"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Voltar para Pedidos
+                    </button>
+                    <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 tracking-tight">
+                        <ShoppingCart className="w-8 h-8 text-amber-400" />
+                        Novo Pedido de Compras
+                    </h1>
+                    <p className="text-slate-400 text-sm mt-1">
+                        Solicitação de suprimentos, EPIs, uniformes e materiais integrados ao BudgetHub.
+                    </p>
+                </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+                {/* 1. SELEÇÃO DA EMPRESA (TENANT) */}
+                <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <Building2 className="w-5 h-5 text-amber-400" />
+                            <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                                1. Empresa / Tenant do Grupo
+                            </h2>
+                        </div>
+                        <span className="text-xs text-amber-400/80 font-medium">BudgetHub</span>
+                    </div>
+
+                    {loadingTenants ? (
+                        <div className="flex items-center gap-3 py-4 text-slate-400 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                            Carregando empresas cadastradas...
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            {tenants.map(t => {
+                                const isSelected = selectedTenantId === t.id
+                                return (
+                                    <button
+                                        key={t.id}
+                                        type="button"
+                                        onClick={() => setSelectedTenantId(t.id)}
+                                        className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                                            isSelected
+                                                ? "bg-amber-500/15 border-amber-400/60 text-white shadow-lg ring-2 ring-amber-500/30"
+                                                : "bg-slate-800/40 border-white/5 text-slate-300 hover:border-white/20 hover:bg-slate-800/80"
+                                        }`}
+                                    >
+                                        <p className="text-sm font-black truncate">{t.name}</p>
+                                        <p className="text-[11px] text-slate-400 font-mono mt-1">CNPJ: {t.cnpj}</p>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* 2. CENTRO DE CUSTO, CONTA ORÇAMENTÁRIA & COMPETÊNCIA */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Centro de Custo */}
+                    <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                        <div className="flex items-center gap-2.5">
+                            <Landmark className="w-5 h-5 text-cyan-400" />
+                            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                                Centro de Custo
+                            </h2>
+                        </div>
+
+                        {loadingCCs ? (
+                            <div className="flex items-center gap-2 text-slate-400 text-xs py-4">
+                                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                                Carregando centros de custo...
+                            </div>
+                        ) : (
+                            <div>
+                                <select
+                                    value={selectedCostCenterId}
+                                    onChange={(e) => setSelectedCostCenterId(e.target.value)}
+                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                                    required
+                                >
+                                    <option value="" disabled>Selecione o Centro de Custo</option>
+                                    {costCenters.map(cc => (
+                                        <option key={cc.id} value={cc.id}>{cc.name}</option>
+                                    ))}
+                                </select>
+                                <p className="text-[11px] text-slate-400 mt-2">
+                                    {costCenters.length} centro(s) de custo disponíveis nesta empresa.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Conta Orçamentária */}
+                    <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                        <div className="flex items-center gap-2.5">
+                            <FolderTree className="w-5 h-5 text-indigo-400" />
+                            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                                Conta Orçamentária
+                            </h2>
+                        </div>
+
+                        {loadingCats ? (
+                            <div className="flex items-center gap-2 text-slate-400 text-xs py-4">
+                                <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                                Carregando contas...
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <input
+                                    type="text"
+                                    placeholder="Filtrar contas (ex: 03.6, EPI, Limpeza)..."
+                                    value={catSearch}
+                                    onChange={(e) => setCatSearch(e.target.value)}
+                                    className="w-full bg-slate-950/80 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-400"
+                                />
+                                <select
+                                    value={selectedCategoryId}
+                                    onChange={(e) => setSelectedCategoryId(e.target.value)}
+                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-400"
+                                    required
+                                >
+                                    <option value="" disabled>Selecione a Conta</option>
+                                    {filteredCategories.map(cat => (
+                                        <option key={cat.id} value={cat.id}>
+                                            {cat.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Mês e Ano de Competência */}
+                    <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                        <div className="flex items-center gap-2.5">
+                            <Calendar className="w-5 h-5 text-emerald-400" />
+                            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                                Mês de Competência
+                            </h2>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-[11px] font-bold text-slate-400 uppercase">Mês</label>
+                                <select
+                                    value={selectedMonth}
+                                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                                    className="w-full mt-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-400"
+                                >
+                                    {MESES.map(m => (
+                                        <option key={m.value} value={m.value}>{m.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[11px] font-bold text-slate-400 uppercase">Ano</label>
+                                <select
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                                    className="w-full mt-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-400"
+                                >
+                                    <option value={2025}>2025</option>
+                                    <option value={2026}>2026</option>
+                                    <option value={2027}>2027</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. PAINEL DE SALDO ORÇAMENTÁRIO (BUDGET EM TEMPO REAL) */}
+                <div className="bg-slate-950 border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                        <div className="flex items-center gap-2.5">
+                            <Sparkles className="w-5 h-5 text-amber-400" />
+                            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                                Saldo de Budget em Tempo Real (BudgetHub)
+                            </h3>
+                        </div>
+                        {checkingBudget && (
+                            <span className="flex items-center gap-2 text-xs text-amber-400 animate-pulse">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Consultando orçamento na matriz...
+                            </span>
+                        )}
+                    </div>
+
+                    {budgetData ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+                            <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase">Orçado no Mês</p>
+                                <p className="text-xl font-black text-white mt-1">
+                                    {budgetData.orcado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                </p>
+                            </div>
+                            <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase">Já Realizado (Gasto)</p>
+                                <p className="text-xl font-black text-slate-300 mt-1">
+                                    {budgetData.realizado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                </p>
+                            </div>
+                            <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase">Pedidos em Aberto</p>
+                                <p className="text-xl font-black text-amber-400 mt-1">
+                                    {budgetData.comprometidoPedidos.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                </p>
+                            </div>
+                            <div className={`p-4 rounded-xl border ${
+                                budgetData.saldoDisponivel >= 0
+                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                                    : "bg-red-500/10 border-red-500/30 text-red-400"
+                            }`}>
+                                <p className="text-[11px] font-bold uppercase tracking-wider">Saldo Disponível</p>
+                                <p className="text-2xl font-black mt-1">
+                                    {budgetData.saldoDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="py-6 text-center text-xs text-slate-400">
+                            Selecione Centro de Custo, Conta Orçamentária e Mês de Competência para calcular a disponibilidade orçamentária.
+                        </div>
+                    )}
+                </div>
+
+                {/* 4. DETALHES DO PEDIDO: TIPO & JUSTIFICATIVA */}
+                <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                    <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                        2. Detalhes da Solicitação
+                    </h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase">Tipo de Compra</label>
+                            <select
+                                value={tipoCompra}
+                                onChange={(e) => setTipoCompra(e.target.value)}
+                                className="w-full mt-1.5 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                            >
+                                {TIPOS_COMPRA.map(t => (
+                                    <option key={t.id} value={t.id}>{t.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase">
+                                Justificativa / Destinação da Compra *
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Ex: Reposição mensal de EPIs e uniformes para equipe do posto Balneário Shopping"
+                                value={justificativa}
+                                onChange={(e) => setJustificativa(e.target.value)}
+                                className="w-full mt-1.5 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                                required
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* 5. ITENS DO PEDIDO */}
+                <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                                3. Itens a Serem Cotados
+                            </h2>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                                Informe os produtos, especificações e quantidades necessárias. Os preços unitários serão cotados pelo setor de suprimentos.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleAddItem}
+                            className="flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Adicionar Item
+                        </button>
+                    </div>
+
+                    <div className="space-y-3">
+                        {itens.map((item, index) => (
+                            <div
+                                key={index}
+                                className="grid grid-cols-12 gap-3 items-center bg-slate-950/70 p-3.5 rounded-xl border border-white/5"
+                            >
+                                <div className="col-span-12 md:col-span-5">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                        Item / Descrição *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: Luva nitrílica cano longo tam G"
+                                        value={item.descricao}
+                                        onChange={(e) => handleItemChange(index, "descricao", e.target.value)}
+                                        className="w-full mt-1 bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="col-span-12 md:col-span-4">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                        Especificação / Marca / Tamanho
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: Danny, CA 12345, cor verde"
+                                        value={item.especificacao}
+                                        onChange={(e) => handleItemChange(index, "especificacao", e.target.value)}
+                                        className="w-full mt-1 bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                                    />
+                                </div>
+
+                                <div className="col-span-6 md:col-span-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                        Qtd *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={item.quantidade}
+                                        onChange={(e) => handleItemChange(index, "quantidade", Number(e.target.value))}
+                                        className="w-full mt-1 bg-slate-900 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white text-center focus:outline-none focus:border-amber-400"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="col-span-4 md:col-span-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                        Unid.
+                                    </label>
+                                    <select
+                                        value={item.unidade}
+                                        onChange={(e) => handleItemChange(index, "unidade", e.target.value)}
+                                        className="w-full mt-1 bg-slate-900 border border-white/10 rounded-lg px-1.5 py-2 text-xs text-white text-center focus:outline-none focus:border-amber-400"
+                                    >
+                                        {UNIDADES.map(u => (
+                                            <option key={u} value={u}>{u}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="col-span-2 md:col-span-1 flex justify-end pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveItem(index)}
+                                        className="text-slate-500 hover:text-red-400 p-1.5 transition-colors cursor-pointer"
+                                        title="Remover item"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* BOTÕES DE AÇÃO */}
+                <div className="flex items-center justify-end gap-4 pt-4 border-t border-white/10">
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="px-6 py-3 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:bg-white/5 font-bold text-sm transition-all cursor-pointer"
+                    >
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        disabled={submitting}
+                        className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-8 py-3 rounded-xl text-sm shadow-xl shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                        {submitting ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Registrando Pedido...
+                            </>
+                        ) : (
+                            <>
+                                <CheckCircle2 className="w-4 h-4" />
+                                Enviar Pedido para Cotação
+                            </>
+                        )}
+                    </button>
+                </div>
+            </form>
+        </div>
+    )
+}

@@ -467,6 +467,27 @@ export function calculateDiariaVencimento(dataBaseInput: Date | string): Date {
 }
 
 /**
+ * Aguarda a resolução de um protocolo assíncrono do Conta Azul até obter o ID final do evento
+ */
+async function waitForContaAzulProtocol(empresaId: string, protocolo: string, maxAttempts = 5, delayMs = 1200): Promise<string | null> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            await new Promise(resolve => setTimeout(resolve, delayMs))
+            const protRes = await fetchContaAzul(empresaId, `/v1/protocolo/${protocolo}`)
+            if (protRes?.status === "SUCCESS" && protRes.evento_financeiro_id) {
+                return protRes.evento_financeiro_id
+            } else if (protRes?.status === "ERROR") {
+                console.error("[CONTA AZUL PROTOCOL ERROR]", protRes)
+                return null
+            }
+        } catch (protErr) {
+            console.error(`[CONTA AZUL PROTOCOL ATTEMPT ${attempt} ERROR]`, protErr)
+        }
+    }
+    return null
+}
+
+/**
  * Cria lançamento de Contas a Pagar no Conta Azul a partir de uma Cobertura (Diária) aprovada
  */
 export async function createPayableFromCobertura(coberturaId: string): Promise<ContaAzulPayableResult> {
@@ -617,21 +638,13 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
             return { success: false, error: response.error }
         }
 
-        let finalPayableId = response?.protocolo || response?.id || `CA-DIARIA-${cobertura.id.slice(-6).toUpperCase()}`
+        let finalPayableId = response?.id || response?.protocolo || `CA-DIARIA-${cobertura.id.slice(-6).toUpperCase()}`
 
-        // Se retornou protocolo assíncrono, aguarda 1.5s e consulta o ID final do evento
+        // Se retornou protocolo assíncrono, aguarda e consulta o ID final do evento
         if (response?.protocolo) {
-            try {
-                await new Promise(resolve => setTimeout(resolve, 1500))
-                const protRes = await fetchContaAzul(empresaId, `/v1/protocolo/${response.protocolo}`)
-                if (protRes?.status === "SUCCESS" && protRes.evento_financeiro_id) {
-                    finalPayableId = protRes.evento_financeiro_id
-                } else if (protRes?.status === "ERROR") {
-                    console.error("[CONTA AZUL PROTOCOL ERROR]", protRes)
-                    return { success: false, error: protRes.resposta || "Erro no processamento do lançamento no Conta Azul." }
-                }
-            } catch (protErr) {
-                console.error("[CONTA AZUL PROTOCOL FETCH ERROR]", protErr)
+            const resolvedId = await waitForContaAzulProtocol(empresaId, response.protocolo)
+            if (resolvedId) {
+                finalPayableId = resolvedId
             }
         }
 
@@ -843,20 +856,12 @@ export async function createPayableFromGroupedCoberturas(coberturaIds: string[])
             return { success: false, error: response.error }
         }
 
-        let finalPayableId = response?.protocolo || response?.id || `CA-LOTE-${primary.id.slice(-6).toUpperCase()}`
+        let finalPayableId = response?.id || response?.protocolo || `CA-LOTE-${primary.id.slice(-6).toUpperCase()}`
 
         if (response?.protocolo) {
-            try {
-                await new Promise(resolve => setTimeout(resolve, 1500))
-                const protRes = await fetchContaAzul(empresaId, `/v1/protocolo/${response.protocolo}`)
-                if (protRes?.status === "SUCCESS" && protRes.evento_financeiro_id) {
-                    finalPayableId = protRes.evento_financeiro_id
-                } else if (protRes?.status === "ERROR") {
-                    console.error("[CONTA AZUL PROTOCOL ERROR]", protRes)
-                    return { success: false, error: protRes.resposta || "Erro no processamento do lote no Conta Azul." }
-                }
-            } catch (protErr) {
-                console.error("[CONTA AZUL PROTOCOL FETCH ERROR]", protErr)
+            const resolvedId = await waitForContaAzulProtocol(empresaId, response.protocolo)
+            if (resolvedId) {
+                finalPayableId = resolvedId
             }
         }
 
@@ -1000,20 +1005,12 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             return { success: false, error: response.error }
         }
 
-        let finalPayableId = response?.protocolo || response?.id || `CA-DESPESA-${despesa.id.slice(-6).toUpperCase()}`
+        let finalPayableId = response?.id || response?.protocolo || `CA-DESPESA-${despesa.id.slice(-6).toUpperCase()}`
 
         if (response?.protocolo) {
-            try {
-                await new Promise(resolve => setTimeout(resolve, 1500))
-                const protRes = await fetchContaAzul(empresaId, `/v1/protocolo/${response.protocolo}`)
-                if (protRes?.status === "SUCCESS" && protRes.evento_financeiro_id) {
-                    finalPayableId = protRes.evento_financeiro_id
-                } else if (protRes?.status === "ERROR") {
-                    console.error("[CONTA AZUL PROTOCOL ERROR]", protRes)
-                    return { success: false, error: protRes.resposta || "Erro no processamento do lançamento no Conta Azul." }
-                }
-            } catch (protErr) {
-                console.error("[CONTA AZUL PROTOCOL FETCH ERROR]", protErr)
+            const resolvedId = await waitForContaAzulProtocol(empresaId, response.protocolo)
+            if (resolvedId) {
+                finalPayableId = resolvedId
             }
         }
 
@@ -1127,16 +1124,33 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                 if (!cob.contaAzulPayableId) continue
 
                 try {
-                    // Consulta as parcelas do evento financeiro no Conta Azul
-                    const parcelas = await fetchContaAzul(empresa.id, `/v1/financeiro/eventos-financeiros/${cob.contaAzulPayableId}/parcelas`)
-                    const list = Array.isArray(parcelas) ? parcelas : (parcelas?.itens || [])
+                    // Consulta as parcelas do evento financeiro no Conta Azul (ou busca direto pela parcela)
+                    let parcelas = await fetchContaAzul(empresa.id, `/v1/financeiro/eventos-financeiros/${cob.contaAzulPayableId}/parcelas`)
+                    let list = Array.isArray(parcelas) ? parcelas : (parcelas?.itens || [])
+
+                    if (list.length === 0) {
+                        const singleParcela = await fetchContaAzul(empresa.id, `/v1/financeiro/eventos-financeiros/parcelas/${cob.contaAzulPayableId}`)
+                        if (singleParcela && !singleParcela.error && singleParcela.id) {
+                            list = [singleParcela]
+                        }
+                    }
                     
                     const isPaid = list.length > 0 && list.every((p: any) => 
-                        p.status === "PAGO" || p.status === "BAIXADO" || (p.baixas && p.baixas.length > 0) || (p.nao_pago === 0 && p.valor_pago > 0)
+                        p.status === "QUITADO" ||
+                        p.status === "PAGO" || 
+                        p.status === "BAIXADO" || 
+                        p.conciliado === true ||
+                        (Array.isArray(p.baixas) && p.baixas.length > 0) || 
+                        (p.nao_pago === 0 && Number(p.valor_pago) > 0)
                     )
 
                     if (isPaid) {
-                        const dataPagamento = list[0]?.baixas?.[0]?.data_baixa ? new Date(list[0].baixas[0].data_baixa) : new Date()
+                        const primeiraBaixa = list[0]?.baixas?.[0]
+                        const dataPagamento = primeiraBaixa?.data_pagamento 
+                            ? new Date(primeiraBaixa.data_pagamento) 
+                            : primeiraBaixa?.data_baixa 
+                                ? new Date(primeiraBaixa.data_baixa) 
+                                : new Date()
                         const receiptUrl = `/api/contaazul/comprovante/${cob.contaAzulPayableId}?empresaId=${empresa.id}`
 
                         const existingAnexo = await prisma.anexo.findFirst({
@@ -1205,15 +1219,32 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                 if (!desp.contaAzulPayableId) continue
 
                 try {
-                    const parcelas = await fetchContaAzul(empresa.id, `/v1/financeiro/eventos-financeiros/${desp.contaAzulPayableId}/parcelas`)
-                    const list = Array.isArray(parcelas) ? parcelas : (parcelas?.itens || [])
+                    let parcelas = await fetchContaAzul(empresa.id, `/v1/financeiro/eventos-financeiros/${desp.contaAzulPayableId}/parcelas`)
+                    let list = Array.isArray(parcelas) ? parcelas : (parcelas?.itens || [])
+
+                    if (list.length === 0) {
+                        const singleParcela = await fetchContaAzul(empresa.id, `/v1/financeiro/eventos-financeiros/parcelas/${desp.contaAzulPayableId}`)
+                        if (singleParcela && !singleParcela.error && singleParcela.id) {
+                            list = [singleParcela]
+                        }
+                    }
                     
                     const isPaid = list.length > 0 && list.every((p: any) => 
-                        p.status === "PAGO" || p.status === "BAIXADO" || (p.baixas && p.baixas.length > 0) || (p.nao_pago === 0 && p.valor_pago > 0)
+                        p.status === "QUITADO" ||
+                        p.status === "PAGO" || 
+                        p.status === "BAIXADO" || 
+                        p.conciliado === true ||
+                        (Array.isArray(p.baixas) && p.baixas.length > 0) || 
+                        (p.nao_pago === 0 && Number(p.valor_pago) > 0)
                     )
 
                     if (isPaid) {
-                        const dataPagamento = list[0]?.baixas?.[0]?.data_baixa ? new Date(list[0].baixas[0].data_baixa) : new Date()
+                        const primeiraBaixa = list[0]?.baixas?.[0]
+                        const dataPagamento = primeiraBaixa?.data_pagamento 
+                            ? new Date(primeiraBaixa.data_pagamento) 
+                            : primeiraBaixa?.data_baixa 
+                                ? new Date(primeiraBaixa.data_baixa) 
+                                : new Date()
                         const receiptUrl = `/api/contaazul/comprovante/${desp.contaAzulPayableId}?empresaId=${empresa.id}`
                         const nextStatus = desp.tipo === "REEMBOLSO" ? "PAGO" : "AGUARDANDO_PRESTACAO"
 

@@ -80,6 +80,12 @@ model User {
   centrosAprovadosN1    CentroCusto[] @relation("AprovadorN1Centro")
   centrosAprovadosN2    CentroCusto[] @relation("AprovadorN2Centro")
   centrosFinanceiro     CentroCusto[] @relation("FinanceiroCentro")
+
+  // Relações do Módulo de Compras
+  pedidosCompraSolicitados PedidoCompra[] @relation("SolicitantePedidoCompra")
+  pedidosCompraCotados     PedidoCompra[] @relation("CompradorPedidoCompra")
+  pedidosCompraAprovados   PedidoCompra[] @relation("AprovadorPedidoCompra")
+  historicosPedidoCompra   HistoricoPedidoCompra[]
 }
 
 // Catalogs
@@ -525,4 +531,111 @@ model SolicitacaoAntecipacao {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 }
+
+// ==========================================
+// Módulo de Compras & Suprimentos (BudgetHub)
+// ==========================================
+
+enum StatusPedidoCompra {
+  RASCUNHO
+  AGUARDANDO_COTACAO
+  COTADO
+  AGUARDANDO_APROVACAO
+  AJUSTE_SOLICITADO
+  APROVADO
+  REPROVADO
+  CONCLUIDO
+  CANCELADO
+}
+
+model PedidoCompra {
+  id                      String             @id @default(uuid())
+  numeroPedido            String             @unique // Ex: PC-2026-0001
+  status                  StatusPedidoCompra @default(AGUARDANDO_COTACAO)
+  tipoCompra              String?            // EPI, UNIFORME, LIMPEZA, ESCRITORIO, MANUTENCAO, TI, OUTROS
+  
+  // BudgetHub Integração
+  tenantId                String             // ID do Tenant no BudgetHub
+  tenantNome              String             // Nome da Empresa (Spot, JVS, Clean Tech, etc.)
+  centroCustoId           String             // ID do Centro de Custo no BudgetHub
+  centroCustoNome         String             // Nome do Centro de Custo
+  categoriaId             String             // ID da Categoria no BudgetHub
+  categoriaNome           String             // Nome da Categoria (Ex: 03.6.1 - Materiais de Limpeza)
+  mesCompetencia          Int                // 1 a 12
+  anoCompetencia          Int                // Ex: 2026
+  budgetDisponivel        Decimal?           // Snapshot do saldo orçamentário no momento da criação
+  
+  justificativa           String             // Motivo / Destinação da compra
+  
+  // Atores do Fluxo
+  solicitanteId           String
+  solicitante             User               @relation("SolicitantePedidoCompra", fields: [solicitanteId], references: [id])
+  
+  compradorId             String?
+  comprador               User?              @relation("CompradorPedidoCompra", fields: [compradorId], references: [id])
+  
+  aprovadorId             String?
+  aprovador               User?              @relation("AprovadorPedidoCompra", fields: [aprovadorId], references: [id])
+  dataAprovacao           DateTime?
+  justificativaAprovacao  String?
+  justificativaReprovacao String?
+  ajusteSolicitado        String?
+  
+  // Informações da Cotação Vencedora
+  fornecedorNome          String?
+  fornecedorCnpj          String?
+  fornecedorEmail         String?
+  fornecedorTelefone      String?
+  fornecedorContato       String?
+  condicoesPagamento      String?            // Ex: Boleto 28 DDL, 30/60 dias, Pix na entrega
+  dataVencimentoSugerida  DateTime?
+  emailEnvioNf            String?            // E-mail onde o fornecedor deve faturar e enviar o XML/PDF
+  enderecoEntrega         String?            // Endereço do posto / filial de recebimento
+  observacoesFiscais      String?
+  
+  valorTotalEstimado      Decimal?
+  valorTotalCotado        Decimal?
+  
+  // Anexos da Cotação e dados de IA
+  anexoCotacaoUrl         String?
+  anexoCotacaoNome        String?
+  dadosExtracaoIA         String?            // JSON com o resultado retornado pelo Gemini
+  
+  itens                   ItemPedidoCompra[]
+  historico               HistoricoPedidoCompra[]
+  
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+}
+
+model ItemPedidoCompra {
+  id             String        @id @default(uuid())
+  pedidoId       String
+  pedido         PedidoCompra  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  
+  descricao      String
+  especificacao  String?
+  quantidade     Float         @default(1)
+  unidade        String        @default("UN") // UN, PAR, CX, PCT, L, KG, KIT, MT
+  precoUnitario  Decimal?
+  precoTotal     Decimal?
+  fornecedor     String?
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model HistoricoPedidoCompra {
+  id           String             @id @default(uuid())
+  pedidoId     String
+  pedido       PedidoCompra       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  
+  deStatus     StatusPedidoCompra?
+  paraStatus   StatusPedidoCompra
+  usuarioId    String
+  usuario      User               @relation(fields: [usuarioId], references: [id])
+  observacao   String?
+  data         DateTime           @default(now())
+}
+
 

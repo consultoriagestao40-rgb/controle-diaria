@@ -18,7 +18,9 @@ import {
     Grid,
     Landmark,
     Zap,
-    ChevronDown
+    ChevronDown,
+    ShoppingCart,
+    Tag
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -38,7 +40,7 @@ interface NavItem {
 
 interface NavGroup {
     title: string
-    color: "cyan" | "indigo" | "emerald"
+    color: "cyan" | "indigo" | "emerald" | "amber"
     items: NavItem[]
 }
 
@@ -203,6 +205,28 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
             })
         }
 
+        // 4. Compras & Suprimentos (BudgetHub)
+        const comprasItems: NavItem[] = [
+            { label: "Novo Pedido", href: "/dashboard/compras/novo", icon: ShoppingCart, description: "Solicitação de EPIs, uniformes e materiais" },
+            { label: "Meus Pedidos", href: "/dashboard/compras", icon: FileText, description: "Acompanhamento das suas solicitações" }
+        ]
+
+        if (["ADMIN", "FINANCEIRO", "APROVADOR_N2", "APROVADOR", "APROVADOR_N1"].includes(role)) {
+            comprasItems.push(
+                { label: "Fila de Cotações", href: "/dashboard/compras?tab=cotacoes", icon: Tag, description: "Lançar cotações e leitura inteligente por IA" },
+                { label: "Aprovar Compras", href: "/dashboard/compras?tab=aprovacoes", icon: CheckSquare, description: "Análise de pedidos e aprovação de gastos" },
+                { label: "Ordens de Compra", href: "/dashboard/compras?tab=aprovados", icon: Receipt, description: "Exportação de pedidos aprovados para fornecedores" }
+            )
+        }
+
+        if (comprasItems.length > 0) {
+            groups.push({
+                title: "Compras & Suprimentos",
+                color: "amber",
+                items: comprasItems
+            })
+        }
+
         return groups
     }
 
@@ -335,7 +359,8 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
                                     "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest border",
                                     activeGroupData.color === "cyan" ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30" :
                                     activeGroupData.color === "indigo" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/30" :
-                                    "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                    activeGroupData.color === "emerald" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" :
+                                    "bg-amber-500/10 text-amber-400 border-amber-500/30"
                                 )}>
                                     {activeGroupData.title}
                                 </span>
