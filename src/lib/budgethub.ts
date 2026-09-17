@@ -42,6 +42,29 @@ export interface BudgetHubCategory {
     isMateriais036: boolean
     isEpiUniforme035: boolean
     grupo: string
+    contaPaiCodigo: string
+    contaPaiNome: string
+}
+
+export const CONTA_PAI_MAP: Record<string, string> = {
+    "03.6": "03.6 - Materiais",
+    "03.5": "03.5 - EPIs e Uniformes",
+    "03.7": "03.7 - Equipamentos e Manutenção",
+    "03.8": "03.8 - Sistemas e Escritório",
+    "03.9": "03.9 - Veículos e Combustível",
+    "05.10": "05.10 - Copa e Cozinha",
+    "05.12": "05.12 - Informática e TI",
+    "05.4": "05.4 - Uniformes e Treinamentos (Adm)",
+    "03.1": "03.1 - Salários Operacionais",
+    "03.2": "03.2 - Encargos Operacionais",
+    "03.3": "03.3 - Benefícios Operacionais (VT/VR)",
+    "03.4": "03.4 - Diárias de Cobertura e Serviço",
+    "05.5": "05.5 - Refeição e Viagens (Adm)",
+    "05.8": "05.8 - Marketing e Vendas",
+    "05.9": "05.9 - Ocupação e Manutenção Predial",
+    "04.4": "04.4 - Uniformes e EPIs (Diretoria)",
+    "04.5": "04.5 - Viagens e Refeições (Diretoria)",
+    "04.6": "04.6 - Veículos da Diretoria"
 }
 
 export interface BudgetAvailability {
@@ -101,7 +124,7 @@ export async function getBudgetHubCostCenters(tenantId?: string): Promise<Budget
 }
 
 /**
- * Retorna as categorias de despesas do BudgetHub, com destaque para 03.6 Materiais e 03.5 EPI/Uniforme
+ * Retorna as categorias de despesas do BudgetHub, agrupadas por Conta Pai
  */
 export async function getBudgetHubCategories(tenantId?: string): Promise<BudgetHubCategory[]> {
     try {
@@ -122,23 +145,36 @@ export async function getBudgetHubCategories(tenantId?: string): Promise<BudgetH
             `
         }
 
-        return rawCats.map((cat) => {
-            const isMateriais036 = cat.name.includes("03.6") || cat.name.toLowerCase().includes("materiais")
-            const isEpiUniforme035 = cat.name.includes("03.5") || cat.name.toLowerCase().includes("epi") || cat.name.toLowerCase().includes("uniforme")
+        // Deduplicar categorias por nome para o mesmo tenant caso haja ids duplicados com/sem prefixo
+        const seenNames = new Set<string>()
+        const categories: BudgetHubCategory[] = []
 
-            const match = cat.name.match(/^(\d{2}\.\d+)/)
-            const grupo = match ? match[1] : "Outras Contas"
+        for (const cat of rawCats) {
+            const trimmedName = cat.name.trim()
+            if (seenNames.has(trimmedName)) continue
+            seenNames.add(trimmedName)
 
-            return {
+            const isMateriais036 = trimmedName.includes("03.6") || trimmedName.toLowerCase().includes("materiais")
+            const isEpiUniforme035 = trimmedName.includes("03.5") || trimmedName.toLowerCase().includes("epi") || trimmedName.toLowerCase().includes("uniforme")
+
+            const match = trimmedName.match(/^(\d{2}\.\d+)/)
+            const contaPaiCodigo = match ? match[1] : "OUTROS"
+            const contaPaiNome = CONTA_PAI_MAP[contaPaiCodigo] || `${contaPaiCodigo} - Outras Despesas`
+
+            categories.push({
                 id: cat.id,
-                name: cat.name.trim(),
+                name: trimmedName,
                 tenantId: cat.tenantId,
                 type: cat.type,
                 isMateriais036,
                 isEpiUniforme035,
-                grupo
-            }
-        })
+                grupo: contaPaiCodigo,
+                contaPaiCodigo,
+                contaPaiNome
+            })
+        }
+
+        return categories
     } catch (error) {
         console.error("Erro ao buscar categorias do BudgetHub:", error)
         return []
@@ -158,14 +194,17 @@ export async function getBudgetAvailability(params: {
     const { tenantId, costCenterId, categoryId, mes, ano } = params
 
     try {
+        // Extrair UUIDs limpos caso estejam compostos com "tenantId:"
+        const cleanCat = categoryId.includes(':') ? categoryId.split(':').pop()! : categoryId
+        const cleanCc = costCenterId.includes(':') ? costCenterId.split(':').pop()! : costCenterId
+
         // 1. Buscar valor orçado no BudgetHub
-        const costCenterSuffix = costCenterId.includes(':') ? costCenterId.split(':').pop()! : costCenterId
         const budgets = await budgetHubPrisma.$queryRaw<any[]>`
             SELECT amount 
             FROM "BudgetEntry" 
             WHERE "tenantId" = ${tenantId}
-              AND "categoryId" = ${categoryId}
-              AND ("costCenterId" = ${costCenterId} OR "costCenterId" LIKE ${'%' + costCenterSuffix})
+              AND ("categoryId" = ${categoryId} OR "categoryId" = ${cleanCat} OR "categoryId" LIKE ${'%' + cleanCat})
+              AND ("costCenterId" = ${costCenterId} OR "costCenterId" = ${cleanCc} OR "costCenterId" LIKE ${'%' + cleanCc})
               AND month = ${mes}
               AND year = ${ano}
             LIMIT 1
@@ -177,8 +216,8 @@ export async function getBudgetAvailability(params: {
             SELECT COALESCE(SUM(amount), 0) as total_realized
             FROM "RealizedEntry"
             WHERE "tenantId" = ${tenantId}
-              AND "categoryId" = ${categoryId}
-              AND ("costCenterId" = ${costCenterId} OR "costCenterId" LIKE ${'%' + costCenterSuffix})
+              AND ("categoryId" = ${categoryId} OR "categoryId" = ${cleanCat} OR "categoryId" LIKE ${'%' + cleanCat})
+              AND ("costCenterId" = ${costCenterId} OR "costCenterId" = ${cleanCc} OR "costCenterId" LIKE ${'%' + cleanCc})
               AND month = ${mes}
               AND year = ${ano}
         `
