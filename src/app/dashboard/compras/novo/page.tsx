@@ -16,6 +16,7 @@ import {
     Sparkles,
     Loader2
 } from "lucide-react"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 
 interface Tenant {
     id: string
@@ -350,35 +351,29 @@ export default function NovoPedidoCompraPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Lista Suspensa de Empresa */}
+                        {/* Lista Suspensa de Empresa com Busca */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
                                 <span>Empresa / Tenant do Grupo *</span>
                                 <span className="text-[11px] text-indigo-600 font-bold">BudgetHub</span>
                             </label>
-                            {loadingTenants ? (
-                                <div className="flex items-center gap-2 py-3 text-slate-500 text-xs font-medium">
-                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                                    Carregando empresas...
-                                </div>
-                            ) : (
-                                <select
-                                    value={selectedTenantId}
-                                    onChange={(e) => setSelectedTenantId(e.target.value)}
-                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors"
-                                    required
-                                >
-                                    <option value="" disabled>Selecione a Empresa...</option>
-                                    {tenants.map(t => (
-                                        <option key={t.id} value={t.id}>
-                                            {t.name} (CNPJ: {t.cnpj})
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
+                            <SearchableSelect
+                                options={tenants.map(t => ({
+                                    value: t.id,
+                                    label: t.name,
+                                    sublabel: t.cnpj ? `CNPJ: ${t.cnpj}` : undefined
+                                }))}
+                                value={selectedTenantId}
+                                onChange={(val) => setSelectedTenantId(val)}
+                                placeholder="Selecione a Empresa..."
+                                searchPlaceholder="Buscar empresa por nome ou CNPJ..."
+                                loading={loadingTenants}
+                                loadingText="Carregando empresas..."
+                                required
+                            />
                         </div>
 
-                        {/* Lista Suspensa de Centro de Custo */}
+                        {/* Lista Suspensa de Centro de Custo com Busca */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
                                 <span>Centro de Custo / Posto de Serviço *</span>
@@ -386,31 +381,30 @@ export default function NovoPedidoCompraPage() {
                                     {costCenters.length} disponíveis
                                 </span>
                             </label>
-                            {loadingCCs ? (
-                                <div className="flex items-center gap-2 py-3 text-slate-500 text-xs font-medium">
-                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                                    Carregando centros de custo...
-                                </div>
-                            ) : (
-                                <select
-                                    value={selectedCostCenterId}
-                                    onChange={(e) => setSelectedCostCenterId(e.target.value)}
-                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors"
-                                    required
-                                >
-                                    <option value="" disabled>Selecione o Centro de Custo...</option>
-                                    {costCenters.map(cc => (
-                                        <option key={cc.id} value={cc.id}>
-                                            {cc.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
+                            <SearchableSelect
+                                options={costCenters.map(cc => ({
+                                    value: cc.id,
+                                    label: cc.name
+                                }))}
+                                value={selectedCostCenterId}
+                                onChange={(val) => setSelectedCostCenterId(val)}
+                                placeholder={
+                                    !selectedTenantId
+                                        ? "Selecione primeiro a Empresa..."
+                                        : "Selecione o Centro de Custo..."
+                                }
+                                searchPlaceholder="Buscar centro de custo ou posto..."
+                                loading={loadingCCs}
+                                loadingText="Carregando centros de custo..."
+                                disabled={!selectedTenantId}
+                                emptyMessage="Nenhum centro de custo encontrado para esta empresa"
+                                required
+                            />
                         </div>
                     </div>
                 </div>
 
-                {/* 2. CONTA PAI, SUBCONTA E COMPETÊNCIA (CASCATA DE LISTAS SUSPENSAS) */}
+                {/* 2. CONTA PAI, SUBCONTA E COMPETÊNCIA (CASCATA DE LISTAS SUSPENSAS COM BUSCA) */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
                     <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
                         <FolderTree className="w-5 h-5 text-indigo-600" />
@@ -420,37 +414,36 @@ export default function NovoPedidoCompraPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                        {/* LISTA SUSPENSA 1: CONTA PAI */}
+                        {/* LISTA SUSPENSA 1: CONTA PAI COM BUSCA */}
                         <div className="md:col-span-4 space-y-2">
                             <label className="text-xs font-bold text-slate-700 uppercase">
                                 Conta Pai (Grupo Orçamentário) *
                             </label>
-                            {loadingCats ? (
-                                <div className="flex items-center gap-2 py-3 text-slate-500 text-xs font-medium">
-                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                                    Carregando contas pai...
-                                </div>
-                            ) : (
-                                <select
-                                    value={selectedContaPai}
-                                    onChange={(e) => handleContaPaiChange(e.target.value)}
-                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors"
-                                    required
-                                >
-                                    <option value="" disabled>Selecione a Conta Pai...</option>
-                                    {contasPaisDisponiveis.map(g => (
-                                        <option key={g.codigo} value={g.codigo}>
-                                            {g.nome}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
+                            <SearchableSelect
+                                options={contasPaisDisponiveis.map(g => ({
+                                    value: g.codigo,
+                                    label: g.nome,
+                                    badge: g.codigo
+                                }))}
+                                value={selectedContaPai}
+                                onChange={(val) => handleContaPaiChange(val)}
+                                placeholder={
+                                    !selectedTenantId
+                                        ? "Selecione primeiro a Empresa..."
+                                        : "Selecione a Conta Pai..."
+                                }
+                                searchPlaceholder="Buscar grupo orçamentário..."
+                                loading={loadingCats}
+                                loadingText="Carregando contas pai..."
+                                disabled={!selectedTenantId}
+                                required
+                            />
                             <p className="text-[11px] text-slate-500">
                                 Filtra estritamente as contas de orçamento permitidas.
                             </p>
                         </div>
 
-                        {/* LISTA SUSPENSA 2: SUBCONTA (HABILITADA APENAS PELA CONTA PAI) */}
+                        {/* LISTA SUSPENSA 2: SUBCONTA COM BUSCA (HABILITADA APENAS PELA CONTA PAI) */}
                         <div className="md:col-span-5 space-y-2">
                             <label className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
                                 <span>Subconta / Conta de Orçamento *</span>
@@ -458,24 +451,24 @@ export default function NovoPedidoCompraPage() {
                                     {subcontasHabilitadas.length} subconta(s)
                                 </span>
                             </label>
-                            <select
+                            <SearchableSelect
+                                options={subcontasHabilitadas.map(sc => ({
+                                    value: sc.id,
+                                    label: sc.name,
+                                    badge: sc.isMateriais036 ? "03.6" : sc.isEpiUniforme035 ? "03.5" : undefined
+                                }))}
                                 value={selectedCategoryId}
-                                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                                disabled={subcontasHabilitadas.length === 0}
-                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm transition-colors disabled:opacity-50"
-                                required
-                            >
-                                <option value="" disabled>
-                                    {subcontasHabilitadas.length === 0
+                                onChange={(val) => setSelectedCategoryId(val)}
+                                placeholder={
+                                    subcontasHabilitadas.length === 0
                                         ? "Nenhuma subconta nesta conta pai"
-                                        : "Selecione a Subconta / Categoria..."}
-                                </option>
-                                {subcontasHabilitadas.map(sc => (
-                                    <option key={sc.id} value={sc.id}>
-                                        {sc.name}
-                                    </option>
-                                ))}
-                            </select>
+                                        : "Selecione a Subconta / Categoria..."
+                                }
+                                searchPlaceholder="Buscar subconta de orçamento..."
+                                disabled={subcontasHabilitadas.length === 0}
+                                emptyMessage="Nenhuma subconta nesta conta pai"
+                                required
+                            />
                             <p className="text-[11px] text-slate-500">
                                 Conta onde a despesa do pedido será provisionada no BudgetHub.
                             </p>
@@ -574,16 +567,14 @@ export default function NovoPedidoCompraPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="text-xs font-bold text-slate-700 uppercase">Tipo de Compra</label>
-                            <select
+                            <label className="text-xs font-bold text-slate-700 uppercase block mb-1.5">Tipo de Compra</label>
+                            <SearchableSelect
+                                options={TIPOS_COMPRA.map(t => ({ value: t.id, label: t.label }))}
                                 value={tipoCompra}
-                                onChange={(e) => setTipoCompra(e.target.value)}
-                                className="w-full mt-1.5 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-sm"
-                            >
-                                {TIPOS_COMPRA.map(t => (
-                                    <option key={t.id} value={t.id}>{t.label}</option>
-                                ))}
-                            </select>
+                                onChange={(val) => setTipoCompra(val)}
+                                placeholder="Selecione o tipo..."
+                                searchPlaceholder="Buscar tipo de compra..."
+                            />
                         </div>
 
                         <div className="md:col-span-2">
