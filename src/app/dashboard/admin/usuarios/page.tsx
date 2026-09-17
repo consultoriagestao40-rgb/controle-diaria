@@ -319,142 +319,146 @@ export default function UsuariosPage() {
             </Card>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>{editingId ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
+                <DialogContent className="max-w-2xl max-h-[88vh] flex flex-col p-0 gap-0 overflow-hidden">
+                    <DialogHeader className="px-6 py-4 border-b border-slate-100 shrink-0">
+                        <DialogTitle className="text-lg font-bold text-slate-800">{editingId ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSave} className="space-y-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="nome">Nome Completo</Label>
-                                <Input id="nome" value={formData.nome} onChange={e => setFormData({ ...formData, nome: e.target.value })} required />
+                    <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="nome">Nome Completo</Label>
+                                    <Input id="nome" value={formData.nome} onChange={e => setFormData({ ...formData, nome: e.target.value })} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="email">E-mail (Login)</Label>
+                                    <Input id="email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
+                                </div>
                             </div>
+
                             <div>
-                                <Label htmlFor="email">E-mail (Login)</Label>
-                                <Input id="email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
+                                <Label htmlFor="cargo">Cargo dentro da Organização</Label>
+                                <Input
+                                    id="cargo"
+                                    placeholder="Ex: Diretor Geral, Supervisor Operacional, Comprador"
+                                    value={formData.cargo}
+                                    onChange={e => setFormData({ ...formData, cargo: e.target.value })}
+                                />
                             </div>
-                        </div>
 
-                        <div>
-                            <Label htmlFor="cargo">Cargo dentro da Organização</Label>
-                            <Input
-                                id="cargo"
-                                placeholder="Ex: Diretor Geral, Supervisor Operacional, Comprador"
-                                value={formData.cargo}
-                                onChange={e => setFormData({ ...formData, cargo: e.target.value })}
-                            />
-                        </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="role">Perfil de Acesso</Label>
+                                    <Select value={formData.role} onValueChange={(v) => setFormData({ ...formData, role: v })}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="ADMIN">Administrador</SelectItem>
+                                            <SelectItem value="COMPRADOR">Comprador (Suprimentos)</SelectItem>
+                                            <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
+                                            <SelectItem value="APROVADOR_N1">Aprovador N1</SelectItem>
+                                            <SelectItem value="APROVADOR_N2">Aprovador N2</SelectItem>
+                                            <SelectItem value="APROVADOR">Aprovador (Legado)</SelectItem>
+                                            <SelectItem value="FINANCEIRO">Financeiro</SelectItem>
+                                            <SelectItem value="ENCARREGADO">Encarregado</SelectItem>
+                                            <SelectItem value="RH">Recursos Humanos (RH)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label htmlFor="pass">{editingId ? "Nova Senha (opcional)" : "Senha Inicial"}</Label>
+                                    <Input
+                                        id="pass"
+                                        type="password"
+                                        value={formData.password}
+                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                        required={!editingId}
+                                        placeholder={editingId ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
+                                    />
+                                </div>
+                            </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                            {/* GUIA DE PAPÉIS NO MÓDULO DE COMPRAS */}
+                            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 text-xs space-y-1 text-slate-700">
+                                <p className="font-bold text-amber-900 flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                                    💡 Como funcionam os papéis no Módulo de Compras:
+                                </p>
+                                <ul className="space-y-1 text-[11px] text-slate-600">
+                                    <li>• <strong>Quem emite pedidos (Solicitante):</strong> Qualquer usuário com o módulo <em>Compras & Suprimentos</em> ativo abaixo (Supervisores, Encarregados, etc.).</li>
+                                    <li>• <strong>Quem cota e gera a Ordem de Compra:</strong> Usuários com perfil <em>Comprador (Suprimentos)</em>, <em>Financeiro</em> ou <em>Administrador</em>.</li>
+                                    <li>• <strong>Quem aprova compras:</strong> Gestores com perfil <em>Aprovador N1</em>, <em>Aprovador N2</em> ou <em>Administrador</em>.</li>
+                                </ul>
+                            </div>
+
                             <div>
-                                <Label htmlFor="role">Perfil de Acesso</Label>
-                                <Select value={formData.role} onValueChange={(v) => setFormData({ ...formData, role: v })}>
-                                    <SelectTrigger>
+                                <Label htmlFor="centroCustoId">Centro de Custo (Área/Departamento)</Label>
+                                <Select value={formData.centroCustoId} onValueChange={(v) => setFormData({ ...formData, centroCustoId: v })}>
+                                    <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="ADMIN">Administrador</SelectItem>
-                                        <SelectItem value="COMPRADOR">Comprador (Suprimentos)</SelectItem>
-                                        <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
-                                        <SelectItem value="APROVADOR_N1">Aprovador N1</SelectItem>
-                                        <SelectItem value="APROVADOR_N2">Aprovador N2</SelectItem>
-                                        <SelectItem value="APROVADOR">Aprovador (Legado)</SelectItem>
-                                        <SelectItem value="FINANCEIRO">Financeiro</SelectItem>
-                                        <SelectItem value="ENCARREGADO">Encarregado</SelectItem>
-                                        <SelectItem value="RH">Recursos Humanos (RH)</SelectItem>
+                                        <SelectItem value="none">Nenhum</SelectItem>
+                                        {centrosCusto.map(c => (
+                                            <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div>
-                                <Label htmlFor="pass">{editingId ? "Nova Senha (opcional)" : "Senha Inicial"}</Label>
-                                <Input
-                                    id="pass"
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                    required={!editingId}
-                                    placeholder={editingId ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
-                                />
-                            </div>
-                        </div>
 
-                        {/* GUIA DE PAPÉIS NO MÓDULO DE COMPRAS */}
-                        <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 text-xs space-y-1.5 text-slate-700">
-                            <p className="font-bold text-amber-900 flex items-center gap-1.5 text-xs uppercase tracking-wider">
-                                💡 Como funcionam os papéis no Módulo de Compras:
-                            </p>
-                            <ul className="space-y-1 text-[11px] text-slate-600">
-                                <li>• <strong>Quem emite pedidos (Solicitante):</strong> Qualquer usuário com o módulo <em>Compras & Suprimentos</em> ativo abaixo (Supervisores, Encarregados, etc.).</li>
-                                <li>• <strong>Quem cota e gera a Ordem de Compra:</strong> Usuários com perfil <em>Comprador (Suprimentos)</em>, <em>Financeiro</em> ou <em>Administrador</em>.</li>
-                                <li>• <strong>Quem aprova compras:</strong> Gestores com perfil <em>Aprovador N1</em>, <em>Aprovador N2</em> ou <em>Administrador</em>.</li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <Label htmlFor="centroCustoId">Centro de Custo (Área/Departamento)</Label>
-                            <Select value={formData.centroCustoId} onValueChange={(v) => setFormData({ ...formData, centroCustoId: v })}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">Nenhum</SelectItem>
-                                    {centrosCusto.map(c => (
-                                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {formData.role !== 'ADMIN' && (
-                            <div className="space-y-2">
-                                <Label className="text-amber-600 font-medium">Postos Autorizados</Label>
-                                <div className="border rounded-md p-4 max-h-[200px] overflow-y-auto grid grid-cols-2 gap-2 bg-amber-50/10">
-                                    {postos.map(posto => {
-                                        const isSelected = formData.postosIds.includes(posto.id)
-                                        return (
-                                            <div
-                                                key={posto.id}
-                                                className={`flex items-center space-x-2 p-2 rounded border cursor-pointer hover:bg-muted ${isSelected ? 'border-primary bg-blue-50' : 'border-transparent'}`}
-                                                onClick={() => togglePosto(posto.id)}
-                                            >
-                                                <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground'}`}>
-                                                    {isSelected && <Check className="h-3 w-3" />}
+                            {formData.role !== 'ADMIN' && (
+                                <div className="space-y-2">
+                                    <Label className="text-amber-600 font-medium">Postos Autorizados</Label>
+                                    <div className="border rounded-md p-3 max-h-[160px] overflow-y-auto grid grid-cols-2 gap-2 bg-amber-50/10">
+                                        {postos.map(posto => {
+                                            const isSelected = formData.postosIds.includes(posto.id)
+                                            return (
+                                                <div
+                                                    key={posto.id}
+                                                    className={`flex items-center space-x-2 p-2 rounded border cursor-pointer hover:bg-muted ${isSelected ? 'border-primary bg-blue-50' : 'border-transparent'}`}
+                                                    onClick={() => togglePosto(posto.id)}
+                                                >
+                                                    <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground'}`}>
+                                                        {isSelected && <Check className="h-3 w-3" />}
+                                                    </div>
+                                                    <span className="text-sm">{posto.nome}</span>
                                                 </div>
-                                                <span className="text-sm">{posto.nome}</span>
-                                            </div>
-                                        )
-                                    })}
-                                    {postos.length === 0 && <span className="text-muted-foreground text-sm col-span-2">Nenhum posto cadastrado ainda.</span>}
+                                            )
+                                        })}
+                                        {postos.length === 0 && <span className="text-muted-foreground text-sm col-span-2">Nenhum posto cadastrado ainda.</span>}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex items-center space-x-2">
+                                <Switch id="ativo" checked={formData.ativo} onCheckedChange={c => setFormData({ ...formData, ativo: c })} />
+                                <Label htmlFor="ativo">Usuário Ativo</Label>
+                            </div>
+
+                            <div className="border-t pt-3 space-y-2">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Módulos Liberados</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div className="flex items-center space-x-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                        <Switch id="acessoDespesas" checked={formData.acessoDespesas} onCheckedChange={c => setFormData({ ...formData, acessoDespesas: c })} />
+                                        <Label htmlFor="acessoDespesas" className="text-xs font-medium cursor-pointer">Despesas Corporativas</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                        <Switch id="acessoCoberturas" checked={formData.acessoCoberturas} onCheckedChange={c => setFormData({ ...formData, acessoCoberturas: c })} />
+                                        <Label htmlFor="acessoCoberturas" className="text-xs font-medium cursor-pointer">Diárias e Coberturas</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                        <Switch id="acessoCompras" checked={formData.acessoCompras} onCheckedChange={c => setFormData({ ...formData, acessoCompras: c })} />
+                                        <Label htmlFor="acessoCompras" className="text-xs font-medium cursor-pointer">Compras & Suprimentos</Label>
+                                    </div>
                                 </div>
                             </div>
-                        )}
-
-                        <div className="flex items-center space-x-2 mt-4">
-                            <Switch id="ativo" checked={formData.ativo} onCheckedChange={c => setFormData({ ...formData, ativo: c })} />
-                            <Label htmlFor="ativo">Usuário Ativo</Label>
                         </div>
 
-                        <div className="border-t pt-4 space-y-3">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Módulos Liberados</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                    <Switch id="acessoDespesas" checked={formData.acessoDespesas} onCheckedChange={c => setFormData({ ...formData, acessoDespesas: c })} />
-                                    <Label htmlFor="acessoDespesas" className="text-xs font-medium cursor-pointer">Despesas Corporativas</Label>
-                                </div>
-                                <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                    <Switch id="acessoCoberturas" checked={formData.acessoCoberturas} onCheckedChange={c => setFormData({ ...formData, acessoCoberturas: c })} />
-                                    <Label htmlFor="acessoCoberturas" className="text-xs font-medium cursor-pointer">Diárias e Coberturas</Label>
-                                </div>
-                                <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                    <Switch id="acessoCompras" checked={formData.acessoCompras} onCheckedChange={c => setFormData({ ...formData, acessoCompras: c })} />
-                                    <Label htmlFor="acessoCompras" className="text-xs font-medium cursor-pointer">Compras & Suprimentos</Label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <DialogFooter>
+                        <DialogFooter className="px-6 py-3 border-t border-slate-100 bg-slate-50/90 shrink-0 flex items-center justify-end gap-3">
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={saving}>Salvar</Button>
+                            <Button type="submit" disabled={saving}>
+                                {saving ? "Salvando..." : "Salvar"}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
