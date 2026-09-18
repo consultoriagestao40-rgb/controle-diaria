@@ -212,7 +212,7 @@ export default function PedidoDetalhePage({ params }: { params: Promise<{ id: st
                             dataVencimentoSugerida: data.dataVencimentoSugerida
                                 ? data.dataVencimentoSugerida.split("T")[0]
                                 : "",
-                            emailEnvioNf: data.emailEnvioNf || "financeiro@grupofacilities.com.br",
+                            emailEnvioNf: data.emailEnvioNf || "financeiro@grupojvsserv.com.br",
                             enderecoEntrega: data.enderecoEntrega || data.centroCustoNome,
                             observacoesFiscais: data.observacoesFiscais || "",
                             anexoUrl: data.anexoCotacaoUrl || "",
@@ -297,7 +297,7 @@ export default function PedidoDetalhePage({ params }: { params: Promise<{ id: st
             contato: "",
             condicoesPagamento: "Boleto 28 DDL",
             dataVencimentoSugerida: "",
-            emailEnvioNf: "financeiro@grupofacilities.com.br",
+            emailEnvioNf: "financeiro@grupojvsserv.com.br",
             enderecoEntrega: pedido?.centroCustoNome || "",
             observacoesFiscais: "",
             anexoUrl: "",

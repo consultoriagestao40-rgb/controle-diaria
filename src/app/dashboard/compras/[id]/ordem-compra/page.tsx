@@ -459,7 +459,7 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                             A Nota Fiscal eletrônica (DANFE) e o arquivo XML devem ser enviados obrigatoriamente para o e-mail:
                         </p>
                         <p className="font-mono font-black text-sm bg-amber-100/80 px-2 py-1 rounded border border-amber-200 inline-block">
-                            {pedido.emailEnvioNf || "financeiro@grupofacilities.com.br"}
+                            {pedido.emailEnvioNf || "financeiro@grupojvsserv.com.br"}
                         </p>
                         <p className="text-[11px] text-amber-900 mt-1">
                             É indispensável citar no corpo do e-mail e nas Informações Complementares da NF:
