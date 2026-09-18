@@ -196,7 +196,67 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
     }, 0)
 
     return (
-        <div className="min-h-screen bg-slate-100 py-8 px-4 font-sans print:p-0 print:bg-white print:text-black">
+        <div className="min-h-screen bg-slate-100 py-8 px-4 font-sans print-page-wrapper print:p-0 print:m-0 print:bg-white print:text-black print:min-h-0 print:overflow-visible">
+            {/* ESTILOS DE IMPRESSÃO PROFISSIONAL (A4 MULTIPÁGINAS SEM CORTAR) */}
+            <style dangerouslySetInnerHTML={{ __html: `
+                @media print {
+                    @page {
+                        size: A4 portrait;
+                        margin: 10mm 12mm 10mm 12mm;
+                    }
+                    html, body {
+                        background: #ffffff !important;
+                        color: #000000 !important;
+                        height: auto !important;
+                        min-height: auto !important;
+                        overflow: visible !important;
+                    }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    .print-page-wrapper {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        background: transparent !important;
+                        min-height: auto !important;
+                        overflow: visible !important;
+                    }
+                    .print-document {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        max-width: 100% !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        border-radius: 0 !important;
+                        overflow: visible !important;
+                    }
+                    .avoid-break {
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+                    table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
+                        page-break-inside: auto !important;
+                    }
+                    thead {
+                        display: table-header-group !important;
+                    }
+                    tbody {
+                        page-break-inside: auto !important;
+                    }
+                    tr {
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+                    tfoot {
+                        display: table-footer-group !important;
+                        break-inside: avoid !important;
+                    }
+                }
+            `}} />
+
             {/* BARRA DE AÇÕES NO TOPO (NÃO IMPRIME) */}
             <div className="max-w-4xl mx-auto mb-6 space-y-4 print:hidden">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -274,9 +334,9 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
             </div>
 
             {/* DOCUMENTO OFICIAL A4 PARA IMPRESSÃO */}
-            <div className="max-w-4xl mx-auto bg-white text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-200 print:border-none print:shadow-none print:rounded-none print:p-4 print:max-w-full space-y-8">
+            <div className="max-w-4xl mx-auto bg-white text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-200 print-document print:border-none print:shadow-none print:rounded-none print:p-0 print:max-w-full space-y-6 print:space-y-4 print:overflow-visible">
                 {/* CABEÇALHO DO DOCUMENTO */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b-2 border-slate-900 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b-2 border-slate-900 pb-4 avoid-break print:break-inside-avoid">
                     <div>
                         <div className="flex items-center gap-3">
                             <span className="bg-slate-900 text-white font-black text-xs px-3 py-1 rounded">
@@ -311,9 +371,9 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                 </div>
 
                 {/* DADOS DA EMPRESA & FORNECEDOR */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 avoid-break print:break-inside-avoid print:gap-4">
                     {/* Empresa Compradora */}
-                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2 text-xs">
+                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2 text-xs print:bg-white print:border-slate-300">
                         <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
                             <Building2 className="w-4 h-4 text-slate-700" />
                             <h2 className="font-black text-slate-900 uppercase">Empresa Compradora</h2>
@@ -333,7 +393,7 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                     </div>
 
                     {/* Fornecedor Vencedor */}
-                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2 text-xs">
+                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2 text-xs print:bg-white print:border-slate-300">
                         <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
                             <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                             <h2 className="font-black text-slate-900 uppercase">Fornecedor Contratado</h2>
@@ -360,14 +420,14 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                 </div>
 
                 {/* TABELA DE PRODUTOS/ITENS */}
-                <div className="space-y-2">
+                <div className="space-y-2 print:space-y-1">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider">
                             Itens Autorizados para Faturamento & Entrega ({displayItens.length})
                         </h2>
                     </div>
 
-                    <div className="border border-slate-300 rounded-xl overflow-hidden">
+                    <div className="border border-slate-300 rounded-xl overflow-hidden print:border-slate-400 print:overflow-visible print:rounded-none">
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-slate-100 text-slate-700 text-[11px] font-black uppercase border-b border-slate-300">
                                 <tr>
@@ -384,7 +444,7 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                             </thead>
                             <tbody className="divide-y divide-slate-200 text-xs text-slate-800">
                                 {displayItens.map((item, idx) => (
-                                    <tr key={item.id}>
+                                    <tr key={item.id} className="print:break-inside-avoid avoid-break">
                                         <td className="py-3 px-4 text-center font-bold text-slate-500">
                                             {String(idx + 1).padStart(2, "0")}
                                         </td>
@@ -414,7 +474,7 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                                     </tr>
                                 ))}
                             </tbody>
-                            <tfoot className="bg-slate-50 border-t-2 border-slate-300">
+                            <tfoot className="bg-slate-50 border-t-2 border-slate-300 print:break-inside-avoid avoid-break">
                                 <tr>
                                     <td
                                         colSpan={!selectedSupplier && distinctSuppliers.length > 1 ? 6 : 5}
@@ -432,8 +492,8 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                 </div>
 
                 {/* CONDIÇÕES COMERCIAIS & FATURAMENTO */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-1.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 avoid-break print:break-inside-avoid print:gap-4">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-1.5 print:bg-white print:border-slate-300">
                         <p className="font-black text-slate-900 uppercase">Condições de Pagamento</p>
                         <p className="text-slate-800">
                             <span className="font-bold">Forma:</span> {condicoesPagamentoExibicao || "Boleto 28 DDL"}
@@ -450,7 +510,7 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                     </div>
 
                     {/* INSTRUÇÕES OBRIGATÓRIAS DE ENVIO DA NF */}
-                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-300 text-xs space-y-1.5 text-amber-950">
+                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-300 text-xs space-y-1.5 text-amber-950 print:bg-white print:border-slate-400">
                         <div className="flex items-center gap-1.5">
                             <Mail className="w-4 h-4 text-amber-800" />
                             <p className="font-black uppercase">Instruções Obrigatórias para Envio da Nota Fiscal</p>
@@ -458,7 +518,7 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                         <p>
                             A Nota Fiscal eletrônica (DANFE) e o arquivo XML devem ser enviados obrigatoriamente para o e-mail:
                         </p>
-                        <p className="font-mono font-black text-sm bg-amber-100/80 px-2 py-1 rounded border border-amber-200 inline-block">
+                        <p className="font-mono font-black text-sm bg-amber-100/80 px-2 py-1 rounded border border-amber-200 inline-block print:bg-transparent print:border-none print:p-0">
                             {pedido.emailEnvioNf || "financeiro@grupojvsserv.com.br"}
                         </p>
                         <p className="text-[11px] text-amber-900 mt-1">
@@ -470,13 +530,13 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                 </div>
 
                 {/* DESTINAÇÃO / JUSTIFICATIVA */}
-                <div className="text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-200 avoid-break print:break-inside-avoid print:bg-white print:border-slate-300">
                     <span className="font-bold text-slate-900 uppercase">Destinação / Finalidade da Compra:</span>{" "}
                     {pedido.justificativa}
                 </div>
 
                 {/* ÁREA DE ASSINATURAS E APROVAÇÃO */}
-                <div className="pt-8 border-t-2 border-slate-300">
+                <div className="pt-6 border-t-2 border-slate-300 avoid-break print:break-inside-avoid">
                     <div className="grid grid-cols-3 gap-6 text-center text-xs">
                         <div className="space-y-1">
                             <div className="h-10 border-b border-slate-400 flex items-end justify-center pb-1">
