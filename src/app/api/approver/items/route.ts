@@ -105,7 +105,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json()
-        const { id, acao, justificativa } = body // acao: 'APROVAR' | 'REPROVAR' | 'AJUSTE'
+        const { id, acao, justificativa, novoValor } = body // acao: 'APROVAR' | 'REPROVAR' | 'AJUSTE'
 
         if (!id || !acao) return new NextResponse("Missing fields", { status: 400 })
 
@@ -116,6 +116,24 @@ export async function POST(req: Request) {
         let newStatus: any = 'PENDENTE'
         let dataUpdate: any = {}
         const currentStatus = cobertura.status
+
+        // Value adjustment evaluation (applicable on approval)
+        const valorAnterior = Number(cobertura.valor)
+        let valorAlterado = false
+        let valorAprovadoFinal = valorAnterior
+
+        if (novoValor !== undefined && novoValor !== null && novoValor !== "") {
+            const parsedNovoValor = Number(novoValor)
+            if (!isNaN(parsedNovoValor) && parsedNovoValor > 0 && Math.abs(parsedNovoValor - valorAnterior) > 0.009) {
+                valorAlterado = true
+                valorAprovadoFinal = parsedNovoValor
+                dataUpdate.valor = parsedNovoValor
+            }
+        }
+
+        const ajusteAprovacaoNota = valorAlterado
+            ? `[Valor ajustado de R$ ${valorAnterior.toFixed(2).replace('.', ',')} para R$ ${valorAprovadoFinal.toFixed(2).replace('.', ',')}] `
+            : ""
 
         // --- Logic Board ---
         // ROLE: APROVADOR_N1
@@ -128,7 +146,7 @@ export async function POST(req: Request) {
                 newStatus = 'APROVADO_N1'
                 dataUpdate.aprovadorN1Id = user.id
                 dataUpdate.dataAprovacaoN1 = new Date()
-                dataUpdate.justificativaAprovacaoN1 = justificativa
+                dataUpdate.justificativaAprovacaoN1 = `${ajusteAprovacaoNota}${justificativa || ''}`.trim()
             } else if (acao === 'REPROVAR') {
                 newStatus = 'REPROVADO'
                 dataUpdate.justificativaReprovacao = `[N1] ${justificativa}`
@@ -139,21 +157,12 @@ export async function POST(req: Request) {
         }
         // ROLE: APROVADOR_N2 (or Legacy APROVADOR)
         else if (user.role === 'APROVADOR_N2' || user.role === 'APROVADOR') {
-            if (currentStatus !== 'APROVADO_N1' && currentStatus !== 'PENDENTE') { // Allow PENDENTE for Legacy/Safety? decisions: Force N1 > N2 flow.
-                // Wait, if we migrate old items are PENDENTE. N2 should see PENDENTE?
-                // Plan: N1 sees PENDENTE. N2 sees APROVADO_N1.
-                // If there are legacy items in PENDENTE, N2 can't see them? 
-                // Let's strict: PENDENTE -> N1 -> APROVADO_N1 -> N2 -> APROVADO.
-                // Exception: If user uses legacy APROVADOR role, maybe allow PENDENTE approval directly (bypass)?
-                // Let's enforce flow, unless it's strictly legacy APROVADOR role which might need to clear backlog.
-                // If role is APROVADOR_N2 coverage MUST be APROVADO_N1.
-                // If role is APROVADOR coverage CAN be PENDENTE (legacy support).
+            if (currentStatus !== 'APROVADO_N1' && currentStatus !== 'PENDENTE') {
+                // Check allowed flow
             }
 
             // Forced Flow Enforcer
             if (user.role === 'APROVADOR_N2' && currentStatus !== 'APROVADO_N1') {
-                // Allow approving PENDENTE if no N1 exists? No user requested N1->N2. 
-                // We will block unless status is correct.
                 return new NextResponse("Item must be approved by N1 first", { status: 400 })
             }
 
@@ -161,7 +170,7 @@ export async function POST(req: Request) {
                 newStatus = 'APROVADO'
                 dataUpdate.aprovadorId = user.id
                 dataUpdate.dataAprovacao = new Date()
-                dataUpdate.justificativaAprovacaoN2 = justificativa
+                dataUpdate.justificativaAprovacaoN2 = `${ajusteAprovacaoNota}${justificativa || ''}`.trim()
             } else if (acao === 'REPROVAR') {
                 newStatus = 'REPROVADO'
                 dataUpdate.justificativaReprovacao = justificativa
@@ -172,14 +181,13 @@ export async function POST(req: Request) {
         }
         // ROLE: ADMIN (Superuser)
         else if (user.role === 'ADMIN') {
-            // Admin can push from PENDENTE to APROVADO_N1 OR directly to APROVADO?
-            // Let's assume Admin acts as the Highest Level necessary.
             if (currentStatus === 'PENDENTE') {
                 // Admin acting as N1
                 if (acao === 'APROVAR') {
                     newStatus = 'APROVADO_N1'
                     dataUpdate.aprovadorN1Id = user.id
                     dataUpdate.dataAprovacaoN1 = new Date()
+                    dataUpdate.justificativaAprovacaoN1 = `${ajusteAprovacaoNota}${justificativa || ''}`.trim()
                 }
             } else if (currentStatus === 'APROVADO_N1') {
                 // Admin acting as N2
@@ -187,7 +195,7 @@ export async function POST(req: Request) {
                     newStatus = 'APROVADO'
                     dataUpdate.aprovadorId = user.id
                     dataUpdate.dataAprovacao = new Date()
-                    dataUpdate.justificativaAprovacaoN2 = justificativa
+                    dataUpdate.justificativaAprovacaoN2 = `${ajusteAprovacaoNota}${justificativa || ''}`.trim()
                 }
             }
             // Common rejection logic
@@ -204,7 +212,11 @@ export async function POST(req: Request) {
             return new NextResponse("Invalid State Transition", { status: 400 })
         }
 
-        // Transaction to update Status and Add History
+        const obsWorkflow = valorAlterado
+            ? `Ação: ${acao} (${user.role}). Valor ajustado de R$ ${valorAnterior.toFixed(2).replace('.', ',')} para R$ ${valorAprovadoFinal.toFixed(2).replace('.', ',')}. ${justificativa || ''}`.trim()
+            : `Ação: ${acao} (${user.role}). ${justificativa || ''}`.trim()
+
+        // Transaction to update Status, Value and Add History
         await prisma.$transaction([
             prisma.cobertura.update({
                 where: { id },
@@ -219,7 +231,7 @@ export async function POST(req: Request) {
                     deStatus: currentStatus,
                     paraStatus: newStatus,
                     usuarioId: user.id,
-                    observacao: `Ação: ${acao} (${user.role}). ${justificativa || ''}`
+                    observacao: obsWorkflow
                 }
             })
         ])
@@ -255,3 +267,61 @@ export async function POST(req: Request) {
         return new NextResponse("Internal Error", { status: 500 })
     }
 }
+
+// PATCH: Directly adjust coverage value (e.g. by N2, N1 or Admin before/during approval)
+export async function PATCH(req: Request) {
+    const session = await getServerSession(authOptions)
+    if (!session) return new NextResponse("Unauthorized", { status: 401 })
+    const user = session.user as any
+
+    const allowedRoles = ['APROVADOR', 'APROVADOR_N1', 'APROVADOR_N2', 'ADMIN']
+    if (!allowedRoles.includes(user.role)) {
+        return new NextResponse("Forbidden", { status: 403 })
+    }
+
+    try {
+        const body = await req.json()
+        const { id, valor, justificativa } = body
+
+        if (!id || valor === undefined || valor === null) {
+            return new NextResponse("Campos obrigatórios ausentes", { status: 400 })
+        }
+
+        const novoValorNum = Number(valor)
+        if (isNaN(novoValorNum) || novoValorNum <= 0) {
+            return new NextResponse("Valor inválido. Deve ser maior que zero.", { status: 400 })
+        }
+
+        const cobertura = await prisma.cobertura.findUnique({ where: { id } })
+        if (!cobertura) return new NextResponse("Item não encontrado", { status: 404 })
+
+        const valorAnterior = Number(cobertura.valor)
+        if (Math.abs(novoValorNum - valorAnterior) < 0.009) {
+            return NextResponse.json({ success: true, message: "Valor inalterado", valor: valorAnterior })
+        }
+
+        const observacao = `[Ajuste de Valor - ${user.role}] Valor alterado de R$ ${valorAnterior.toFixed(2).replace('.', ',')} para R$ ${novoValorNum.toFixed(2).replace('.', ',')} por ${user.nome || user.email || 'Aprovador'}.${justificativa ? ` Justificativa: ${justificativa}` : ''}`
+
+        await prisma.$transaction([
+            prisma.cobertura.update({
+                where: { id },
+                data: { valor: novoValorNum }
+            }),
+            prisma.historicoWorkflow.create({
+                data: {
+                    coberturaId: id,
+                    deStatus: cobertura.status,
+                    paraStatus: cobertura.status,
+                    usuarioId: user.id,
+                    observacao
+                }
+            })
+        ])
+
+        return NextResponse.json({ success: true, novoValor: novoValorNum, valorAnterior })
+    } catch (error) {
+        console.error("Error updating cobertura valor:", error)
+        return new NextResponse("Internal Error", { status: 500 })
+    }
+}
+

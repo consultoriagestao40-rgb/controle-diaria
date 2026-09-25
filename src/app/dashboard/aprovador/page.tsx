@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { CheckCircle, XCircle, AlertTriangle, Loader2, Calendar, MapPin, User, FileText, Search, Clock, X } from "lucide-react"
+import { CheckCircle, XCircle, AlertTriangle, Loader2, Calendar, MapPin, User, FileText, Search, Clock, X, Edit3, Check, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -43,7 +43,7 @@ interface Item {
     motivo: { descricao: string }
     reserva: { nome: string }
     cargaHoraria: { descricao: string }
-    valor: string
+    valor: string | number
     supervisor: { nome: string }
     observacao?: string
     diariasNoMes?: number
@@ -179,6 +179,20 @@ export default function ApproverDashboard() {
     const [justificativa, setJustificativa] = useState("")
     const [processing, setProcessing] = useState(false)
 
+    // Value Adjustment State (Permite ao aprovador N2/N1/Admin ajustar o valor do plantão)
+    const [editValor, setEditValor] = useState<string>("")
+    const [isEditingDetailValor, setIsEditingDetailValor] = useState(false)
+    const [savingDetailValor, setSavingDetailValor] = useState(false)
+    const [ajusteAprovacaoMode, setAjusteAprovacaoMode] = useState<'DIRETO' | 'DEVOLVER'>('DIRETO')
+
+    // Sincroniza o valor a ser editado quando o modal de detalhe é aberto
+    useEffect(() => {
+        if (detailItem) {
+            setEditValor(String(detailItem.valor))
+            setIsEditingDetailValor(false)
+        }
+    }, [detailItem?.id])
+
     // Grouping State
     const [groupBy, setGroupBy] = useState<'NONE' | 'DIARISTA' | 'POSTO' | 'EMPRESA' | 'RESERVA' | 'MOTIVO'>('NONE')
     const [selectedGroup, setSelectedGroup] = useState<{ type: string; name: string; items: Item[] } | null>(null)
@@ -211,25 +225,73 @@ export default function ApproverDashboard() {
         setSelectedItem(item)
         setActionType(type)
         setJustificativa("")
+        setEditValor(String(item.valor))
+        setAjusteAprovacaoMode('DIRETO')
     }
 
-    const submitAction = async (id: string, acao: string, justif?: string) => {
+    const submitAction = async (id: string, acao: string, justif?: string, novoValor?: number) => {
         setProcessing(true)
         try {
+            const payload: any = { id, acao, justificativa: justif }
+            if (novoValor !== undefined && !isNaN(novoValor) && novoValor > 0) {
+                payload.novoValor = novoValor
+            }
             const res = await fetch("/api/approver/items", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, acao, justificativa: justif })
+                body: JSON.stringify(payload)
             })
-            if (!res.ok) throw new Error()
+            if (!res.ok) {
+                const errText = await res.text()
+                throw new Error(errText || "Erro ao processar ação")
+            }
 
-            toast.success(`Sucesso: ${acao}`)
+            if (novoValor && selectedItem && Math.abs(novoValor - Number(selectedItem.valor)) > 0.009) {
+                toast.success(`Aprovado com valor ajustado para ${formatCurrency(novoValor)}!`)
+            } else {
+                toast.success(`Sucesso: ${acao}`)
+            }
             setSelectedItem(null)
             fetchItems() // Refresh list
-        } catch {
-            toast.error("Erro ao processar ação")
+        } catch (error: any) {
+            toast.error(error.message || "Erro ao processar ação")
         } finally {
             setProcessing(false)
+        }
+    }
+
+    const handleSaveDetailValor = async () => {
+        if (!detailItem) return
+        const valNum = Number(editValor)
+        if (isNaN(valNum) || valNum <= 0) {
+            toast.error("Informe um valor numérico válido maior que zero")
+            return
+        }
+
+        setSavingDetailValor(true)
+        try {
+            const res = await fetch("/api/approver/items", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: detailItem.id,
+                    valor: valNum,
+                    justificativa: "Ajuste manual de valor via painel do aprovador"
+                })
+            })
+            if (!res.ok) {
+                const err = await res.text()
+                throw new Error(err || "Falha ao ajustar valor")
+            }
+
+            toast.success(`Valor atualizado para ${formatCurrency(valNum)} com sucesso!`)
+            setDetailItem(prev => prev ? { ...prev, valor: valNum } : null)
+            setIsEditingDetailValor(false)
+            fetchItems()
+        } catch (error: any) {
+            toast.error(error.message || "Erro ao atualizar valor")
+        } finally {
+            setSavingDetailValor(false)
         }
     }
 
@@ -757,7 +819,7 @@ export default function ApproverDashboard() {
                 </>
             )}
 
-            {/* Dialog for Reject/Adjust */}
+            {/* Dialog for Reject/Adjust/Approve */}
             <Dialog open={!!selectedItem || !!batchItemsToApprove} onOpenChange={(open) => {
                 if (!open) {
                     setSelectedItem(null)
@@ -769,28 +831,118 @@ export default function ApproverDashboard() {
                         <DialogTitle className="font-bold text-slate-900">
                             {batchItemsToApprove
                                 ? `Aprovar em Lote (${batchItemsToApprove.length} itens)`
-                                : (actionType === 'REPROVAR' ? 'Reprovar Cobertura' : actionType === 'APROVAR' ? `Aprovar Cobertura (${userRole === 'APROVADOR_N1' ? 'N1' : 'N2'})` : 'Solicitar Ajuste')
+                                : (actionType === 'REPROVAR' ? 'Reprovar Cobertura' : actionType === 'APROVAR' ? `Aprovar Cobertura (${userRole === 'APROVADOR_N1' ? 'N1' : 'N2'})` : 'Solicitar Ajuste / Corrigir Valor')
                             }
                         </DialogTitle>
-                        <DialogDescription className="text-slate-500 font-medium">
+                        <DialogDescription className="text-slate-500 font-medium text-xs">
                             {batchItemsToApprove
                                 ? `Insira a justificativa/parecer que será aplicado a todas as ${batchItemsToApprove.length} coberturas selecionadas.`
                                 : (actionType === 'REPROVAR'
                                     ? 'Justifique a reprovação. O item será cancelado.'
                                     : actionType === 'APROVAR'
-                                        ? 'Por favor, insira uma justificativa/parecer obrigatório para prosseguir com a aprovação.'
-                                        : 'Descreva o que precisa ser corrigido. O supervisor será notificado.')
+                                        ? 'Verifique o valor e insira o parecer/justificativa para prosseguir com a aprovação.'
+                                        : 'Escolha se deseja ajustar o valor e aprovar agora ou devolver ao supervisor.')
                             }
                         </DialogDescription>
                     </DialogHeader>
 
+                    {/* SELEÇÃO DO TIPO DE AJUSTE (Quando clicado em "Ajuste") */}
+                    {actionType === 'AJUSTE' && selectedItem && (
+                        <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+                            <button
+                                type="button"
+                                onClick={() => setAjusteAprovacaoMode('DIRETO')}
+                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                                    ajusteAprovacaoMode === 'DIRETO'
+                                        ? 'bg-white text-emerald-800 shadow-sm border border-slate-200'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                            >
+                                Ajustar Valor & Aprovar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setAjusteAprovacaoMode('DEVOLVER')}
+                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                                    ajusteAprovacaoMode === 'DEVOLVER'
+                                        ? 'bg-white text-orange-800 shadow-sm border border-slate-200'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                            >
+                                Devolver ao Supervisor
+                            </button>
+                        </div>
+                    )}
+
+                    {/* CAMPO DE VALOR APROVADO (quando APROVAR ou AJUSTE DIRETO) */}
+                    {selectedItem && (actionType === 'APROVAR' || (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO')) && (
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/90 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                    <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                                    Valor a ser Aprovado (R$)
+                                </Label>
+                                {Number(editValor) !== Number(selectedItem.valor) && (
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md shadow-xs animate-pulse">
+                                        Valor Ajustado
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <div className="relative flex-1">
+                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={editValor}
+                                        onChange={(e) => setEditValor(e.target.value)}
+                                        className="pl-10 font-black text-slate-900 text-lg bg-white h-11 border-slate-300 focus:border-emerald-500 focus:ring-emerald-500/20"
+                                        placeholder="0,00"
+                                    />
+                                </div>
+                                {Number(editValor) !== Number(selectedItem.valor) && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setEditValor(String(selectedItem.valor))}
+                                        className="text-[11px] font-bold text-slate-500 hover:text-slate-700 h-11"
+                                        title="Restaurar valor original"
+                                    >
+                                        Restaurar
+                                    </Button>
+                                )}
+                            </div>
+
+                            {Number(editValor) !== Number(selectedItem.valor) ? (
+                                <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-0.5">
+                                    <p className="font-bold flex items-center gap-1">
+                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                        Ajuste de Valor:
+                                    </p>
+                                    <p className="text-[11px] leading-relaxed">
+                                        O valor original de <strong>{formatCurrency(selectedItem.valor)}</strong> será alterado para <strong>{formatCurrency(Number(editValor) || 0)}</strong>. Esse valor será registrado no contas a pagar do Conta Azul.
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-[11px] text-slate-500 font-medium">
+                                    Valor atual: <strong>{formatCurrency(selectedItem.valor)}</strong>. Altere o campo acima se desejar aprovar um valor diferente.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
                     <div className="py-2 space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-500 ml-1">Justificativa / Motivo</Label>
+                        <Label className="text-xs font-semibold text-slate-500 ml-1">
+                            {actionType === 'REPROVAR' ? 'Motivo da Reprovação' : (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DEVOLVER') ? 'O que o Supervisor deve corrigir?' : 'Parecer / Justificativa da Aprovação'}
+                        </Label>
                         <Textarea
                             value={justificativa}
                             onChange={e => setJustificativa(e.target.value)}
                             placeholder="Digite aqui..."
-                            className="bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm font-semibold text-slate-700 min-h-[100px]"
+                            className="bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm font-semibold text-slate-700 min-h-[90px]"
                         />
                     </div>
 
@@ -810,19 +962,37 @@ export default function ApproverDashboard() {
                             Cancelar
                         </Button>
                         <Button
-                            variant={(actionType === 'REPROVAR' && !batchItemsToApprove) ? 'destructive' : 'default'}
+                            variant={(actionType === 'REPROVAR' && !batchItemsToApprove) ? 'destructive' : (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DEVOLVER') ? 'outline' : 'default'}
                             onClick={() => {
                                 if (batchItemsToApprove) {
                                     submitBatchAction(justificativa)
                                 } else if (selectedItem) {
-                                    submitAction(selectedItem.id, actionType!, justificativa)
+                                    if (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO') {
+                                        submitAction(selectedItem.id, 'APROVAR', justificativa, Number(editValor))
+                                    } else if (actionType === 'APROVAR') {
+                                        submitAction(selectedItem.id, 'APROVAR', justificativa, Number(editValor))
+                                    } else {
+                                        submitAction(selectedItem.id, actionType!, justificativa)
+                                    }
                                 }
                             }}
-                            disabled={processing || !justificativa.trim()}
-                            className="w-full sm:w-auto cursor-pointer"
+                            disabled={
+                                processing || 
+                                !justificativa.trim() || 
+                                ((actionType === 'APROVAR' || (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO')) && (isNaN(Number(editValor)) || Number(editValor) <= 0))
+                            }
+                            className={cn(
+                                "w-full sm:w-auto cursor-pointer font-bold",
+                                (actionType === 'APROVAR' || (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO')) && "bg-emerald-600 hover:bg-emerald-700 text-white"
+                            )}
                         >
                             {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Confirmar
+                            {actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO'
+                                ? (Number(editValor) !== Number(selectedItem?.valor) ? 'Ajustar Valor & Aprovar' : 'Confirmar Aprovação')
+                                : actionType === 'APROVAR' && Number(editValor) !== Number(selectedItem?.valor)
+                                    ? 'Aprovar com Ajuste'
+                                    : 'Confirmar'
+                            }
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -853,11 +1023,67 @@ export default function ApproverDashboard() {
                                         {format(new Date(detailItem.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                                     </span>
                                 </div>
-                                <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl text-left sm:text-right w-full sm:w-auto shrink-0 flex sm:flex-col justify-between sm:justify-center items-center sm:items-end">
-                                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest block sm:mb-0.5">Valor do Reembolso</span>
-                                    <span className="text-xl font-black text-emerald-400 tracking-tight">
-                                        {formatCurrency(detailItem.valor)}
-                                    </span>
+                                <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 rounded-xl text-left sm:text-right w-full sm:w-auto shrink-0 flex flex-col justify-center items-start sm:items-end">
+                                    <div className="flex items-center gap-2 justify-between w-full sm:w-auto mb-0.5">
+                                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest block">Valor do Reembolso</span>
+                                        {!isEditingDetailValor && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditValor(String(detailItem.valor))
+                                                    setIsEditingDetailValor(true)
+                                                }}
+                                                className="text-[10px] font-bold text-emerald-300 hover:text-white bg-emerald-500/20 hover:bg-emerald-500/30 px-2 py-0.5 rounded flex items-center gap-1 transition-all cursor-pointer"
+                                                title="Ajustar valor do plantão"
+                                            >
+                                                <Edit3 className="w-3 h-3" />
+                                                Editar Valor
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {isEditingDetailValor ? (
+                                        <div className="flex flex-col sm:items-end gap-1.5 w-full mt-1">
+                                            <div className="flex items-center gap-1.5 bg-slate-900 border border-emerald-400/60 rounded-lg px-2.5 py-1 shadow-inner">
+                                                <span className="text-xs font-bold text-emerald-400">R$</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    value={editValor}
+                                                    onChange={(e) => setEditValor(e.target.value)}
+                                                    className="w-24 text-right bg-transparent text-white font-black text-sm focus:outline-none"
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditValor(String(detailItem.valor))
+                                                        setIsEditingDetailValor(false)
+                                                    }}
+                                                    disabled={savingDetailValor}
+                                                    className="text-[10px] font-bold text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded cursor-pointer"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveDetailValor}
+                                                    disabled={savingDetailValor}
+                                                    className="text-[10px] font-black uppercase text-emerald-950 bg-emerald-400 hover:bg-emerald-300 px-2.5 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-all shadow-sm"
+                                                >
+                                                    {savingDetailValor ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                    Salvar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <span className="text-xl font-black text-emerald-400 tracking-tight">
+                                            {formatCurrency(detailItem.valor)}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
