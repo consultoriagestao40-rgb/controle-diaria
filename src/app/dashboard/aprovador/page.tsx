@@ -979,19 +979,21 @@ export default function ApproverDashboard() {
                             disabled={
                                 processing || 
                                 !justificativa.trim() || 
-                                ((actionType === 'APROVAR' || (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO')) && (isNaN(Number(editValor)) || Number(editValor) <= 0))
+                                (!batchItemsToApprove && (actionType === 'APROVAR' || (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO')) && (isNaN(Number(editValor)) || Number(editValor) <= 0))
                             }
                             className={cn(
                                 "w-full sm:w-auto cursor-pointer font-bold",
-                                (actionType === 'APROVAR' || (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO')) && "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                (actionType === 'APROVAR' || (actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO') || !!batchItemsToApprove) && "bg-emerald-600 hover:bg-emerald-700 text-white"
                             )}
                         >
                             {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO'
-                                ? (Number(editValor) !== Number(selectedItem?.valor) ? 'Ajustar Valor & Aprovar' : 'Confirmar Aprovação')
-                                : actionType === 'APROVAR' && Number(editValor) !== Number(selectedItem?.valor)
-                                    ? 'Aprovar com Ajuste'
-                                    : 'Confirmar'
+                            {batchItemsToApprove
+                                ? `Aprovar Selecionados (${batchItemsToApprove.length})`
+                                : actionType === 'AJUSTE' && ajusteAprovacaoMode === 'DIRETO'
+                                    ? (selectedItem && Number(editValor) !== Number(selectedItem.valor) ? 'Ajustar Valor & Aprovar' : 'Confirmar Aprovação')
+                                    : actionType === 'APROVAR' && selectedItem && Number(editValor) !== Number(selectedItem.valor)
+                                        ? 'Aprovar com Ajuste'
+                                        : 'Confirmar'
                             }
                         </Button>
                     </DialogFooter>
