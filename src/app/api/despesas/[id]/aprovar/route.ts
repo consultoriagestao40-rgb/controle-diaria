@@ -33,10 +33,10 @@ export async function PATCH(
             )
         }
 
-        const validStatuses = ['AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2']
+        const validStatuses = ['AGUARDANDO_APROVACAO', 'AGUARDANDO_APROVACAO_N1', 'AGUARDANDO_APROVACAO_N2', 'AGUARDANDO_CONCILIACAO']
         if (!validStatuses.includes(despesa.status)) {
             return new NextResponse(
-                JSON.stringify({ error: "Apenas despesas aguardando aprovação podem ser aprovadas ou reprovadas." }),
+                JSON.stringify({ error: "Apenas despesas aguardando aprovação ou prestação de contas podem ser processadas." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
@@ -58,14 +58,14 @@ export async function PATCH(
             )
         }
 
-        let isPrestacao = despesa.tipo === 'ADIANTAMENTO' && despesa.valorComprovado !== null
+        let isPrestacao = despesa.tipo === 'ADIANTAMENTO' && (despesa.status === 'AGUARDANDO_CONCILIACAO' || despesa.valorComprovado !== null)
         let novoStatus: any = 'RASCUNHO'
 
         if (action === 'APROVAR') {
             if (despesa.status === 'AGUARDANDO_APROVACAO_N1') {
                 novoStatus = 'AGUARDANDO_APROVACAO_N2'
             } else {
-                novoStatus = isPrestacao ? 'AGUARDANDO_CONCILIACAO' : 'APROVADO'
+                novoStatus = isPrestacao ? 'CONCLUIDO' : 'APROVADO'
             }
         } else {
             novoStatus = isPrestacao ? 'AGUARDANDO_PRESTACAO' : 'REPROVADO'
@@ -92,8 +92,8 @@ export async function PATCH(
                 obs = action === 'APROVAR'
                     ? (novoStatus === 'AGUARDANDO_APROVACAO_N2'
                         ? `Prestação de contas aprovada em N1 por ${user.nome}. Encaminhado para aprovação final N2.`
-                        : `Prestação de contas aprovada por gestor ${user.nome}. Encaminhado para conciliação final. ${justificativa || ""}`)
-                    : `Prestação de contas devolvida para correção por gestor ${user.nome}. Motivo: ${justificativa}`
+                        : `Prestação de contas aprovada por ${user.nome}. Despesa baixada e concluída com sucesso! ${justificativa || ""}`)
+                    : `Prestação de contas devolvida para correção por ${user.nome}. Motivo: ${justificativa}`
             } else {
                 obs = action === 'APROVAR'
                     ? (novoStatus === 'AGUARDANDO_APROVACAO_N2'

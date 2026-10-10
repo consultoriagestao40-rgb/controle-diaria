@@ -39,7 +39,8 @@ export async function POST(
             )
         }
  
-        if (despesa.status !== 'AGUARDANDO_PRESTACAO' && despesa.status !== 'APROVADO') {
+        const allowedStatuses = ['AGUARDANDO_PRESTACAO', 'APROVADO', 'PAGO']
+        if (!allowedStatuses.includes(despesa.status)) {
             return new NextResponse(
                 JSON.stringify({ error: "Despesa não está em estado de prestação de contas." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
@@ -184,6 +185,8 @@ export async function POST(
                         valorSolicitado: saldo,
                         solicitanteId: despesa.solicitanteId,
                         centroCustoId: despesa.centroCustoId,
+                        empresaId: despesa.empresaId,
+                        chavePix: despesa.chavePix,
                         financeiroId: despesa.financeiroId,
                         dataPagamento: despesa.dataPagamento || new Date(),
                         observacao: `Saldo remanescente de R$ ${saldo.toFixed(2)} desmembrado do adiantamento original (ID ${despesa.id}) de R$ ${despesa.valorSolicitado.toFixed(2)}.`

@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
                 nome: true,
                 email: true,
                 role: true,
-                avatarUrl: true
+                avatarUrl: true,
+                chavePix: true,
+                cpf: true
             }
         })
 

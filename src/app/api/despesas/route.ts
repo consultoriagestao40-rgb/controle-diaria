@@ -33,7 +33,7 @@ export async function GET(req: Request) {
             where: filter,
             include: {
                 solicitante: {
-                    select: { id: true, nome: true, email: true, role: true }
+                    select: { id: true, nome: true, email: true, role: true, chavePix: true, cpf: true }
                 },
                 aprovador: {
                     select: { id: true, nome: true, email: true }
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
  
     try {
         const body = await req.json()
-        const { tipo, descricao, valorSolicitado, anexos, enviarParaAprovacao, itens, empresaId } = body
+        const { tipo, descricao, valorSolicitado, anexos, enviarParaAprovacao, itens, empresaId, chavePix } = body
  
         if (!tipo || !descricao) {
             return new NextResponse(
@@ -114,11 +114,37 @@ export async function POST(req: Request) {
             )
         }
 
-        // Determinar Empresa
-        let finalEmpresaId = empresaId
-        if (!finalEmpresaId) {
-            const firstEmpresa = await prisma.empresa.findFirst({ where: { ativo: true }, orderBy: { nome: 'asc' } })
-            finalEmpresaId = firstEmpresa?.id || null
+        // Empresa do Grupo é OBRIGATÓRIA
+        if (!empresaId) {
+            return new NextResponse(
+                JSON.stringify({ error: "A Empresa do Grupo é obrigatória para integração com o Conta Azul." }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
+        // Buscar dados do usuário solicitante
+        const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            include: {
+                centroCusto: true
+            }
+        })
+
+        // Chave Pix do Solicitante é OBRIGATÓRIA
+        const finalPix = (chavePix || dbUser?.chavePix || "").trim()
+        if (!finalPix) {
+            return new NextResponse(
+                JSON.stringify({ error: "A Chave Pix do solicitante é obrigatória para pagamento via Conta Azul." }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
+        // Atualiza a chave Pix no cadastro do usuário se informada
+        if (chavePix && chavePix.trim() && chavePix.trim() !== dbUser?.chavePix) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { chavePix: chavePix.trim() }
+            })
         }
 
         // Processar itens detalhados (Itemização)
@@ -171,18 +197,11 @@ export async function POST(req: Request) {
         // Rodar auditoria de políticas e termos proibidos (incluindo itens)
         const auditResult = await runExpenseAudit(descricao, valor, anexos || [], itemsToCreate)
  
-        // Buscar o centro de custo do usuário solicitante para roteamento e registro
-        const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            include: {
-                centroCusto: true
-            }
-        })
         const userCentroCustoId = dbUser?.centroCustoId || null
         const hasN1 = dbUser?.centroCusto?.aprovadorN1Id ? true : false
         const hasN2 = dbUser?.centroCusto?.aprovadorN2Id ? true : false
 
-        // Define status inicial: adiantamentos e reembolsos sempre passam por aprovação de níveis (N1/N2)
+        // Define status inicial
         let statusInicial: any = 'RASCUNHO'
         if (enviarParaAprovacao) {
             if (hasN1) {
@@ -199,9 +218,10 @@ export async function POST(req: Request) {
                     status: statusInicial,
                     descricao,
                     valorSolicitado: valor,
+                    chavePix: finalPix,
                     solicitanteId: user.id,
                     centroCustoId: userCentroCustoId,
-                    empresaId: finalEmpresaId,
+                    empresaId: empresaId,
                     alertaAuditoria: auditResult.alertMessage,
                     itens: itemsToCreate.length > 0 ? {
                         create: itemsToCreate.map(item => ({

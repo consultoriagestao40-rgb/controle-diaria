@@ -56,6 +56,8 @@ model User {
   acessoCompras    Boolean  @default(true)
   avatarUrl        String?
   cargo            String?
+  cpf              String?
+  chavePix         String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -377,6 +379,7 @@ model Despesa {
   valorComprovado       Decimal?          // Preenchido na Prestação de Contas
   saldoFinal            Decimal?          // Calculado automaticamente (Solicitado vs Comprovado)
   alertaAuditoria       String?           // Armazena alertas gerados pelo motor de auditoria de termos proibidos
+  chavePix              String?           // Chave Pix do solicitante para pagamento
   
   // Atores do Fluxo
   solicitanteId         String

@@ -463,6 +463,19 @@ export function calculateDiariaVencimento(dataBaseInput: Date | string): Date {
         targetFriday = new Date(targetFriday.getFullYear(), targetFriday.getMonth(), targetFriday.getDate() + 7)
     }
 
+    // Proteção: Se a diária for antiga e a data calculada já tiver passado,
+    // o vencimento deve ser hoje (ou próxima sexta-feira) para não cair como "Atrasado" oculto no ERP.
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const checkTarget = new Date(targetFriday)
+    checkTarget.setHours(0, 0, 0, 0)
+
+    if (checkTarget < today) {
+        const todayDayOfWeek = today.getDay()
+        let daysToNextFriday = (5 - todayDayOfWeek + 7) % 7
+        targetFriday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysToNextFriday)
+    }
+
     return targetFriday
 }
 
@@ -935,15 +948,21 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             return { success: false, error: "Empresa não conectada ao Conta Azul (OAuth pendente)." }
         }
 
+        const cleanPix = (despesa.chavePix || despesa.solicitante.chavePix || "").trim()
+        const cleanCpf = (despesa.solicitante.cpf || "").trim()
+
         // 1. Busca ou cria o Colaborador como fornecedor/contato no Conta Azul
         const contactResult = await findOrCreateContaAzulContact(empresaId, {
             nome: despesa.solicitante.nome,
-            email: despesa.solicitante.email
+            email: despesa.solicitante.email,
+            cpf: cleanCpf,
+            chavePix: cleanPix
         })
 
         const valor = Number(despesa.valorSolicitado)
         const dataHoje = format(new Date(), "yyyy-MM-dd")
-        const descricao = `${despesa.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}: ${despesa.descricao} - Solicitante: ${despesa.solicitante.nome}`
+        const pixInfo = cleanPix ? ` - PIX: ${cleanPix}` : ""
+        const descricao = `${despesa.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}: ${despesa.solicitante.nome}${pixInfo} - ${despesa.descricao}`
 
         // Categoria apropriada por tipo
         const categoriaId = despesa.tipo === "REEMBOLSO"
@@ -971,11 +990,13 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             ]
         }
 
+        const observacao = `Beneficiário: ${despesa.solicitante.nome} | CPF: ${cleanCpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Ref: ${despesa.tipo} - ${despesa.descricao} | Despesa ID: ${despesa.id.slice(-6).toUpperCase()}`
+
         const payload: any = {
             data_competencia: dataHoje,
             valor: valor,
             descricao: descricao,
-            observacao: `Lançamento via ReembolsaFácil - Despesa ID ${despesa.id.slice(-6).toUpperCase()}`,
+            observacao: observacao,
             contato: contactResult.contactId,
             conta_financeira: bankAccountId,
             rateio: [rateioObj],
@@ -984,7 +1005,7 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
                     {
                         descricao: "Parcela 1/1",
                         data_vencimento: dataHoje,
-                        nota: "Pagamento via PIX / Transferência",
+                        nota: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
                         conta_financeira: bankAccountId,
                         metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
                         detalhe_valor: {

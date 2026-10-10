@@ -141,43 +141,29 @@ export function TopNav({ user, logoUrl, acessoDespesas = true, acessoCoberturas 
             }
         }
 
-        // 2. Reembolsos & Despesas
+        // 2. Reembolsos & Despesas (Simplificado: 2 telas)
         if (acessoDespesas) {
-            const despesasItems: NavItem[] = []
+            const despesasItems: NavItem[] = [
+                {
+                    label: "Solicitações",
+                    href: "/dashboard/despesas",
+                    icon: Wallet,
+                    description: "Solicitar reembolsos, adiantamentos e prestar contas"
+                }
+            ]
 
-            if (["ADMIN", "SUPERVISOR", "ENCARREGADO"].includes(role)) {
-                despesasItems.push(
-                    { label: "Novo Reembolso", href: "/dashboard?action=reembolso", icon: Receipt, description: "Solicitar reembolso com comprovantes" },
-                    { label: "Novo Adiantamento", href: "/dashboard?action=adiantamento", icon: DollarSign, description: "Solicitar adiantamento de verba" }
-                )
-            }
-
-            despesasItems.push({ label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet, description: "Histórico das suas solicitações" })
-
-            if (["ADMIN", "APROVADOR", "APROVADOR_N1", "APROVADOR_N2"].includes(role)) {
-                despesasItems.push(
-                    { label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare, description: "Validar solicitações de verba" },
-                    { label: "Aprovar Prestações", href: "/dashboard/despesas/aprovacoes-prestacao", icon: FileText, description: "Conferir prestação de contas" }
-                )
-            }
-
-            if (["ADMIN", "FINANCEIRO", "APROVADOR_N2"].includes(role)) {
-                despesasItems.push({ label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign, description: "Liquidação e pagamento de contas" })
-            }
-
-            despesasItems.push({ label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings, description: "Limites por categoria de despesas" })
-
-            if (["ADMIN", "FINANCEIRO", "RH", "APROVADOR_N2"].includes(role)) {
-                despesasItems.push({ label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart, description: "Análise por centro de custo" })
-            }
-
-            if (role === "ADMIN") {
-                despesasItems.push({ label: "Centros de Custo", href: "/dashboard/despesas/admin/centros-custo", icon: Landmark, description: "Gestão de áreas e aprovadores" })
+            if (["ADMIN", "APROVADOR", "APROVADOR_N1", "APROVADOR_N2", "FINANCEIRO"].includes(role)) {
+                despesasItems.push({
+                    label: "Aprovações & Gestão",
+                    href: "/dashboard/despesas/aprovacoes",
+                    icon: CheckSquare,
+                    description: "Aprovação N1/N2, integração Conta Azul e baixa de contas"
+                })
             }
 
             if (despesasItems.length > 0) {
                 groups.push({
-                    title: "Despesas & Reembolsos",
+                    title: "Reembolsos & Adiantamentos",
                     color: "indigo",
                     items: despesasItems
                 })

@@ -64,39 +64,19 @@ export function SidebarNav({ user, logoUrl, acessoDespesas = true, acessoCobertu
             ]
         })
 
-        // 2. Reembolsos & Adiantamentos (Despesas)
+        // 2. Reembolsos & Adiantamentos (Simplificado: 2 telas)
         if (acessoDespesas) {
-            const despesasItems: NavItem[] = []
+            const despesasItems: NavItem[] = [
+                { label: "Solicitações", href: "/dashboard/despesas", icon: Wallet }
+            ]
             
-            if (["ADMIN", "SUPERVISOR", "ENCARREGADO"].includes(role)) {
-                despesasItems.push({ label: "Novo Reembolso", href: "/dashboard?action=reembolso", icon: Receipt })
-                despesasItems.push({ label: "Novo Adiantamento", href: "/dashboard?action=adiantamento", icon: DollarSign })
-            }
-            
-            despesasItems.push({ label: "Minhas Despesas", href: "/dashboard/despesas", icon: Wallet })
-            
-            if (["ADMIN", "APROVADOR", "APROVADOR_N1", "APROVADOR_N2"].includes(role)) {
-                despesasItems.push({ label: "Aprovar Despesas", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare })
-                despesasItems.push({ label: "Aprovar Prestações", href: "/dashboard/despesas/aprovacoes-prestacao", icon: FileText })
-            }
-            
-            if (["ADMIN", "FINANCEIRO", "APROVADOR_N2"].includes(role)) {
-                despesasItems.push({ label: "Financeiro Despesas", href: "/dashboard/despesas/financeiro", icon: DollarSign })
-            }
-            
-            despesasItems.push({ label: "Políticas Despesas", href: "/dashboard/despesas/politicas", icon: Settings })
-            
-            if (["ADMIN", "FINANCEIRO", "RH", "APROVADOR_N2"].includes(role)) {
-                despesasItems.push({ label: "Relatório Despesas", href: "/dashboard/despesas/relatorios", icon: BarChart })
-            }
-            
-            if (role === "ADMIN") {
-                despesasItems.push({ label: "Centros de Custo", href: "/dashboard/despesas/admin/centros-custo", icon: Landmark })
+            if (["ADMIN", "APROVADOR", "APROVADOR_N1", "APROVADOR_N2", "FINANCEIRO"].includes(role)) {
+                despesasItems.push({ label: "Aprovações & Gestão", href: "/dashboard/despesas/aprovacoes", icon: CheckSquare })
             }
 
             if (despesasItems.length > 0) {
                 sections.push({
-                    title: "Reembolsos",
+                    title: "Reembolsos & Adiantamentos",
                     items: despesasItems
                 })
             }
