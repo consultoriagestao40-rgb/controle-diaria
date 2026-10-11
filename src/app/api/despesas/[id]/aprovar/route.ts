@@ -42,7 +42,7 @@ export async function PATCH(
         }
 
         const body = await req.json()
-        const { action, justificativa } = body
+        const { action, justificativa, empresaId } = body
 
         if (!action || (action !== 'APROVAR' && action !== 'REPROVAR')) {
             return new NextResponse(
@@ -80,6 +80,7 @@ export async function PATCH(
                     dataAprovacao: action === 'APROVAR' ? new Date() : despesa.dataAprovacao,
                     justificativaAprovacao: action === 'APROVAR' ? (justificativa || null) : despesa.justificativaAprovacao,
                     justificativaReprovacao: action === 'REPROVAR' ? justificativa : despesa.justificativaReprovacao,
+                    ...(empresaId ? { empresaId } : {}),
                     ...(action === 'REPROVAR' && isPrestacao ? {
                         valorComprovado: null,
                         saldoFinal: null

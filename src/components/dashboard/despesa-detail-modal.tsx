@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter 
 } from "@/components/ui/dialog"
@@ -61,10 +61,11 @@ interface DespesaDetailModalProps {
     despesa: DespesaDetalhes | null
     isOpen: boolean
     onClose: () => void
-    onAprovar?: (despesa: DespesaDetalhes) => void
+    onAprovar?: (despesa: DespesaDetalhes, overrideEmpresaId?: string) => void
     onReprovar?: (despesa: DespesaDetalhes) => void
     onAprovarPrestacao?: (despesa: DespesaDetalhes) => void
     isApprover?: boolean
+    empresas?: Array<{ id: string; nome: string }>
 }
 
 export function DespesaDetailModal({
@@ -74,10 +75,20 @@ export function DespesaDetailModal({
     onAprovar,
     onReprovar,
     onAprovarPrestacao,
-    isApprover = false
+    isApprover = false,
+    empresas = []
 }: DespesaDetailModalProps) {
     const [copiedPix, setCopiedPix] = useState(false)
     const [previewAnexo, setPreviewAnexo] = useState<any | null>(null)
+    const [selectedEmpresaId, setSelectedEmpresaId] = useState<string>("")
+
+    useEffect(() => {
+        if (despesa?.empresa?.id) {
+            setSelectedEmpresaId(despesa.empresa.id)
+        } else {
+            setSelectedEmpresaId("")
+        }
+    }, [despesa?.id, despesa?.empresa?.id])
 
     if (!despesa) return null
 
@@ -192,11 +203,44 @@ export function DespesaDetailModal({
                                     <p className="text-slate-400 text-[11px]">{despesa.solicitante.email}</p>
                                 </div>
                                 <div>
-                                    <p className="text-slate-500 font-medium">Empresa Vinculada</p>
-                                    <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 mt-0.5">
-                                        <Building2 className="w-3.5 h-3.5 text-blue-500" />
-                                        {despesa.empresa?.nome || "Não informada"}
-                                    </p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-slate-500 font-medium">
+                                            {isApprover && isPendingApproval ? "Empresa para Lançamento" : "Empresa Vinculada"}
+                                        </p>
+                                        {isApprover && isPendingApproval && selectedEmpresaId && selectedEmpresaId !== (despesa.empresa?.id || "") && (
+                                            <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] px-1.5 py-0 border-amber-500/20 font-bold">
+                                                Alterada
+                                            </Badge>
+                                        )}
+                                    </div>
+
+                                    {isApprover && isPendingApproval && empresas && empresas.length > 0 ? (
+                                        <div className="mt-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                                <select
+                                                    value={selectedEmpresaId}
+                                                    onChange={(e) => setSelectedEmpresaId(e.target.value)}
+                                                    className="w-full text-xs font-semibold h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                                >
+                                                    <option value="">Selecione a empresa...</option>
+                                                    {empresas.map((emp) => (
+                                                        <option key={emp.id} value={emp.id}>
+                                                            {emp.nome}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 mt-1">
+                                                O título no Conta Azul será lançado nesta empresa.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 mt-0.5">
+                                            <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                                            {despesa.empresa?.nome || "Não informada"}
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <p className="text-slate-500 font-medium">CPF do Solicitante</p>
@@ -397,7 +441,7 @@ export function DespesaDetailModal({
                                     <Button
                                         onClick={() => {
                                             onClose()
-                                            onAprovar(despesa)
+                                            onAprovar(despesa, selectedEmpresaId || undefined)
                                         }}
                                         className="h-10 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
                                     >

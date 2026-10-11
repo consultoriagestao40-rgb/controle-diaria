@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json()
-        const { ids, acao, justificativa } = body
+        const { ids, acao, justificativa, empresaId } = body
 
         if (!ids || !Array.isArray(ids) || ids.length === 0 || !acao) {
             return new NextResponse(
@@ -85,6 +85,7 @@ export async function POST(req: Request) {
                         dataAprovacao: acao === 'APROVAR' ? new Date() : desp.dataAprovacao,
                         justificativaAprovacao: acao === 'APROVAR' ? (justificativa || "Aprovado em lote pelo gestor.") : desp.justificativaAprovacao,
                         justificativaReprovacao: acao === 'REPROVAR' ? justificativa : desp.justificativaReprovacao,
+                        ...(empresaId ? { empresaId } : {}),
                         ...(acao === 'REPROVAR' && isPrestacao ? {
                             valorComprovado: null,
                             saldoFinal: null

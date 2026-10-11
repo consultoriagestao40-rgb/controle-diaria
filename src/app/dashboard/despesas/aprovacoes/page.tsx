@@ -55,6 +55,8 @@ export default function AprovacoesDespesasPage() {
 
     // Modal de Detalhes Completo da Solicitação
     const [detailItem, setDetailItem] = useState<Despesa | null>(null)
+    const [empresas, setEmpresas] = useState<Array<{ id: string; nome: string; ativo?: boolean }>>([])
+    const [batchEmpresaId, setBatchEmpresaId] = useState<string>("")
 
     // Seleção em Lote
     const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -78,12 +80,21 @@ export default function AprovacoesDespesasPage() {
     const loadDespesas = async () => {
         setLoading(true)
         try {
-            const res = await fetch("/api/despesas")
-            if (res.ok) {
-                const data = await res.json()
+            const [resDespesas, resEmpresas] = await Promise.all([
+                fetch("/api/despesas"),
+                fetch("/api/admin/empresas")
+            ])
+
+            if (resDespesas.ok) {
+                const data = await resDespesas.json()
                 setDespesas(Array.isArray(data) ? data : [])
             } else {
                 toast.error("Erro ao carregar despesas para aprovação.")
+            }
+
+            if (resEmpresas.ok) {
+                const empData = await resEmpresas.json()
+                setEmpresas(Array.isArray(empData) ? empData.filter((e: any) => e.ativo) : [])
             }
         } catch {
             toast.error("Erro de conexão ao carregar dados.")
@@ -92,8 +103,8 @@ export default function AprovacoesDespesasPage() {
         }
     }
 
-    // Ação: Aprovar Solicitação Individual (N2 cria no Conta Azul)
-    const handleAprovarSolicitacao = async (despesa: Despesa | DespesaDetalhes) => {
+    // Ação: Aprovar Solicitação Individual (N2 cria no Conta Azul com opção de mudar empresa)
+    const handleAprovarSolicitacao = async (despesa: Despesa | DespesaDetalhes, overrideEmpresaId?: string) => {
         setProcessingId(despesa.id)
         try {
             const res = await fetch(`/api/despesas/${despesa.id}/aprovar`, {
@@ -101,7 +112,8 @@ export default function AprovacoesDespesasPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     action: "APROVAR",
-                    justificativa: "Aprovado pelo gestor N2. Integrado ao ERP Conta Azul."
+                    justificativa: "Aprovado pelo gestor N2. Integrado ao ERP Conta Azul.",
+                    empresaId: overrideEmpresaId || undefined
                 })
             })
 
@@ -193,7 +205,8 @@ export default function AprovacoesDespesasPage() {
                 body: JSON.stringify({
                     ids: selectedIds,
                     acao: "APROVAR",
-                    justificativa: "Aprovado em lote pelo gestor. Lançamento consolidado no Conta Azul."
+                    justificativa: "Aprovado em lote pelo gestor. Lançamento consolidado no Conta Azul.",
+                    empresaId: batchEmpresaId || undefined
                 })
             })
 
@@ -204,6 +217,7 @@ export default function AprovacoesDespesasPage() {
                 data.message || `${data.processedCount} despesa(s) aprovada(s) com sucesso!`
             )
             setSelectedIds([])
+            setBatchEmpresaId("")
             loadDespesas()
         } catch (err: any) {
             toast.error(err.message || "Erro ao processar aprovação em lote.")
@@ -454,11 +468,34 @@ export default function AprovacoesDespesasPage() {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                        {empresas.length > 0 && (
+                            <div className="flex items-center gap-1.5 bg-emerald-800/90 px-2.5 py-1 rounded-xl border border-white/20">
+                                <span className="text-[11px] font-semibold text-emerald-100 whitespace-nowrap">
+                                    Lançar na Empresa:
+                                </span>
+                                <select
+                                    value={batchEmpresaId}
+                                    onChange={(e) => setBatchEmpresaId(e.target.value)}
+                                    className="text-xs font-bold h-7 rounded-lg bg-emerald-950 text-white border border-emerald-500/60 px-2 cursor-pointer focus:outline-none"
+                                >
+                                    <option value="">Manter original da solicitação</option>
+                                    {empresas.map((emp) => (
+                                        <option key={emp.id} value={emp.id}>
+                                            {emp.nome}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <Button
                             size="sm"
                             variant="secondary"
-                            onClick={() => setSelectedIds([])}
+                            onClick={() => {
+                                setSelectedIds([])
+                                setBatchEmpresaId("")
+                            }}
                             className="bg-emerald-800/60 hover:bg-emerald-800 text-white text-xs h-9 rounded-xl border border-white/20 cursor-pointer"
                         >
                             Desmarcar
@@ -865,6 +902,7 @@ export default function AprovacoesDespesasPage() {
                 }}
                 onAprovarPrestacao={handleAprovarPrestacaoEBaixar}
                 isApprover={true}
+                empresas={empresas}
             />
 
             {/* MODAL DE REPROVAÇÃO INDIVIDUAL */}
