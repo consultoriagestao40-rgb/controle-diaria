@@ -44,7 +44,15 @@ export async function GET(req: Request) {
                 empresa: true,
                 centroCusto: true,
                 anexos: true,
-                itens: true
+                itens: true,
+                historico: {
+                    include: {
+                        usuario: {
+                            select: { id: true, nome: true, email: true, role: true }
+                        }
+                    },
+                    orderBy: { data: 'desc' }
+                }
             },
             orderBy: { createdAt: 'desc' }
         })

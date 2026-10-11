@@ -1056,6 +1056,199 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
 }
 
 /**
+ * Cria 1 lançamento CONSOLIDADO de Contas a Pagar no Conta Azul com RATEIO
+ * para um grupo de despesas (Reembolsos / Adiantamentos) aprovadas em lote de um mesmo colaborador e mesma empresa.
+ */
+export async function createPayableFromGroupedDespesas(despesaIds: string[]): Promise<ContaAzulPayableResult> {
+    if (!despesaIds || despesaIds.length === 0) {
+        return { success: false, error: "Nenhuma despesa fornecida para consolidação." }
+    }
+
+    if (despesaIds.length === 1) {
+        return createPayableFromDespesa(despesaIds[0])
+    }
+
+    try {
+        const despesas = await prisma.despesa.findMany({
+            where: { id: { in: despesaIds } },
+            include: {
+                solicitante: true,
+                centroCusto: true,
+                empresa: true
+            },
+            orderBy: { createdAt: 'asc' }
+        })
+
+        if (despesas.length === 0) {
+            return { success: false, error: "Despesas não encontradas." }
+        }
+
+        const primary = despesas[0]
+        const solicitante = primary.solicitante
+
+        let empresaId: string | null = primary.empresaId
+        if (!empresaId) {
+            const defaultEmpresa = await prisma.empresa.findFirst({ where: { ativo: true } })
+            empresaId = defaultEmpresa?.id || null
+        }
+
+        if (!empresaId) {
+            return { success: false, error: "Nenhuma empresa associada a estas despesas." }
+        }
+
+        const config = await prisma.contaAzulConfig.findUnique({
+            where: { empresaId }
+        })
+
+        if (!config || !config.ativo || !config.autoCriarAoAprovar) {
+            return { success: false, error: "Integração Conta Azul inativa para esta empresa." }
+        }
+
+        const token = await getValidAccessToken(empresaId)
+        if (!token) {
+            return { success: false, error: "Empresa não conectada ao Conta Azul (OAuth pendente)." }
+        }
+
+        const cleanPix = (primary.chavePix || solicitante.chavePix || "").trim()
+        const cleanCpf = (solicitante.cpf || "").trim()
+
+        const contactResult = await findOrCreateContaAzulContact(empresaId, {
+            nome: solicitante.nome,
+            email: solicitante.email,
+            cpf: cleanCpf,
+            chavePix: cleanPix
+        })
+
+        const valorTotal = despesas.reduce((acc, d) => acc + Number(d.valorSolicitado), 0)
+        const dataHoje = format(new Date(), "yyyy-MM-dd")
+
+        // Agrupamento por categoria e centro de custo (Rateio)
+        const categoryMap = new Map<string, { totalValor: number; costCenters: Map<string, number> }>()
+        const despesasDetalhadas: string[] = []
+
+        for (const desp of despesas) {
+            const dVal = Number(desp.valorSolicitado)
+            const catId = desp.tipo === "REEMBOLSO"
+                ? (config.categoriaReembolsoId || config.categoriaDiariaId)
+                : (config.categoriaAdiantamentoId || config.categoriaDiariaId)
+
+            if (!catId) continue
+
+            const costCenterId = await resolveCostCenterForEmpresa(empresaId, null, config.centroCustoPadraoId)
+
+            if (!categoryMap.has(catId)) {
+                categoryMap.set(catId, {
+                    totalValor: 0,
+                    costCenters: new Map()
+                })
+            }
+
+            const catGroup = categoryMap.get(catId)!
+            catGroup.totalValor += dVal
+
+            if (costCenterId) {
+                const currentCcVal = catGroup.costCenters.get(costCenterId) || 0
+                catGroup.costCenters.set(costCenterId, currentCcVal + dVal)
+            }
+
+            despesasDetalhadas.push(`${desp.tipo}: ${desp.descricao} (R$ ${dVal.toFixed(2)})`)
+        }
+
+        const rateio: any[] = []
+        for (const [catId, group] of Array.from(categoryMap.entries())) {
+            const rateioItem: any = {
+                id_categoria: catId,
+                valor: group.totalValor
+            }
+
+            if (group.costCenters.size > 0) {
+                rateioItem.rateio_centro_custo = Array.from(group.costCenters.entries()).map(([ccId, ccVal]) => ({
+                    id_centro_custo: ccId,
+                    valor: ccVal
+                }))
+            }
+
+            rateio.push(rateioItem)
+        }
+
+        const bankAccountId = await resolveFinancialAccountForEmpresa(empresaId, config.contaFinanceiraPadraoId)
+        if (!bankAccountId) {
+            return { success: false, error: "Nenhuma conta financeira/bancária localizada no Conta Azul para esta empresa." }
+        }
+
+        const pixInfo = cleanPix ? ` - PIX: ${cleanPix}` : ""
+        const tipos = Array.from(new Set(despesas.map(d => d.tipo === "REEMBOLSO" ? "Reembolsos" : "Adiantamentos"))).join(" e ")
+        const descricao = `${tipos} Lote (${despesas.length}x): ${solicitante.nome}${pixInfo}`
+        const observacao = `Beneficiário: ${solicitante.nome} | CPF: ${cleanCpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Lote: ${despesas.length} despesas (Total: R$ ${valorTotal.toFixed(2)}) | Detalhes: ${despesasDetalhadas.join(" | ")}`
+
+        const payload: any = {
+            data_competencia: dataHoje,
+            valor: valorTotal,
+            descricao: descricao,
+            observacao: observacao,
+            contato: contactResult.contactId,
+            conta_financeira: bankAccountId,
+            rateio: rateio.length > 0 ? rateio : [{
+                id_categoria: config.categoriaReembolsoId || config.categoriaDiariaId,
+                valor: valorTotal
+            }],
+            condicao_pagamento: {
+                parcelas: [
+                    {
+                        descricao: "Parcela 1/1",
+                        data_vencimento: dataHoje,
+                        nota: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
+                        conta_financeira: bankAccountId,
+                        metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
+                        detalhe_valor: {
+                            valor_bruto: valorTotal,
+                            valor_liquido: valorTotal
+                        }
+                    }
+                ]
+            }
+        }
+
+        const response = await fetchContaAzul(empresaId, "/v1/financeiro/eventos-financeiros/contas-a-pagar", {
+            method: "POST",
+            body: JSON.stringify(payload)
+        })
+
+        if (response?.error) {
+            return { success: false, error: response.error }
+        }
+
+        let finalPayableId = response?.id || response?.protocolo || `CA-DESPESAS-LOTE-${primary.id.slice(-6).toUpperCase()}`
+
+        if (response?.protocolo) {
+            const resolvedId = await waitForContaAzulProtocol(empresaId, response.protocolo)
+            if (resolvedId) {
+                finalPayableId = resolvedId
+            }
+        }
+
+        // Atualiza todas as despesas do lote com o ID final consolidado do Conta Azul
+        await prisma.despesa.updateMany({
+            where: { id: { in: despesaIds } },
+            data: {
+                contaAzulPayableId: finalPayableId,
+                contaAzulStatus: "PENDENTE",
+                contaAzulSyncedAt: new Date()
+            }
+        })
+
+        return {
+            success: true,
+            payableId: finalPayableId,
+            status: "PENDENTE"
+        }
+    } catch (error: any) {
+        console.error("[CONTA AZUL GROUPED DESPESAS ERROR]", error)
+        return { success: false, error: error.message || "Erro ao criar lançamento consolidado no Conta Azul." }
+    }
+}
+
+/**
  * Consulta Categorias Financeiras no Conta Azul
  */
 export async function getContaAzulCategories(empresaId: string) {

@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from "react"
 import { 
     CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, 
     FileText, CheckCircle, XCircle, Clock, X, Search, Building2, 
-    Eye, ExternalLink, ThumbsUp, ThumbsDown, ArrowDownLeft, ArrowUpRight, Copy, Check
+    Eye, ExternalLink, ThumbsUp, ThumbsDown, ArrowDownLeft, ArrowUpRight, Copy, Check,
+    Layers, UserCheck, Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,6 +19,7 @@ import {
     DialogFooter, DialogHeader, DialogTitle, DialogClose 
 } from "@/components/ui/dialog"
 import { AttachmentViewer } from "@/components/dashboard/attachment-viewer"
+import { DespesaDetailModal, DespesaDetalhes } from "@/components/dashboard/despesa-detail-modal"
 import { formatCurrency } from "@/lib/utils"
 
 interface Despesa {
@@ -37,7 +39,10 @@ interface Despesa {
     contaAzulPayableId?: string | null
     contaAzulStatus?: string | null
     empresa?: { id: string; nome: string } | null
+    centroCusto?: { id: string; nome: string; codigo?: string | null } | null
     anexos: any[]
+    itens?: any[]
+    historico?: any[]
     solicitante: { id: string; nome: string; email: string; role?: string; chavePix?: string | null; cpf?: string | null }
 }
 
@@ -48,7 +53,16 @@ export default function AprovacoesDespesasPage() {
     const [searchQuery, setSearchQuery] = useState("")
     const [previewAnexo, setPreviewAnexo] = useState<any | null>(null)
 
-    // Modal de Reprovação / Devolução
+    // Modal de Detalhes Completo da Solicitação
+    const [detailItem, setDetailItem] = useState<Despesa | null>(null)
+
+    // Seleção em Lote
+    const [selectedIds, setSelectedIds] = useState<string[]>([])
+    const [batchProcessing, setBatchProcessing] = useState(false)
+    const [isBatchRejectOpen, setIsBatchRejectOpen] = useState(false)
+    const [batchRejectJustificativa, setBatchRejectJustificativa] = useState("")
+
+    // Modal de Reprovação / Devolução Individual
     const [isRejectOpen, setIsRejectOpen] = useState(false)
     const [selectedDespesa, setSelectedDespesa] = useState<Despesa | null>(null)
     const [justificativaReprovacao, setJustificativaReprovacao] = useState("")
@@ -78,8 +92,8 @@ export default function AprovacoesDespesasPage() {
         }
     }
 
-    // Ação: Aprovar Solicitação (N2 cria no Conta Azul)
-    const handleAprovarSolicitacao = async (despesa: Despesa) => {
+    // Ação: Aprovar Solicitação Individual (N2 cria no Conta Azul)
+    const handleAprovarSolicitacao = async (despesa: Despesa | DespesaDetalhes) => {
         setProcessingId(despesa.id)
         try {
             const res = await fetch(`/api/despesas/${despesa.id}/aprovar`, {
@@ -108,7 +122,7 @@ export default function AprovacoesDespesasPage() {
     }
 
     // Ação: Aprovar Prestação de Contas (Baixa imediata -> CONCLUIDO)
-    const handleAprovarPrestacaoEBaixar = async (despesa: Despesa) => {
+    const handleAprovarPrestacaoEBaixar = async (despesa: Despesa | DespesaDetalhes) => {
         setProcessingId(despesa.id)
         try {
             const res = await fetch(`/api/despesas/${despesa.id}/aprovar`, {
@@ -132,7 +146,7 @@ export default function AprovacoesDespesasPage() {
         }
     }
 
-    // Ação: Reprovar / Devolver
+    // Ação: Reprovar Individual
     const handleReprovar = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!selectedDespesa) return
@@ -165,6 +179,72 @@ export default function AprovacoesDespesasPage() {
             toast.error(err.message || "Erro ao processar ação.")
         } finally {
             setSubmittingAction(false)
+        }
+    }
+
+    // Ação: Aprovar Lote Selecionado com Consolidação no Conta Azul
+    const handleAprovarLote = async () => {
+        if (selectedIds.length === 0) return
+        setBatchProcessing(true)
+        try {
+            const res = await fetch("/api/despesas/batch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ids: selectedIds,
+                    acao: "APROVAR",
+                    justificativa: "Aprovado em lote pelo gestor. Lançamento consolidado no Conta Azul."
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || "Erro ao aprovar em lote.")
+
+            toast.success(
+                data.message || `${data.processedCount} despesa(s) aprovada(s) com sucesso!`
+            )
+            setSelectedIds([])
+            loadDespesas()
+        } catch (err: any) {
+            toast.error(err.message || "Erro ao processar aprovação em lote.")
+        } finally {
+            setBatchProcessing(false)
+        }
+    }
+
+    // Ação: Reprovar Lote Selecionado
+    const handleReprovarLoteSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (selectedIds.length === 0) return
+        if (!batchRejectJustificativa.trim()) {
+            toast.error("Por favor, preencha a justificativa da reprovação em lote.")
+            return
+        }
+
+        setBatchProcessing(true)
+        try {
+            const res = await fetch("/api/despesas/batch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ids: selectedIds,
+                    acao: "REPROVAR",
+                    justificativa: batchRejectJustificativa.trim()
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || "Erro ao reprovar em lote.")
+
+            toast.success(`${data.processedCount} despesa(s) reprovada(s) com sucesso.`)
+            setSelectedIds([])
+            setIsBatchRejectOpen(false)
+            setBatchRejectJustificativa("")
+            loadDespesas()
+        } catch (err: any) {
+            toast.error(err.message || "Erro ao reprovar despesas em lote.")
+        } finally {
+            setBatchProcessing(false)
         }
     }
 
@@ -222,6 +302,40 @@ export default function AprovacoesDespesasPage() {
         })
     }, [despesas, filterTab, searchQuery])
 
+    // Itens elegíveis para seleção em lote (pendentes)
+    const eligibleDespesas = useMemo(() => {
+        return filteredDespesas.filter(d => 
+            ["AGUARDANDO_APROVACAO", "AGUARDANDO_APROVACAO_N1", "AGUARDANDO_APROVACAO_N2", "AGUARDANDO_CONCILIACAO"].includes(d.status)
+        )
+    }, [filteredDespesas])
+
+    const isAllSelected = eligibleDespesas.length > 0 && eligibleDespesas.every(d => selectedIds.includes(d.id))
+
+    const toggleSelectAll = () => {
+        if (isAllSelected) {
+            setSelectedIds(prev => prev.filter(id => !eligibleDespesas.some(d => d.id === id)))
+        } else {
+            const toAdd = eligibleDespesas.map(d => d.id)
+            setSelectedIds(prev => Array.from(new Set([...prev, ...toAdd])))
+        }
+    }
+
+    const toggleSelectOne = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+    }
+
+    // Resumo dos selecionados
+    const selectedSummary = useMemo(() => {
+        const selected = despesas.filter(d => selectedIds.includes(d.id))
+        const totalValor = selected.reduce((acc, d) => acc + Number(d.valorSolicitado), 0)
+        const colaboradores = Array.from(new Set(selected.map(d => d.solicitante.nome)))
+        return {
+            count: selected.length,
+            totalValor,
+            colaboradores
+        }
+    }, [despesas, selectedIds])
+
     const getStatusBadge = (status: string, tipo: string) => {
         switch (status) {
             case "AGUARDANDO_APROVACAO_N1":
@@ -259,7 +373,7 @@ export default function AprovacoesDespesasPage() {
                         </h1>
                     </div>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Aprove solicitações (com envio automático ao Conta Azul) e valide baixas de prestação de contas.
+                        Aprove individualmente ou em lote com consolidação automática no Conta Azul (1 lançamento consolidado por colaborador).
                     </p>
                 </div>
             </div>
@@ -319,11 +433,72 @@ export default function AprovacoesDespesasPage() {
                 </Card>
             </div>
 
+            {/* Barra de Ação em Lote (Sticky / Destaque quando houver selecionados) */}
+            {selectedIds.length > 0 && (
+                <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-4 rounded-2xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                            <Badge className="bg-white text-emerald-800 font-black text-xs px-2.5 py-0.5">
+                                {selectedSummary.count} selecionada(s)
+                            </Badge>
+                            <span className="text-base font-bold">
+                                Total: {formatCurrency(selectedSummary.totalValor)}
+                            </span>
+                        </div>
+                        <p className="text-xs text-emerald-100 flex items-center gap-1.5">
+                            <UserCheck className="w-3.5 h-3.5" />
+                            Colaborador(es): <span className="font-semibold text-white">{selectedSummary.colaboradores.join(", ")}</span>
+                        </p>
+                        <p className="text-[11px] text-emerald-200">
+                            ✨ Ao aprovar o lote, todas as despesas do mesmo colaborador e empresa gerarão <strong>1 único lançamento no Conta Azul</strong> com a soma total e descrição consolidada.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setSelectedIds([])}
+                            className="bg-emerald-800/60 hover:bg-emerald-800 text-white text-xs h-9 rounded-xl border border-white/20 cursor-pointer"
+                        >
+                            Desmarcar
+                        </Button>
+
+                        <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setIsBatchRejectOpen(true)}
+                            className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 rounded-xl font-semibold shadow-xs cursor-pointer gap-1"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                            Reprovar Lote
+                        </Button>
+
+                        <Button
+                            size="sm"
+                            onClick={handleAprovarLote}
+                            disabled={batchProcessing}
+                            className="bg-white hover:bg-emerald-50 text-emerald-800 text-xs h-9 rounded-xl font-bold shadow-md cursor-pointer gap-1.5 transition-all"
+                        >
+                            {batchProcessing ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                            ) : (
+                                <CheckCircle className="w-4 h-4 text-emerald-700" />
+                            )}
+                            Aprovar Lote (1 Conta Azul Consolidado)
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Abas e Filtros Rápidos */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
                     <button
-                        onClick={() => setFilterTab("PENDENTES_APROVACAO")}
+                        onClick={() => {
+                            setFilterTab("PENDENTES_APROVACAO")
+                            setSelectedIds([])
+                        }}
                         className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                             filterTab === "PENDENTES_APROVACAO"
                                 ? "bg-amber-500 text-white shadow-xs font-bold"
@@ -339,7 +514,10 @@ export default function AprovacoesDespesasPage() {
                     </button>
 
                     <button
-                        onClick={() => setFilterTab("PRESTACOES")}
+                        onClick={() => {
+                            setFilterTab("PRESTACOES")
+                            setSelectedIds([])
+                        }}
                         className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                             filterTab === "PRESTACOES"
                                 ? "bg-indigo-600 text-white shadow-xs font-bold"
@@ -355,7 +533,10 @@ export default function AprovacoesDespesasPage() {
                     </button>
 
                     <button
-                        onClick={() => setFilterTab("NO_CONTA_AZUL")}
+                        onClick={() => {
+                            setFilterTab("NO_CONTA_AZUL")
+                            setSelectedIds([])
+                        }}
                         className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                             filterTab === "NO_CONTA_AZUL"
                                 ? "bg-blue-600 text-white shadow-xs font-bold"
@@ -366,7 +547,10 @@ export default function AprovacoesDespesasPage() {
                     </button>
 
                     <button
-                        onClick={() => setFilterTab("TODAS")}
+                        onClick={() => {
+                            setFilterTab("TODAS")
+                            setSelectedIds([])
+                        }}
                         className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                             filterTab === "TODAS"
                                 ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs font-bold"
@@ -410,10 +594,21 @@ export default function AprovacoesDespesasPage() {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                 <tr>
+                                    {/* Checkbox para seleção em lote */}
+                                    <th className="py-3.5 px-3 w-10 text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={isAllSelected}
+                                            onChange={toggleSelectAll}
+                                            disabled={eligibleDespesas.length === 0}
+                                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-700 cursor-pointer"
+                                            title="Selecionar todos os pendentes desta visualização"
+                                        />
+                                    </th>
                                     <th className="py-3.5 px-4">Solicitante / Pix</th>
                                     <th className="py-3.5 px-4">Tipo</th>
                                     <th className="py-3.5 px-4">Empresa (Grupo)</th>
-                                    <th className="py-3.5 px-4">Descrição</th>
+                                    <th className="py-3.5 px-4">Descrição / Comentários</th>
                                     <th className="py-3.5 px-4">Valor</th>
                                     <th className="py-3.5 px-4">Prestação</th>
                                     <th className="py-3.5 px-4">Situação / ERP</th>
@@ -425,13 +620,37 @@ export default function AprovacoesDespesasPage() {
                                 {filteredDespesas.map((d) => {
                                     const isPendingApproval = ["AGUARDANDO_APROVACAO", "AGUARDANDO_APROVACAO_N1", "AGUARDANDO_APROVACAO_N2"].includes(d.status) && d.valorComprovado === null
                                     const isPrestacaoPending = d.tipo === "ADIANTAMENTO" && (d.status === "AGUARDANDO_CONCILIACAO" || (d.valorComprovado !== null && d.status.includes("AGUARDANDO")))
+                                    const isEligibleForBatch = isPendingApproval || isPrestacaoPending
+                                    const isSelected = selectedIds.includes(d.id)
                                     const isProcessing = processingId === d.id
 
                                     return (
-                                        <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                        <tr 
+                                            key={d.id} 
+                                            onClick={() => setDetailItem(d)}
+                                            className={`transition-colors cursor-pointer ${
+                                                isSelected 
+                                                    ? "bg-emerald-50/70 dark:bg-emerald-950/20" 
+                                                    : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                                            }`}
+                                        >
+                                            {/* Checkbox */}
+                                            <td 
+                                                className="py-3.5 px-3 text-center whitespace-nowrap"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => toggleSelectOne(d.id)}
+                                                    disabled={!isEligibleForBatch}
+                                                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-700 cursor-pointer disabled:opacity-30"
+                                                />
+                                            </td>
+
                                             {/* Solicitante & Pix */}
                                             <td className="py-3.5 px-4 whitespace-nowrap">
-                                                <p className="font-bold text-xs text-slate-900 dark:text-white">
+                                                <p className="font-bold text-xs text-slate-900 dark:text-white hover:text-blue-600">
                                                     {d.solicitante.nome}
                                                 </p>
                                                 <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1">
@@ -460,14 +679,19 @@ export default function AprovacoesDespesasPage() {
                                                 </div>
                                             </td>
 
-                                            {/* Descrição */}
+                                            {/* Descrição & Comentários */}
                                             <td className="py-3.5 px-4 max-w-xs">
                                                 <p className="font-medium text-slate-900 dark:text-white truncate text-xs" title={d.descricao}>
                                                     {d.descricao}
                                                 </p>
-                                                <p className="text-[10px] text-slate-400">
-                                                    {new Date(d.createdAt).toLocaleDateString("pt-BR")}
-                                                </p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <span className="text-[10px] text-slate-400">
+                                                        {new Date(d.createdAt).toLocaleDateString("pt-BR")}
+                                                    </span>
+                                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold underline">
+                                                        Clique para ver detalhes
+                                                    </span>
+                                                </div>
                                             </td>
 
                                             {/* Valor */}
@@ -511,7 +735,10 @@ export default function AprovacoesDespesasPage() {
                                             </td>
 
                                             {/* Comprovantes */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap">
+                                            <td 
+                                                className="py-3.5 px-4 whitespace-nowrap"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
                                                 {d.anexos && d.anexos.length > 0 ? (
                                                     <button
                                                         onClick={() => setPreviewAnexo(d.anexos[0])}
@@ -526,11 +753,24 @@ export default function AprovacoesDespesasPage() {
                                             </td>
 
                                             {/* Ações */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap text-right">
+                                            <td 
+                                                className="py-3.5 px-4 whitespace-nowrap text-right"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
                                                 {isProcessing ? (
                                                     <Loader2 className="w-5 h-5 animate-spin text-blue-600 inline-block" />
                                                 ) : isPendingApproval ? (
                                                     <div className="flex items-center justify-end gap-1.5">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => setDetailItem(d)}
+                                                            className="h-8 px-2 rounded-lg text-slate-600 hover:text-slate-900 border-slate-200 text-xs font-medium cursor-pointer"
+                                                            title="Ver todos os detalhes e comentários"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5" />
+                                                        </Button>
+
                                                         <Button
                                                             size="sm"
                                                             onClick={() => handleAprovarSolicitacao(d)}
@@ -549,14 +789,24 @@ export default function AprovacoesDespesasPage() {
                                                                 setJustificativaReprovacao("")
                                                                 setIsRejectOpen(true)
                                                             }}
-                                                            className="h-8 px-2.5 rounded-lg border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-medium cursor-pointer"
+                                                            className="h-8 px-2 rounded-lg border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-medium cursor-pointer"
+                                                            title="Reprovar solicitação"
                                                         >
                                                             <X className="w-3.5 h-3.5" />
-                                                            Reprovar
                                                         </Button>
                                                     </div>
                                                 ) : isPrestacaoPending ? (
                                                     <div className="flex items-center justify-end gap-1.5">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => setDetailItem(d)}
+                                                            className="h-8 px-2 rounded-lg text-slate-600 hover:text-slate-900 border-slate-200 text-xs font-medium cursor-pointer"
+                                                            title="Ver detalhes da prestação"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5" />
+                                                        </Button>
+
                                                         <Button
                                                             size="sm"
                                                             onClick={() => handleAprovarPrestacaoEBaixar(d)}
@@ -576,12 +826,21 @@ export default function AprovacoesDespesasPage() {
                                                                 setIsRejectOpen(true)
                                                             }}
                                                             className="h-8 px-2 rounded-lg border-amber-200 hover:bg-amber-50 text-amber-600 text-xs font-medium cursor-pointer"
+                                                            title="Solicitar ajuste na prestação"
                                                         >
                                                             Ajuste
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs text-slate-400">Concluído</span>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => setDetailItem(d)}
+                                                        className="h-8 px-2 text-xs text-slate-500 hover:text-slate-900 cursor-pointer"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5 mr-1" />
+                                                        Detalhes
+                                                    </Button>
                                                 )}
                                             </td>
                                         </tr>
@@ -593,7 +852,22 @@ export default function AprovacoesDespesasPage() {
                 )}
             </div>
 
-            {/* MODAL DE REPROVAÇÃO / PEDIDO DE AJUSTE */}
+            {/* MODAL DETALHES COMPLETO DA SOLICITAÇÃO (COMENTÁRIOS, PIX, ITENS, AUDITORIA) */}
+            <DespesaDetailModal
+                despesa={detailItem as any}
+                isOpen={!!detailItem}
+                onClose={() => setDetailItem(null)}
+                onAprovar={handleAprovarSolicitacao}
+                onReprovar={(d) => {
+                    setSelectedDespesa(d as any)
+                    setJustificativaReprovacao("")
+                    setIsRejectOpen(true)
+                }}
+                onAprovarPrestacao={handleAprovarPrestacaoEBaixar}
+                isApprover={true}
+            />
+
+            {/* MODAL DE REPROVAÇÃO INDIVIDUAL */}
             <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
                 <DialogContent className="max-w-md p-6 rounded-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                     <DialogHeader>
@@ -650,6 +924,59 @@ export default function AprovacoesDespesasPage() {
                             </DialogFooter>
                         </form>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* MODAL DE REPROVAÇÃO EM LOTE */}
+            <Dialog open={isBatchRejectOpen} onOpenChange={setIsBatchRejectOpen}>
+                <DialogContent className="max-w-md p-6 rounded-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2 text-rose-600">
+                            <XCircle className="w-5 h-5" />
+                            Reprovar {selectedIds.length} Despesa(s) em Lote
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-slate-500">
+                            A justificativa informada será registrada no histórico de todas as despesas selecionadas.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={handleReprovarLoteSubmit} className="space-y-4 pt-2">
+                        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 text-xs text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
+                            Total a reprovar: <strong>{selectedIds.length} solicitações</strong> ({formatCurrency(selectedSummary.totalValor)})
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Justificativa da Reprovação *
+                            </Label>
+                            <Textarea
+                                required
+                                rows={3}
+                                placeholder="Informe o motivo para reprovar todas as despesas selecionadas..."
+                                value={batchRejectJustificativa}
+                                onChange={(e) => setBatchRejectJustificativa(e.target.value)}
+                                className="rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs resize-none"
+                            />
+                        </div>
+
+                        <DialogFooter className="pt-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsBatchRejectOpen(false)}
+                                className="h-10 text-xs rounded-xl"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={batchProcessing}
+                                className="h-10 text-xs rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold cursor-pointer"
+                            >
+                                {batchProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar Reprovação em Lote"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
 

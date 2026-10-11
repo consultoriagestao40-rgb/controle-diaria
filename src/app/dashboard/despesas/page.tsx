@@ -21,6 +21,7 @@ import {
 import { formatCurrency } from "@/lib/utils"
 import { compressImageIfNeeded } from "@/lib/image-compress"
 import { AttachmentViewer } from "@/components/dashboard/attachment-viewer"
+import { DespesaDetailModal } from "@/components/dashboard/despesa-detail-modal"
 
 interface Despesa {
     id: string
@@ -504,7 +505,11 @@ export default function MinhasDespesasPage() {
                                     const podePrestarContas = d.tipo === "ADIANTAMENTO" && ["PAGO", "AGUARDANDO_PRESTACAO"].includes(d.status)
 
                                     return (
-                                        <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                        <tr 
+                                            key={d.id} 
+                                            onClick={() => setDetailDespesa(d)}
+                                            className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                                        >
                                             <td className="py-3.5 px-4 whitespace-nowrap">
                                                 {d.tipo === "REEMBOLSO" ? (
                                                     <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 font-semibold gap-1">
@@ -551,7 +556,11 @@ export default function MinhasDespesasPage() {
                                                 {getStatusBadge(d.status, d.tipo)}
                                             </td>
 
-                                            <td className="py-3.5 px-4 whitespace-nowrap">
+                                            {/* Comprovantes */}
+                                            <td 
+                                                className="py-3.5 px-4 whitespace-nowrap"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
                                                 {d.anexos && d.anexos.length > 0 ? (
                                                     <button
                                                         onClick={() => setPreviewAnexo(d.anexos[0])}
@@ -565,7 +574,10 @@ export default function MinhasDespesasPage() {
                                                 )}
                                             </td>
 
-                                            <td className="py-3.5 px-4 whitespace-nowrap text-right">
+                                            <td 
+                                                className="py-3.5 px-4 whitespace-nowrap text-right"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
                                                 {podePrestarContas ? (
                                                     <Button
                                                         size="sm"
@@ -580,7 +592,15 @@ export default function MinhasDespesasPage() {
                                                         Em análise pelo gestor
                                                     </span>
                                                 ) : (
-                                                    <span className="text-xs text-slate-400">-</span>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => setDetailDespesa(d)}
+                                                        className="h-8 px-2 text-xs text-slate-500 hover:text-slate-900 cursor-pointer"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5 mr-1" />
+                                                        Detalhes
+                                                    </Button>
                                                 )}
                                             </td>
                                         </tr>
@@ -888,6 +908,14 @@ export default function MinhasDespesasPage() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* Modal de Detalhes Completo da Solicitação */}
+            <DespesaDetailModal
+                despesa={detailDespesa as any}
+                isOpen={!!detailDespesa}
+                onClose={() => setDetailDespesa(null)}
+                isApprover={false}
+            />
 
             {/* Visualizador de Anexos */}
             {previewAnexo && (
