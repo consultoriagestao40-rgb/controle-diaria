@@ -20,7 +20,7 @@ export async function GET(
             where: { id },
             include: {
                 solicitante: {
-                    select: { id: true, nome: true, email: true, role: true }
+                    select: { id: true, nome: true, email: true, role: true, chavePix: true, cpf: true }
                 },
                 aprovador: {
                     select: { id: true, nome: true, email: true }

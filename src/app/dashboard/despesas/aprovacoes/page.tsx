@@ -5,7 +5,7 @@ import {
     CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, 
     FileText, CheckCircle, XCircle, Clock, X, Search, Building2, 
     Eye, ExternalLink, ThumbsUp, ThumbsDown, ArrowDownLeft, ArrowUpRight, Copy, Check,
-    Layers, UserCheck, Trash2
+    Layers, UserCheck, Trash2, RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -72,6 +72,7 @@ export default function AprovacoesDespesasPage() {
 
     // Loading por ID durante aprovação rápida
     const [processingId, setProcessingId] = useState<string | null>(null)
+    const [syncingId, setSyncingId] = useState<string | null>(null)
 
     useEffect(() => {
         loadDespesas()
@@ -103,8 +104,15 @@ export default function AprovacoesDespesasPage() {
         }
     }
 
-    // Ação: Aprovar Solicitação Individual (N2 cria no Conta Azul com opção de mudar empresa)
-    const handleAprovarSolicitacao = async (despesa: Despesa | DespesaDetalhes, overrideEmpresaId?: string) => {
+    // Ação: Aprovar Solicitação Individual (N2 cria no Conta Azul com opção de mudar empresa e Chave Pix)
+    const handleAprovarSolicitacao = async (despesa: Despesa | DespesaDetalhes, overrideEmpresaId?: string, overrideChavePix?: string) => {
+        const currentPix = overrideChavePix || despesa.chavePix || despesa.solicitante.chavePix
+        if (!currentPix) {
+            setDetailItem(despesa as any)
+            toast.warning("Como nas diárias, informe a Chave Pix da solicitação antes de aprovar e integrar ao Conta Azul.")
+            return
+        }
+
         setProcessingId(despesa.id)
         try {
             const res = await fetch(`/api/despesas/${despesa.id}/aprovar`, {
@@ -113,7 +121,8 @@ export default function AprovacoesDespesasPage() {
                 body: JSON.stringify({
                     action: "APROVAR",
                     justificativa: "Aprovado pelo gestor N2. Integrado ao ERP Conta Azul.",
-                    empresaId: overrideEmpresaId || undefined
+                    empresaId: overrideEmpresaId || undefined,
+                    chavePix: overrideChavePix || undefined
                 })
             })
 
@@ -130,6 +139,44 @@ export default function AprovacoesDespesasPage() {
             toast.error(err.message || "Erro ao processar aprovação.")
         } finally {
             setProcessingId(null)
+        }
+    }
+
+    // Ação: Sincronizar Manualmente no Conta Azul
+    const handleSincronizarContaAzul = async (despesa: Despesa | DespesaDetalhes, overrideChavePix?: string) => {
+        const currentPix = overrideChavePix || despesa.chavePix || despesa.solicitante.chavePix
+        if (!currentPix) {
+            setDetailItem(despesa as any)
+            toast.warning("Como nas diárias, informe a Chave Pix da despesa antes de sincronizar com o Conta Azul.")
+            return
+        }
+
+        setSyncingId(despesa.id)
+        try {
+            const res = await fetch(`/api/despesas/${despesa.id}/sincronizar-contaazul`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chavePix: overrideChavePix || undefined
+                })
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || "Erro ao sincronizar com o Conta Azul.")
+
+            toast.success(`Sincronizado no Conta Azul com sucesso! ID: ${data.contaAzulPayableId}`)
+            loadDespesas()
+            if (detailItem && detailItem.id === despesa.id) {
+                setDetailItem({
+                    ...detailItem,
+                    chavePix: overrideChavePix || detailItem.chavePix,
+                    contaAzulPayableId: data.contaAzulPayableId,
+                    contaAzulStatus: "SINCRONIZADO"
+                })
+            }
+        } catch (err: any) {
+            toast.error(err.message || "Erro ao sincronizar com o Conta Azul.")
+        } finally {
+            setSyncingId(null)
         }
     }
 
@@ -690,8 +737,15 @@ export default function AprovacoesDespesasPage() {
                                                 <p className="font-bold text-xs text-slate-900 dark:text-white hover:text-blue-600">
                                                     {d.solicitante.nome}
                                                 </p>
-                                                <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                                    PIX: <span className="text-slate-700 dark:text-slate-300 font-semibold">{d.chavePix || d.solicitante.chavePix || "N/I"}</span>
+                                                <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                                                    <span>PIX:</span>
+                                                    {(d.chavePix || d.solicitante.chavePix) ? (
+                                                        <span className="text-slate-700 dark:text-slate-300 font-semibold">{d.chavePix || d.solicitante.chavePix}</span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-300">
+                                                            ⚠️ Sem PIX
+                                                        </span>
+                                                    )}
                                                 </p>
                                             </td>
 
@@ -763,11 +817,16 @@ export default function AprovacoesDespesasPage() {
                                             <td className="py-3.5 px-4 whitespace-nowrap">
                                                 <div className="space-y-1">
                                                     <div>{getStatusBadge(d.status, d.tipo)}</div>
-                                                    {d.contaAzulPayableId && (
+                                                    {d.contaAzulPayableId ? (
                                                         <div className="flex items-center gap-1 text-[10px] font-mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded border border-blue-200/50">
                                                             <span>CA: {d.contaAzulPayableId.slice(0, 8)}...</span>
                                                         </div>
-                                                    )}
+                                                    ) : (d.status === "APROVADO" || (d.tipo === "ADIANTAMENTO" && d.status === "PAGO")) ? (
+                                                        <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-300">
+                                                            <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                                                            <span>Pendente no ERP</span>
+                                                        </div>
+                                                    ) : null}
                                                 </div>
                                             </td>
 
@@ -869,15 +928,30 @@ export default function AprovacoesDespesasPage() {
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => setDetailItem(d)}
-                                                        className="h-8 px-2 text-xs text-slate-500 hover:text-slate-900 cursor-pointer"
-                                                    >
-                                                        <Eye className="w-3.5 h-3.5 mr-1" />
-                                                        Detalhes
-                                                    </Button>
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        {((d.status === "APROVADO" || (d.tipo === "ADIANTAMENTO" && d.status === "PAGO")) && !d.contaAzulPayableId) && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleSincronizarContaAzul(d)}
+                                                                disabled={syncingId === d.id}
+                                                                className="h-8 px-2 rounded-lg border-amber-300 hover:bg-amber-50 text-amber-700 text-xs font-semibold cursor-pointer gap-1"
+                                                                title="Sincronizar no Conta Azul agora"
+                                                            >
+                                                                <RefreshCw className={`w-3.5 h-3.5 ${syncingId === d.id ? "animate-spin" : ""}`} />
+                                                                Sincronizar CA
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => setDetailItem(d)}
+                                                            className="h-8 px-2 text-xs text-slate-500 hover:text-slate-900 cursor-pointer"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5 mr-1" />
+                                                            Detalhes
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </td>
                                         </tr>
@@ -901,6 +975,7 @@ export default function AprovacoesDespesasPage() {
                     setIsRejectOpen(true)
                 }}
                 onAprovarPrestacao={handleAprovarPrestacaoEBaixar}
+                onSincronizarContaAzul={handleSincronizarContaAzul}
                 isApprover={true}
                 empresas={empresas}
             />

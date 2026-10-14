@@ -6,11 +6,12 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { formatCurrency } from "@/lib/utils"
 import { 
     Calendar, User, Building2, CreditCard, Receipt, FileText, 
-    Clock, CheckCircle, XCircle, AlertTriangle, ExternalLink, Copy, Check, Eye
+    Clock, CheckCircle, XCircle, AlertTriangle, AlertCircle, ExternalLink, Copy, Check, Eye, RefreshCw
 } from "lucide-react"
 import { toast } from "sonner"
 import { AttachmentViewer } from "@/components/dashboard/attachment-viewer"
@@ -61,9 +62,10 @@ interface DespesaDetailModalProps {
     despesa: DespesaDetalhes | null
     isOpen: boolean
     onClose: () => void
-    onAprovar?: (despesa: DespesaDetalhes, overrideEmpresaId?: string) => void
+    onAprovar?: (despesa: DespesaDetalhes, overrideEmpresaId?: string, overrideChavePix?: string) => void
     onReprovar?: (despesa: DespesaDetalhes) => void
     onAprovarPrestacao?: (despesa: DespesaDetalhes) => void
+    onSincronizarContaAzul?: (despesa: DespesaDetalhes, overrideChavePix?: string) => void
     isApprover?: boolean
     empresas?: Array<{ id: string; nome: string }>
 }
@@ -75,20 +77,28 @@ export function DespesaDetailModal({
     onAprovar,
     onReprovar,
     onAprovarPrestacao,
+    onSincronizarContaAzul,
     isApprover = false,
     empresas = []
 }: DespesaDetailModalProps) {
     const [copiedPix, setCopiedPix] = useState(false)
     const [previewAnexo, setPreviewAnexo] = useState<any | null>(null)
     const [selectedEmpresaId, setSelectedEmpresaId] = useState<string>("")
+    const [editChavePix, setEditChavePix] = useState<string>("")
+    const [isEditingPix, setIsEditingPix] = useState<boolean>(false)
 
     useEffect(() => {
-        if (despesa?.empresa?.id) {
-            setSelectedEmpresaId(despesa.empresa.id)
+        if (despesa) {
+            setSelectedEmpresaId(despesa.empresa?.id || "")
+            const pix = despesa.chavePix || despesa.solicitante.chavePix || ""
+            setEditChavePix(pix)
+            setIsEditingPix(!pix)
         } else {
             setSelectedEmpresaId("")
+            setEditChavePix("")
+            setIsEditingPix(false)
         }
-    }, [despesa?.id, despesa?.empresa?.id])
+    }, [despesa?.id, despesa?.empresa?.id, despesa?.chavePix, despesa?.solicitante?.chavePix])
 
     if (!despesa) return null
 
@@ -151,11 +161,16 @@ export function DespesaDetailModal({
                         </DialogTitle>
                         <DialogDescription className="text-xs text-slate-500">
                             Protocolo: <span className="font-mono text-slate-700 dark:text-slate-300">{despesa.id}</span>
-                            {despesa.contaAzulPayableId && (
+                            {despesa.contaAzulPayableId ? (
                                 <span className="ml-2 font-mono text-blue-600 dark:text-blue-400 font-semibold">
                                     • ERP Conta Azul: {despesa.contaAzulPayableId}
                                 </span>
-                            )}
+                            ) : despesa.status === 'APROVADO' ? (
+                                <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                                    <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                    Pendente de sincronização no Conta Azul
+                                </span>
+                            ) : null}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -249,22 +264,65 @@ export function DespesaDetailModal({
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-slate-500 font-medium">Chave PIX Cadastrada</p>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                                            {effectivePix || "NÃO INFORMADA"}
-                                        </span>
-                                        {effectivePix && (
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-slate-500 font-medium">Chave PIX para Pagamento</p>
+                                        {!isEditingPix && (
                                             <button
                                                 type="button"
-                                                onClick={copyPix}
-                                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 cursor-pointer"
-                                                title="Copiar Chave PIX"
+                                                onClick={() => setIsEditingPix(true)}
+                                                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 underline cursor-pointer"
                                             >
-                                                {copiedPix ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                                                Alterar
                                             </button>
                                         )}
                                     </div>
+                                    {isEditingPix ? (
+                                        <div className="mt-1 space-y-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <Input
+                                                    value={editChavePix}
+                                                    onChange={(e) => setEditChavePix(e.target.value)}
+                                                    placeholder="CPF, E-mail, Celular ou Aleatória"
+                                                    className="h-8 text-xs font-mono bg-slate-50 dark:bg-slate-800"
+                                                />
+                                                {effectivePix && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => {
+                                                            setEditChavePix(effectivePix)
+                                                            setIsEditingPix(false)
+                                                        }}
+                                                        className="h-8 px-2 text-xs"
+                                                    >
+                                                        Cancelar
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            {!effectivePix && (
+                                                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                                                    <AlertCircle className="w-3 h-3 shrink-0" />
+                                                    Como na diária, a chave PIX é necessária para o pagamento no ERP.
+                                                </p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                                                {editChavePix || effectivePix || "NÃO INFORMADA"}
+                                            </span>
+                                            {(editChavePix || effectivePix) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={copyPix}
+                                                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 cursor-pointer"
+                                                    title="Copiar Chave PIX"
+                                                >
+                                                    {copiedPix ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -440,8 +498,11 @@ export function DespesaDetailModal({
                                 {onAprovar && (
                                     <Button
                                         onClick={() => {
+                                            if (!editChavePix.trim()) {
+                                                toast.warning("Atenção: Solicitação sem chave PIX. Como na diária, é altamente recomendado informar a chave PIX.")
+                                            }
                                             onClose()
-                                            onAprovar(despesa, selectedEmpresaId || undefined)
+                                            onAprovar(despesa, selectedEmpresaId || undefined, editChavePix.trim() || undefined)
                                         }}
                                         className="h-10 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
                                     >
@@ -462,6 +523,21 @@ export function DespesaDetailModal({
                             >
                                 <CheckCircle className="w-4 h-4 mr-1" />
                                 Aprovar Prestação & Baixar
+                            </Button>
+                        )}
+
+                        {isApprover && despesa.status === 'APROVADO' && !despesa.contaAzulPayableId && onSincronizarContaAzul && (
+                            <Button
+                                onClick={() => {
+                                    if (!editChavePix.trim()) {
+                                        toast.warning("Atenção: Informe uma chave PIX para garantir o pagamento correto no Conta Azul.")
+                                    }
+                                    onSincronizarContaAzul(despesa, editChavePix.trim() || undefined)
+                                }}
+                                className="h-10 text-xs rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer gap-1.5"
+                            >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Sincronizar no Conta Azul
                             </Button>
                         )}
                     </DialogFooter>

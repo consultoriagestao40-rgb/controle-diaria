@@ -949,20 +949,40 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
         }
 
         const cleanPix = (despesa.chavePix || despesa.solicitante.chavePix || "").trim()
-        const cleanCpf = (despesa.solicitante.cpf || "").trim()
+        let beneficiarioNome = despesa.solicitante.nome
+        let beneficiarioCpf = (despesa.solicitante.cpf || "").trim()
+        let beneficiarioEmail = despesa.solicitante.email
 
-        // 1. Busca ou cria o Colaborador como fornecedor/contato no Conta Azul
+        // Se a despesa tiver uma chave Pix informada, verifica se pertence a um Diarista cadastrado no sistema
+        if (cleanPix) {
+            const cleanDigits = cleanPix.replace(/\D/g, "")
+            const diarista = await prisma.diarista.findFirst({
+                where: {
+                    OR: [
+                        { chavePix: cleanPix },
+                        ...(cleanDigits.length === 11 ? [{ cpf: cleanDigits }] : [])
+                    ]
+                }
+            })
+            if (diarista) {
+                beneficiarioNome = diarista.nome
+                if (diarista.cpf) beneficiarioCpf = diarista.cpf
+            }
+        }
+
+        // 1. Busca ou cria o Colaborador / Diarista Beneficiário como fornecedor/contato no Conta Azul
         const contactResult = await findOrCreateContaAzulContact(empresaId, {
-            nome: despesa.solicitante.nome,
-            email: despesa.solicitante.email,
-            cpf: cleanCpf,
+            nome: beneficiarioNome,
+            email: beneficiarioEmail,
+            cpf: beneficiarioCpf,
             chavePix: cleanPix
         })
 
         const valor = Number(despesa.valorSolicitado)
         const dataHoje = format(new Date(), "yyyy-MM-dd")
         const pixInfo = cleanPix ? ` - PIX: ${cleanPix}` : ""
-        const descricao = `${despesa.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}: ${despesa.solicitante.nome}${pixInfo} - ${despesa.descricao}`
+        const solicitanteInfo = beneficiarioNome !== despesa.solicitante.nome ? ` (Sol. ${despesa.solicitante.nome})` : ""
+        const descricao = `${despesa.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}: ${beneficiarioNome}${pixInfo}${solicitanteInfo} - ${despesa.descricao}`
 
         // Categoria apropriada por tipo
         const categoriaId = despesa.tipo === "REEMBOLSO"
@@ -990,7 +1010,7 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             ]
         }
 
-        const observacao = `Beneficiário: ${despesa.solicitante.nome} | CPF: ${cleanCpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Ref: ${despesa.tipo} - ${despesa.descricao} | Despesa ID: ${despesa.id.slice(-6).toUpperCase()}`
+        const observacao = `Beneficiário: ${beneficiarioNome} | CPF: ${beneficiarioCpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Solicitante: ${despesa.solicitante.nome} | Ref: ${despesa.tipo} - ${despesa.descricao} | Despesa ID: ${despesa.id.slice(-6).toUpperCase()}`
 
         const payload: any = {
             data_competencia: dataHoje,

@@ -42,7 +42,7 @@ export async function PATCH(
         }
 
         const body = await req.json()
-        const { action, justificativa, empresaId } = body
+        const { action, justificativa, empresaId, chavePix } = body
 
         if (!action || (action !== 'APROVAR' && action !== 'REPROVAR')) {
             return new NextResponse(
@@ -81,6 +81,7 @@ export async function PATCH(
                     justificativaAprovacao: action === 'APROVAR' ? (justificativa || null) : despesa.justificativaAprovacao,
                     justificativaReprovacao: action === 'REPROVAR' ? justificativa : despesa.justificativaReprovacao,
                     ...(empresaId ? { empresaId } : {}),
+                    ...(chavePix && chavePix.trim() ? { chavePix: chavePix.trim() } : {}),
                     ...(action === 'REPROVAR' && isPrestacao ? {
                         valorComprovado: null,
                         saldoFinal: null
@@ -132,9 +133,31 @@ export async function PATCH(
                             observacao: `[Conta Azul] Lançamento de Contas a Pagar criado com sucesso (ID: ${caResult.payableId})`
                         }
                     })
+                    return NextResponse.json({ ...despesaAtualizada, contaAzulPayableId: caResult.payableId })
+                } else {
+                    await prisma.historicoDespesa.create({
+                        data: {
+                            despesaId: id,
+                            deStatus: 'APROVADO',
+                            paraStatus: 'APROVADO',
+                            usuarioId: user.id,
+                            observacao: `[Conta Azul Falha] Não foi possível integrar com o ERP: ${caResult.error || "Erro desconhecido"}`
+                        }
+                    })
+                    return NextResponse.json({ ...despesaAtualizada, contaAzulError: caResult.error })
                 }
             } catch (caErr: any) {
                 console.error("[CONTA AZUL DESPESA TRIGGER ERROR]", caErr)
+                await prisma.historicoDespesa.create({
+                    data: {
+                        despesaId: id,
+                        deStatus: 'APROVADO',
+                        paraStatus: 'APROVADO',
+                        usuarioId: user.id,
+                        observacao: `[Conta Azul Falha] Exceção na integração: ${caErr.message}`
+                    }
+                })
+                return NextResponse.json({ ...despesaAtualizada, contaAzulError: caErr.message })
             }
         }
 
