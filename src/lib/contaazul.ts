@@ -1366,64 +1366,6 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
         if (!config || !config.ativo || !config.accessToken) continue
 
         try {
-            // 0. Auto-cria Contas a Pagar no ERP para Diárias APROVADAS que ainda estão sem título no Conta Azul
-            const cobsAprovadasSemCA = await prisma.cobertura.findMany({
-                where: {
-                    empresaId: empresa.id,
-                    status: "APROVADO",
-                    contaAzulPayableId: null
-                },
-                include: { diarista: true, posto: true }
-            })
-
-            if (cobsAprovadasSemCA.length > 0) {
-                // Agrupa por diaristaId
-                const groupDiaristas = new Map<string, string[]>()
-                for (const cob of cobsAprovadasSemCA) {
-                    if (!groupDiaristas.has(cob.diaristaId)) {
-                        groupDiaristas.set(cob.diaristaId, [])
-                    }
-                    groupDiaristas.get(cob.diaristaId)!.push(cob.id)
-                }
-
-                for (const [, ids] of Array.from(groupDiaristas.entries())) {
-                    try {
-                        const caRes = ids.length === 1 
-                            ? await createPayableFromCobertura(ids[0])
-                            : await createPayableFromGroupedCoberturas(ids)
-                        if (caRes?.success && caRes?.payableId) {
-                            results.coberturasCriadas += ids.length
-                        } else if (caRes?.error) {
-                            results.erros.push(`[${empresa.nome}] Diária: ${caRes.error}`)
-                        }
-                    } catch (caErr: any) {
-                        results.erros.push(`[${empresa.nome}] Diária erro: ${caErr.message}`)
-                    }
-                }
-            }
-
-            // 0.1 Auto-cria Contas a Pagar no ERP para Despesas/Reembolsos APROVADOS sem título no Conta Azul
-            const despesasAprovadasSemCA = await prisma.despesa.findMany({
-                where: {
-                    empresaId: empresa.id,
-                    status: "APROVADO",
-                    contaAzulPayableId: null
-                }
-            })
-
-            for (const desp of despesasAprovadasSemCA) {
-                try {
-                    const caRes = await createPayableFromDespesa(desp.id)
-                    if (caRes?.success && caRes?.payableId) {
-                        results.despesasCriadas++
-                    } else if (caRes?.error) {
-                        results.erros.push(`[${empresa.nome}] Reembolso: ${caRes.error}`)
-                    }
-                } catch (dErr: any) {
-                    results.erros.push(`[${empresa.nome}] Reembolso erro: ${dErr.message}`)
-                }
-            }
-
             // 1. Busca Diárias (Coberturas) pendentes de pagamento que foram enviadas ao Conta Azul
             const coberturasPendentes = await prisma.cobertura.findMany({
                 where: {
