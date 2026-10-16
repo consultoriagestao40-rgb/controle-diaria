@@ -143,8 +143,8 @@ const refreshPromises = new Map<string, Promise<string | null>>()
 /**
  * Garante e retorna um Access Token válido, renovando automaticamente com refresh_token se necessário.
  */
-export async function getValidAccessToken(empresaId: string): Promise<string | null> {
-    if (refreshPromises.has(empresaId)) {
+export async function getValidAccessToken(empresaId: string, forceRefresh = false): Promise<string | null> {
+    if (!forceRefresh && refreshPromises.has(empresaId)) {
         return refreshPromises.get(empresaId)!
     }
 
@@ -157,20 +157,23 @@ export async function getValidAccessToken(empresaId: string): Promise<string | n
             }
 
             const now = new Date()
-            // Se o token ainda é válido por mais de 2 minutos, usa ele diretamente
-            if (config.expiresAt && config.expiresAt.getTime() > now.getTime() + 120000) {
+            // Se não for refresh forçado e o token ainda é válido por mais de 2 minutos, usa ele diretamente
+            if (!forceRefresh && config.expiresAt && config.expiresAt.getTime() > now.getTime() + 120000) {
                 return config.accessToken
             }
 
             // Se tiver refresh token, renova
             if (config.refreshToken && clientId && clientSecret) {
                 try {
-                    // Re-lê do banco no momento exato antes de enviar ao Conta Azul
-                    const freshConfig = await prisma.contaAzulConfig.findUnique({ where: { empresaId } })
-                    if (freshConfig?.expiresAt && freshConfig.expiresAt.getTime() > now.getTime() + 120000 && freshConfig.accessToken) {
-                        return freshConfig.accessToken
+                    // Re-lê do banco no momento exato antes de enviar ao Conta Azul se não for refresh forçado
+                    if (!forceRefresh) {
+                        const freshConfig = await prisma.contaAzulConfig.findUnique({ where: { empresaId } })
+                        if (freshConfig?.expiresAt && freshConfig.expiresAt.getTime() > now.getTime() + 120000 && freshConfig.accessToken) {
+                            return freshConfig.accessToken
+                        }
                     }
 
+                    const freshConfig = await prisma.contaAzulConfig.findUnique({ where: { empresaId } })
                     const tokenToUse = freshConfig?.refreshToken || config.refreshToken
                     const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
                     const bodyParams = new URLSearchParams()
@@ -230,7 +233,7 @@ export async function getValidAccessToken(empresaId: string): Promise<string | n
 /**
  * Cliente HTTP genérico para chamar endpoints da API do Conta Azul
  */
-export async function fetchContaAzul(empresaId: string, endpoint: string, options: RequestInit = {}): Promise<any> {
+export async function fetchContaAzul(empresaId: string, endpoint: string, options: RequestInit = {}, isRetry = false): Promise<any> {
     const token = await getValidAccessToken(empresaId)
     if (!token) {
         throw new Error("Não autenticado ou token do Conta Azul indisponível para esta empresa.")
@@ -254,8 +257,24 @@ export async function fetchContaAzul(empresaId: string, endpoint: string, option
     }
 
     const text = await res.text()
+    let json: any = null
     try {
-        const json = JSON.parse(text)
+        json = JSON.parse(text)
+    } catch {
+        // Not JSON
+    }
+
+    // Auto-recuperação: Se receber 401 ou token inválido/expirado, força refresh imediato e retenta 1 vez
+    const isUnauthorized = res.status === 401 || (json && (json.error === "invalid_token" || json.erro === "invalid_token" || (typeof json.message === "string" && json.message.toLowerCase().includes("token"))))
+    if (isUnauthorized && !isRetry) {
+        console.warn(`[CONTA AZUL 401] Token expirado/inválido para empresa ${empresaId}. Forçando refresh e retentando requisição em ${endpoint}...`)
+        const refreshedToken = await getValidAccessToken(empresaId, true)
+        if (refreshedToken) {
+            return fetchContaAzul(empresaId, endpoint, options, true)
+        }
+    }
+
+    if (json) {
         if (!res.ok) {
             return {
                 error: json.message || json.error || `Erro retornado pela API do Conta Azul (${res.status})`,
@@ -264,12 +283,12 @@ export async function fetchContaAzul(empresaId: string, endpoint: string, option
             }
         }
         return json
-    } catch {
-        if (!res.ok) {
-            return { error: `Erro na API Conta Azul (${res.status}): ${text}`, status: res.status }
-        }
-        return { raw: text }
     }
+
+    if (!res.ok) {
+        return { error: `Erro na API Conta Azul (${res.status}): ${text}`, status: res.status }
+    }
+    return { raw: text }
 }
 
 /**
@@ -392,8 +411,9 @@ export async function resolveCostCenterForEmpresa(
         }
 
         // 4. Fallback padrão da empresa se existir e for válido
-        if (fallbackCostCenterId) {
-            const fallbackExists = costCenters.find((c: any) => c.id === fallbackCostCenterId)
+        const cleanFallbackCc = fallbackCostCenterId?.trim() || null
+        if (cleanFallbackCc) {
+            const fallbackExists = costCenters.find((c: any) => c.id === cleanFallbackCc)
             if (fallbackExists) return fallbackExists.id
         }
     } catch (e) {
