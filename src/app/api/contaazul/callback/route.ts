@@ -8,7 +8,8 @@ export async function GET(req: NextRequest) {
     const error = searchParams.get("error")
     const errorDescription = searchParams.get("error_description")
 
-    const baseUrl = process.env.NEXTAUTH_URL || req.nextUrl.origin
+    // Usa o domínio real da requisição (NEXTAUTH_URL pode estar com valor incorreto no ambiente)
+    const baseUrl = req.nextUrl.origin
 
     if (error) {
         return NextResponse.redirect(`${baseUrl}/dashboard/admin/configs?tab=contaazul&status=error&message=${encodeURIComponent(errorDescription || error)}`)
