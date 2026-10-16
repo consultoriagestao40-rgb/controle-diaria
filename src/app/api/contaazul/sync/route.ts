@@ -24,10 +24,24 @@ export async function POST(req: NextRequest) {
 
         const result = await syncContaAzulPayables(empresaId)
 
+        const parts: string[] = []
+        if (result.coberturasCriadas > 0) parts.push(`${result.coberturasCriadas} diárias criadas no ERP`)
+        if (result.despesasCriadas > 0) parts.push(`${result.despesasCriadas} reembolsos criados no ERP`)
+        if (result.coberturasAtualizadas > 0) parts.push(`${result.coberturasAtualizadas} diárias baixadas`)
+        if (result.despesasAtualizadas > 0) parts.push(`${result.despesasAtualizadas} reembolsos baixados`)
+
+        let message = parts.length > 0 
+            ? `Sincronização concluída: ${parts.join(", ")}.`
+            : "Sincronização concluída. Nenhum novo título pendente de criação ou baixa."
+
+        if (result.erros && result.erros.length > 0) {
+            message += ` (Avisos: ${result.erros[0]})`
+        }
+
         return NextResponse.json({
             success: true,
             ...result,
-            message: `Sincronização concluída: ${result.coberturasAtualizadas} diárias e ${result.despesasAtualizadas} despesas atualizadas para PAGO.`
+            message
         })
     } catch (error: any) {
         console.error("[CONTA AZUL SYNC ERROR]", error)

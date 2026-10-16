@@ -251,6 +251,16 @@ export async function POST(req: Request) {
                             observacao: `[Conta Azul] Lançamento de Contas a Pagar criado com sucesso (ID: ${caResult.payableId})`
                         }
                     })
+                } else if (caResult?.error) {
+                    await prisma.historicoWorkflow.create({
+                        data: {
+                            coberturaId: id,
+                            deStatus: 'APROVADO',
+                            paraStatus: 'APROVADO',
+                            usuarioId: user.id,
+                            observacao: `[Conta Azul Falha] Erro ao criar título: ${caResult.error}`
+                        }
+                    })
                 }
             } catch (caErr: any) {
                 console.error("[CONTA AZUL TRIGGER ERROR]", caErr)

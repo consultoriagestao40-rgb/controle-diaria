@@ -315,6 +315,8 @@ export default function ApproverDashboard() {
 
             if (data.payablesCreated && data.payablesCreated > 0) {
                 toast.success(`${data.processedCount} diárias aprovadas! (${data.payablesCreated} lote(s) consolidado(s) no Conta Azul com rateio)`)
+            } else if (data.contaAzulErrors && data.contaAzulErrors.length > 0) {
+                toast.warning(`${data.processedCount} diárias aprovadas no sistema, porém o Conta Azul não sincronizou: ${data.contaAzulErrors[0]}`)
             } else {
                 toast.success(`${data.processedCount} itens aprovados com sucesso!`)
             }

@@ -137,71 +137,94 @@ export async function exchangeContaAzulCodeForTokens(code: string, empresaId: st
     }
 }
 
+// Mutex em memória para evitar que chamadas concorrentes queimem o refresh_token de uso único do Conta Azul
+const refreshPromises = new Map<string, Promise<string | null>>()
+
 /**
  * Garante e retorna um Access Token válido, renovando automaticamente com refresh_token se necessário.
  */
 export async function getValidAccessToken(empresaId: string): Promise<string | null> {
-    const { config, clientId, clientSecret } = await getEmpresaContaAzulCredentials(empresaId)
-
-    if (!config || !config.ativo || !config.accessToken) {
-        return null
+    if (refreshPromises.has(empresaId)) {
+        return refreshPromises.get(empresaId)!
     }
 
-    const now = new Date()
-    // Se o token ainda é válido por mais de 2 minutos, usa ele diretamente
-    if (config.expiresAt && config.expiresAt.getTime() > now.getTime() + 120000) {
-        return config.accessToken
-    }
-
-    // Se tiver refresh token, renova
-    if (config.refreshToken && clientId && clientSecret) {
+    const refreshPromise = (async () => {
         try {
-            const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
-            const bodyParams = new URLSearchParams()
-            bodyParams.append("grant_type", "refresh_token")
-            bodyParams.append("refresh_token", config.refreshToken)
+            const { config, clientId, clientSecret } = await getEmpresaContaAzulCredentials(empresaId)
 
-            const res = await fetch(CONTA_AZUL_TOKEN_URL, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Basic ${authHeader}`,
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: bodyParams.toString()
-            })
-
-            const data = await res.json()
-
-            if (res.ok && data.access_token) {
-                const accessToken = data.access_token
-                const refreshToken = data.refresh_token || config.refreshToken
-                const expiresIn = Number(data.expires_in) || 3600
-                const expiresAt = new Date(Date.now() + (expiresIn - 60) * 1000)
-
-                await prisma.contaAzulConfig.update({
-                    where: { empresaId },
-                    data: {
-                        accessToken,
-                        refreshToken,
-                        expiresAt
-                    }
-                })
-
-                return accessToken
-            } else {
-                console.error("[CONTA AZUL REFRESH TOKEN ERROR]", data)
+            if (!config || !config.ativo || !config.accessToken) {
+                return null
             }
-        } catch (error) {
-            console.error("[CONTA AZUL REFRESH EXCEPTION]", error)
+
+            const now = new Date()
+            // Se o token ainda é válido por mais de 2 minutos, usa ele diretamente
+            if (config.expiresAt && config.expiresAt.getTime() > now.getTime() + 120000) {
+                return config.accessToken
+            }
+
+            // Se tiver refresh token, renova
+            if (config.refreshToken && clientId && clientSecret) {
+                try {
+                    // Re-lê do banco no momento exato antes de enviar ao Conta Azul
+                    const freshConfig = await prisma.contaAzulConfig.findUnique({ where: { empresaId } })
+                    if (freshConfig?.expiresAt && freshConfig.expiresAt.getTime() > now.getTime() + 120000 && freshConfig.accessToken) {
+                        return freshConfig.accessToken
+                    }
+
+                    const tokenToUse = freshConfig?.refreshToken || config.refreshToken
+                    const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
+                    const bodyParams = new URLSearchParams()
+                    bodyParams.append("grant_type", "refresh_token")
+                    bodyParams.append("refresh_token", tokenToUse)
+
+                    const res = await fetch(CONTA_AZUL_TOKEN_URL, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Basic ${authHeader}`,
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: bodyParams.toString()
+                    })
+
+                    const data = await res.json()
+
+                    if (res.ok && data.access_token) {
+                        const accessToken = data.access_token
+                        const refreshToken = data.refresh_token || tokenToUse
+                        const expiresIn = Number(data.expires_in) || 3600
+                        const expiresAt = new Date(Date.now() + (expiresIn - 60) * 1000)
+
+                        await prisma.contaAzulConfig.update({
+                            where: { empresaId },
+                            data: {
+                                accessToken,
+                                refreshToken,
+                                expiresAt
+                            }
+                        })
+
+                        return accessToken
+                    } else {
+                        console.error(`[CONTA AZUL REFRESH TOKEN ERROR - ${empresaId}]`, data)
+                    }
+                } catch (error) {
+                    console.error(`[CONTA AZUL REFRESH EXCEPTION - ${empresaId}]`, error)
+                }
+            }
+
+            // Se o token expirou e a renovação falhou, retorna null para indicar que precisa de reconexão
+            if (config.expiresAt && config.expiresAt.getTime() <= now.getTime()) {
+                return null
+            }
+
+            return config.accessToken
+        } finally {
+            refreshPromises.delete(empresaId)
         }
-    }
+    })()
 
-    // Se o token expirou e a renovação falhou, retorna null para indicar que precisa de reconexão
-    if (config.expiresAt && config.expiresAt.getTime() <= now.getTime()) {
-        return null
-    }
-
-    return config.accessToken
+    refreshPromises.set(empresaId, refreshPromise)
+    return refreshPromise
 }
 
 /**
@@ -1321,6 +1344,8 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
     })
 
     const results = {
+        coberturasCriadas: 0,
+        despesasCriadas: 0,
         coberturasAtualizadas: 0,
         despesasAtualizadas: 0,
         erros: [] as string[]
@@ -1341,6 +1366,64 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
         if (!config || !config.ativo || !config.accessToken) continue
 
         try {
+            // 0. Auto-cria Contas a Pagar no ERP para Diárias APROVADAS que ainda estão sem título no Conta Azul
+            const cobsAprovadasSemCA = await prisma.cobertura.findMany({
+                where: {
+                    empresaId: empresa.id,
+                    status: "APROVADO",
+                    contaAzulPayableId: null
+                },
+                include: { diarista: true, posto: true }
+            })
+
+            if (cobsAprovadasSemCA.length > 0) {
+                // Agrupa por diaristaId
+                const groupDiaristas = new Map<string, string[]>()
+                for (const cob of cobsAprovadasSemCA) {
+                    if (!groupDiaristas.has(cob.diaristaId)) {
+                        groupDiaristas.set(cob.diaristaId, [])
+                    }
+                    groupDiaristas.get(cob.diaristaId)!.push(cob.id)
+                }
+
+                for (const [, ids] of Array.from(groupDiaristas.entries())) {
+                    try {
+                        const caRes = ids.length === 1 
+                            ? await createPayableFromCobertura(ids[0])
+                            : await createPayableFromGroupedCoberturas(ids)
+                        if (caRes?.success && caRes?.payableId) {
+                            results.coberturasCriadas += ids.length
+                        } else if (caRes?.error) {
+                            results.erros.push(`[${empresa.nome}] Diária: ${caRes.error}`)
+                        }
+                    } catch (caErr: any) {
+                        results.erros.push(`[${empresa.nome}] Diária erro: ${caErr.message}`)
+                    }
+                }
+            }
+
+            // 0.1 Auto-cria Contas a Pagar no ERP para Despesas/Reembolsos APROVADOS sem título no Conta Azul
+            const despesasAprovadasSemCA = await prisma.despesa.findMany({
+                where: {
+                    empresaId: empresa.id,
+                    status: "APROVADO",
+                    contaAzulPayableId: null
+                }
+            })
+
+            for (const desp of despesasAprovadasSemCA) {
+                try {
+                    const caRes = await createPayableFromDespesa(desp.id)
+                    if (caRes?.success && caRes?.payableId) {
+                        results.despesasCriadas++
+                    } else if (caRes?.error) {
+                        results.erros.push(`[${empresa.nome}] Reembolso: ${caRes.error}`)
+                    }
+                } catch (dErr: any) {
+                    results.erros.push(`[${empresa.nome}] Reembolso erro: ${dErr.message}`)
+                }
+            }
+
             // 1. Busca Diárias (Coberturas) pendentes de pagamento que foram enviadas ao Conta Azul
             const coberturasPendentes = await prisma.cobertura.findMany({
                 where: {

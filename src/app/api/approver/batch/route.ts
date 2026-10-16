@@ -146,6 +146,8 @@ export async function POST(req: Request) {
                 groupMap.get(key)!.push(item.id)
             }
 
+            const contaAzulErrors: string[] = []
+
             for (const [key, cobIds] of Array.from(groupMap.entries())) {
                 try {
                     let caResult
@@ -171,18 +173,40 @@ export async function POST(req: Request) {
                                 }
                             })
                         }
+                    } else if (caResult?.error) {
+                        contaAzulErrors.push(caResult.error)
+                        for (const cobId of cobIds) {
+                            await prisma.historicoWorkflow.create({
+                                data: {
+                                    coberturaId: cobId,
+                                    deStatus: 'APROVADO',
+                                    paraStatus: 'APROVADO',
+                                    usuarioId: user.id,
+                                    observacao: `[Conta Azul Falha] Erro ao criar título: ${caResult.error}`
+                                }
+                            })
+                        }
                     }
-                } catch (caErr) {
+                } catch (caErr: any) {
                     console.error("[CONTA AZUL BATCH TRIGGER ERROR]", caErr)
+                    contaAzulErrors.push(caErr.message || "Erro desconhecido")
                 }
             }
+
+            return NextResponse.json({
+                success: true,
+                processedCount: successCount,
+                finalApprovedCount: approvedFinalIds.length,
+                payablesCreated: totalPayablesCreated,
+                contaAzulErrors: contaAzulErrors.length > 0 ? contaAzulErrors : undefined
+            })
         }
 
         return NextResponse.json({
             success: true,
             processedCount: successCount,
             finalApprovedCount: approvedFinalIds.length,
-            payablesCreated: totalPayablesCreated
+            payablesCreated: 0
         })
     } catch (error) {
         console.error("Batch Approver Error:", error)
