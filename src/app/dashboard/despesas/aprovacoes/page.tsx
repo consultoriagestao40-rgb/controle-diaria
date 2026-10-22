@@ -5,7 +5,7 @@ import {
     CheckSquare, Loader2, AlertCircle, Calendar, Receipt, DollarSign, 
     FileText, CheckCircle, XCircle, Clock, X, Search, Building2, 
     Eye, ExternalLink, ThumbsUp, ThumbsDown, ArrowDownLeft, ArrowUpRight, Copy, Check,
-    Layers, UserCheck, Trash2, RefreshCw
+    Layers, UserCheck, Trash2, RefreshCw, User, MapPin
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,6 +21,7 @@ import {
 import { AttachmentViewer } from "@/components/dashboard/attachment-viewer"
 import { DespesaDetailModal, DespesaDetalhes } from "@/components/dashboard/despesa-detail-modal"
 import { formatCurrency } from "@/lib/utils"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface Despesa {
     id: string
@@ -46,19 +47,40 @@ interface Despesa {
     solicitante: { id: string; nome: string; email: string; role?: string; chavePix?: string | null; cpf?: string | null }
 }
 
+interface GroupedDespesa {
+    key: string
+    name: string
+    subName: string
+    solicitanteNome: string
+    solicitantePix: string
+    empresaNome: string
+    empresaId?: string
+    count: number
+    totalValue: number
+    items: Despesa[]
+}
+
 export default function AprovacoesDespesasPage() {
     const [despesas, setDespesas] = useState<Despesa[]>([])
     const [loading, setLoading] = useState(true)
     const [filterTab, setFilterTab] = useState<"PENDENTES_APROVACAO" | "PRESTACOES" | "NO_CONTA_AZUL" | "TODAS">("PENDENTES_APROVACAO")
     const [searchQuery, setSearchQuery] = useState("")
+    const [selectedEmpresa, setSelectedEmpresa] = useState("ALL")
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
     const [previewAnexo, setPreviewAnexo] = useState<any | null>(null)
+
+    // Agrupamento igual tela de diárias
+    const [groupBy, setGroupBy] = useState<'SOLICITANTE_EMPRESA' | 'SOLICITANTE' | 'EMPRESA' | 'NONE'>('SOLICITANTE_EMPRESA')
+    const [selectedGroup, setSelectedGroup] = useState<GroupedDespesa | null>(null)
+    const [selectedItemIdsForBatch, setSelectedItemIdsForBatch] = useState<string[]>([])
 
     // Modal de Detalhes Completo da Solicitação
     const [detailItem, setDetailItem] = useState<Despesa | null>(null)
     const [empresas, setEmpresas] = useState<Array<{ id: string; nome: string; ativo?: boolean }>>([])
     const [batchEmpresaId, setBatchEmpresaId] = useState<string>("")
 
-    // Seleção em Lote
+    // Seleção em Lote (Modo corrida / sem agrupamento)
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [batchProcessing, setBatchProcessing] = useState(false)
     const [isBatchRejectOpen, setIsBatchRejectOpen] = useState(false)
@@ -104,7 +126,40 @@ export default function AprovacoesDespesasPage() {
         }
     }
 
-    // Ação: Aprovar Solicitação Individual (N2 cria no Conta Azul com opção de mudar empresa e Chave Pix)
+    // Lista unificada de empresas para o filtro
+    const empresaList = useMemo(() => {
+        const map = new Map<string, string>()
+        empresas.forEach(e => {
+            if (e.id && e.nome) map.set(e.id, e.nome)
+        })
+        despesas.forEach(item => {
+            if (item.empresa?.nome) {
+                const id = item.empresa.id || item.empresa.nome
+                if (!map.has(id)) {
+                    map.set(id, item.empresa.nome)
+                }
+            }
+        })
+        return Array.from(map.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome))
+    }, [empresas, despesas])
+
+    // Sincroniza itens do grupo aberto quando a lista principal de despesas é atualizada
+    useEffect(() => {
+        if (selectedGroup && despesas.length > 0) {
+            const updatedItems = despesas.filter(newItem => 
+                selectedGroup.items.some(oldItem => oldItem.id === newItem.id)
+            )
+            if (updatedItems.length === 0) {
+                setSelectedGroup(null)
+                setSelectedItemIdsForBatch([])
+            } else {
+                setSelectedGroup(prev => prev ? { ...prev, items: updatedItems } : null)
+                setSelectedItemIdsForBatch(prev => prev.filter(id => updatedItems.some(i => i.id === id)))
+            }
+        }
+    }, [despesas])
+
+    // Ação: Aprovar Solicitação Individual
     const handleAprovarSolicitacao = async (despesa: Despesa | DespesaDetalhes, overrideEmpresaId?: string, overrideChavePix?: string) => {
         const currentPix = overrideChavePix || despesa.chavePix || despesa.solicitante.chavePix
         if (!currentPix) {
@@ -241,19 +296,19 @@ export default function AprovacoesDespesasPage() {
         }
     }
 
-    // Ação: Aprovar Lote Selecionado com Consolidação no Conta Azul
-    const handleAprovarLote = async () => {
-        if (selectedIds.length === 0) return
+    // Ação genérica: Aprovar Lista de IDs em Lote (Consolidação automática no Conta Azul)
+    const handleAprovarLoteComIds = async (idsToApprove: string[], targetEmpresaId?: string) => {
+        if (idsToApprove.length === 0) return
         setBatchProcessing(true)
         try {
             const res = await fetch("/api/despesas/batch", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    ids: selectedIds,
+                    ids: idsToApprove,
                     acao: "APROVAR",
                     justificativa: "Aprovado em lote pelo gestor. Lançamento consolidado no Conta Azul.",
-                    empresaId: batchEmpresaId || undefined
+                    empresaId: targetEmpresaId || undefined
                 })
             })
 
@@ -263,7 +318,9 @@ export default function AprovacoesDespesasPage() {
             toast.success(
                 data.message || `${data.processedCount} despesa(s) aprovada(s) com sucesso!`
             )
-            setSelectedIds([])
+            setSelectedIds(prev => prev.filter(id => !idsToApprove.includes(id)))
+            setSelectedGroup(null)
+            setSelectedItemIdsForBatch([])
             setBatchEmpresaId("")
             loadDespesas()
         } catch (err: any) {
@@ -273,10 +330,16 @@ export default function AprovacoesDespesasPage() {
         }
     }
 
+    // Ação: Aprovar Lote da Barra Global
+    const handleAprovarLote = async () => {
+        await handleAprovarLoteComIds(selectedIds, batchEmpresaId || undefined)
+    }
+
     // Ação: Reprovar Lote Selecionado
     const handleReprovarLoteSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (selectedIds.length === 0) return
+        const idsToReject = selectedIds.length > 0 ? selectedIds : selectedItemIdsForBatch
+        if (idsToReject.length === 0) return
         if (!batchRejectJustificativa.trim()) {
             toast.error("Por favor, preencha a justificativa da reprovação em lote.")
             return
@@ -288,7 +351,7 @@ export default function AprovacoesDespesasPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    ids: selectedIds,
+                    ids: idsToReject,
                     acao: "REPROVAR",
                     justificativa: batchRejectJustificativa.trim()
                 })
@@ -299,8 +362,10 @@ export default function AprovacoesDespesasPage() {
 
             toast.success(`${data.processedCount} despesa(s) reprovada(s) com sucesso.`)
             setSelectedIds([])
+            setSelectedItemIdsForBatch([])
             setIsBatchRejectOpen(false)
             setBatchRejectJustificativa("")
+            setSelectedGroup(null)
             loadDespesas()
         } catch (err: any) {
             toast.error(err.message || "Erro ao reprovar despesas em lote.")
@@ -331,7 +396,7 @@ export default function AprovacoesDespesasPage() {
         return { aguardandoAprovacao, prestacoesPendentes, noContaAzul, totalPendenteValor }
     }, [despesas])
 
-    // Filtragem por Tab e Busca
+    // Filtragem por Tab, Busca, Empresa e Período de Datas
     const filteredDespesas = useMemo(() => {
         return despesas.filter(d => {
             const isPrestacao = d.tipo === "ADIANTAMENTO" && (d.status === "AGUARDANDO_CONCILIACAO" || (d.valorComprovado !== null && d.status.includes("AGUARDANDO")))
@@ -349,6 +414,41 @@ export default function AprovacoesDespesasPage() {
                 if (!d.contaAzulPayableId && !["APROVADO", "PAGO"].includes(d.status)) return false
             }
 
+            // Filtro Empresa
+            if (selectedEmpresa !== "ALL") {
+                if (selectedEmpresa === "SEM_EMPRESA") {
+                    if (d.empresa?.nome || d.empresa?.id) return false
+                } else {
+                    const empId = d.empresa?.id || d.empresa?.nome
+                    if (empId !== selectedEmpresa && d.empresa?.nome !== selectedEmpresa) {
+                        return false
+                    }
+                }
+            }
+
+            // Filtro Período Datas
+            if (startDate || endDate) {
+                let itemDateStr = ""
+                if (d.createdAt) {
+                    try {
+                        const dt = new Date(d.createdAt)
+                        if (!isNaN(dt.getTime())) {
+                            const y = dt.getFullYear()
+                            const m = String(dt.getMonth() + 1).padStart(2, '0')
+                            const day = String(dt.getDate()).padStart(2, '0')
+                            itemDateStr = `${y}-${m}-${day}`
+                        } else {
+                            itemDateStr = d.createdAt.split('T')[0]
+                        }
+                    } catch {
+                        itemDateStr = d.createdAt.split('T')[0]
+                    }
+                }
+                if (startDate && itemDateStr < startDate) return false
+                if (endDate && itemDateStr > endDate) return false
+            }
+
+            // Busca por texto
             if (searchQuery.trim()) {
                 const q = searchQuery.toLowerCase()
                 const matchSolicitante = d.solicitante.nome.toLowerCase().includes(q)
@@ -361,9 +461,108 @@ export default function AprovacoesDespesasPage() {
 
             return true
         })
-    }, [despesas, filterTab, searchQuery])
+    }, [despesas, filterTab, searchQuery, selectedEmpresa, startDate, endDate])
 
-    // Itens elegíveis para seleção em lote (pendentes)
+    // Agrupamento igual da tela de diárias (Solicitante + Empresa, Solicitante, Empresa)
+    const groupedDespesas = useMemo(() => {
+        if (groupBy === 'NONE') return []
+
+        const groups: { [key: string]: {
+            key: string
+            name: string
+            subName: string
+            solicitanteNome: string
+            solicitantePix: string
+            empresaNome: string
+            empresaId?: string
+            items: Despesa[]
+        } } = {}
+
+        filteredDespesas.forEach(item => {
+            let key = ""
+            let name = ""
+            let subName = ""
+
+            const empNome = item.empresa?.nome || "Sem Empresa"
+            const empId = item.empresa?.id || "SEM_EMPRESA"
+            const solNome = item.solicitante.nome
+            const solId = item.solicitante.id
+            const pix = item.chavePix || item.solicitante.chavePix || ""
+
+            if (groupBy === 'SOLICITANTE_EMPRESA') {
+                key = `${solId}_${empId}`
+                name = solNome
+                subName = empNome
+            } else if (groupBy === 'SOLICITANTE') {
+                key = solId
+                name = solNome
+                subName = empNome
+            } else if (groupBy === 'EMPRESA') {
+                key = empId
+                name = empNome
+                subName = solNome
+            }
+
+            if (!groups[key]) {
+                groups[key] = {
+                    key,
+                    name,
+                    subName,
+                    solicitanteNome: solNome,
+                    solicitantePix: pix,
+                    empresaNome: empNome,
+                    empresaId: item.empresa?.id,
+                    items: []
+                }
+            }
+            groups[key].items.push(item)
+        })
+
+        return Object.values(groups).map(g => {
+            const totalValue = g.items.reduce((acc, item) => acc + Number(item.valorSolicitado || 0), 0)
+            return {
+                ...g,
+                count: g.items.length,
+                totalValue
+            }
+        }).sort((a, b) => b.totalValue - a.totalValue)
+    }, [filteredDespesas, groupBy])
+
+    // Auxiliares de ícone e rótulo do grupo
+    const getGroupIcon = () => {
+        if (groupBy === 'SOLICITANTE_EMPRESA' || groupBy === 'SOLICITANTE') {
+            return <User className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+        }
+        if (groupBy === 'EMPRESA') {
+            return <Building2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+        }
+        return <User className="h-4 w-4 text-slate-500" />
+    }
+
+    const getGroupTypeLabel = () => {
+        if (groupBy === 'SOLICITANTE_EMPRESA') return "Solicitante & Empresa"
+        if (groupBy === 'SOLICITANTE') return "Solicitante"
+        if (groupBy === 'EMPRESA') return "Empresa (Grupo)"
+        return ""
+    }
+
+    // Toggle de seleção no modal de extrato do grupo
+    const toggleGroupItemSelection = (id: string) => {
+        setSelectedItemIdsForBatch(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        )
+    }
+
+    const toggleAllGroupItems = () => {
+        if (!selectedGroup) return
+        if (selectedItemIdsForBatch.length === selectedGroup.items.length) {
+            setSelectedItemIdsForBatch([])
+        } else {
+            setSelectedItemIdsForBatch(selectedGroup.items.map(i => i.id))
+        }
+    }
+
+    // Itens elegíveis para seleção em lote (pendentes no modo sem agrupamento)
     const eligibleDespesas = useMemo(() => {
         return filteredDespesas.filter(d => 
             ["AGUARDANDO_APROVACAO", "AGUARDANDO_APROVACAO_N1", "AGUARDANDO_APROVACAO_N2", "AGUARDANDO_CONCILIACAO"].includes(d.status)
@@ -385,7 +584,7 @@ export default function AprovacoesDespesasPage() {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
     }
 
-    // Resumo dos selecionados
+    // Resumo dos selecionados (Modo sem agrupamento)
     const selectedSummary = useMemo(() => {
         const selected = despesas.filter(d => selectedIds.includes(d.id))
         const totalValor = selected.reduce((acc, d) => acc + Number(d.valorSolicitado), 0)
@@ -421,26 +620,26 @@ export default function AprovacoesDespesasPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 p-4 md:p-8 space-y-6">
+        <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 p-3 md:p-8 space-y-5">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                             <CheckSquare className="w-6 h-6" />
                         </div>
-                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                             Aprovações & Gestão de Despesas
                         </h1>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Aprove individualmente ou em lote com consolidação automática no Conta Azul (1 lançamento consolidado por colaborador).
+                    <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400">
+                        Agrupamento e aprovação em lote por <strong>solicitante e empresa</strong>, com rateio e consolidação automática no Conta Azul (igual ao controle de diárias).
                     </p>
                 </div>
             </div>
 
             {/* 4 KPIs de Gestão */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <Card className="border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div className="space-y-1">
@@ -494,7 +693,7 @@ export default function AprovacoesDespesasPage() {
                 </Card>
             </div>
 
-            {/* Barra de Ação em Lote (Sticky / Destaque quando houver selecionados) */}
+            {/* Barra de Ação em Lote (Sticky / Destaque quando houver selecionados no modo lista corrida) */}
             {selectedIds.length > 0 && (
                 <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-4 rounded-2xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="space-y-1">
@@ -575,110 +774,318 @@ export default function AprovacoesDespesasPage() {
                 </div>
             )}
 
-            {/* Abas e Filtros Rápidos */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                    <button
-                        onClick={() => {
-                            setFilterTab("PENDENTES_APROVACAO")
-                            setSelectedIds([])
-                        }}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                            filterTab === "PENDENTES_APROVACAO"
-                                ? "bg-amber-500 text-white shadow-xs font-bold"
-                                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                    >
-                        <span>Pendentes de Aprovação</span>
-                        {kpis.aguardandoAprovacao > 0 && (
-                            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-bold">
-                                {kpis.aguardandoAprovacao}
-                            </span>
-                        )}
-                    </button>
+            {/* Abas Superiores de Status */}
+            <div className="flex flex-wrap items-center gap-1.5 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                <button
+                    onClick={() => {
+                        setFilterTab("PENDENTES_APROVACAO")
+                        setSelectedIds([])
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                        filterTab === "PENDENTES_APROVACAO"
+                            ? "bg-amber-500 text-white shadow-xs font-bold"
+                            : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                >
+                    <span>Pendentes de Aprovação</span>
+                    {kpis.aguardandoAprovacao > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/25 text-white font-bold">
+                            {kpis.aguardandoAprovacao}
+                        </span>
+                    )}
+                </button>
 
-                    <button
-                        onClick={() => {
-                            setFilterTab("PRESTACOES")
-                            setSelectedIds([])
-                        }}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                            filterTab === "PRESTACOES"
-                                ? "bg-indigo-600 text-white shadow-xs font-bold"
-                                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                    >
-                        <span>Prestações a Validar</span>
-                        {kpis.prestacoesPendentes > 0 && (
-                            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-bold">
-                                {kpis.prestacoesPendentes}
-                            </span>
-                        )}
-                    </button>
+                <button
+                    onClick={() => {
+                        setFilterTab("PRESTACOES")
+                        setSelectedIds([])
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                        filterTab === "PRESTACOES"
+                            ? "bg-indigo-600 text-white shadow-xs font-bold"
+                            : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                >
+                    <span>Prestações a Validar</span>
+                    {kpis.prestacoesPendentes > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/25 text-white font-bold">
+                            {kpis.prestacoesPendentes}
+                        </span>
+                    )}
+                </button>
 
-                    <button
-                        onClick={() => {
-                            setFilterTab("NO_CONTA_AZUL")
-                            setSelectedIds([])
-                        }}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                            filterTab === "NO_CONTA_AZUL"
-                                ? "bg-blue-600 text-white shadow-xs font-bold"
-                                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                    >
-                        No Conta Azul / Pagas
-                    </button>
+                <button
+                    onClick={() => {
+                        setFilterTab("NO_CONTA_AZUL")
+                        setSelectedIds([])
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                        filterTab === "NO_CONTA_AZUL"
+                            ? "bg-blue-600 text-white shadow-xs font-bold"
+                            : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                >
+                    No Conta Azul / Pagas
+                </button>
 
-                    <button
-                        onClick={() => {
-                            setFilterTab("TODAS")
-                            setSelectedIds([])
-                        }}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                            filterTab === "TODAS"
-                                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs font-bold"
-                                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                    >
-                        Todas
-                    </button>
-                </div>
-
-                <div className="relative min-w-[260px]">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input 
-                        placeholder="Buscar por colaborador, pix, empresa..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs"
-                    />
-                </div>
+                <button
+                    onClick={() => {
+                        setFilterTab("TODAS")
+                        setSelectedIds([])
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                        filterTab === "TODAS"
+                            ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs font-bold"
+                            : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                >
+                    Todas
+                </button>
             </div>
 
-            {/* Tabela de Gestão */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
-                {loading ? (
-                    <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                        <p className="text-sm">Carregando painel de aprovações...</p>
-                    </div>
-                ) : filteredDespesas.length === 0 ? (
-                    <div className="p-12 text-center space-y-3">
-                        <div className="w-12 h-12 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
-                            <CheckCircle className="w-6 h-6 text-emerald-500" />
+            {/* Barra de Filtros & Agrupamento (Idêntica à tela de Diárias) */}
+            <div className="space-y-2 md:space-y-3">
+                <div className="flex flex-col gap-2.5 lg:flex-row lg:items-end w-full">
+                    {/* Busca */}
+                    <div className="relative group flex-1 min-w-[200px] space-y-1 md:space-y-1.5">
+                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">
+                            Filtro de busca
+                        </label>
+                        <div className="relative">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
+                            <Input
+                                placeholder="Buscar por colaborador, PIX, descrição..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="h-10 md:h-12 pl-10 md:pl-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 shadow-xs rounded-xl focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-semibold text-xs md:text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                            />
                         </div>
-                        <p className="text-base font-semibold text-slate-900 dark:text-white">Tudo em dia!</p>
-                        <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                            Nenhuma despesa pendente encontrada para este filtro.
-                        </p>
                     </div>
-                ) : (
+
+                    {/* Filtro Empresa */}
+                    <div className="space-y-1 md:space-y-1.5 w-full sm:w-56 shrink-0">
+                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">
+                            Empresa (Grupo)
+                        </label>
+                        <select
+                            value={selectedEmpresa}
+                            onChange={(e) => {
+                                setSelectedEmpresa(e.target.value)
+                                setSelectedGroup(null)
+                            }}
+                            className="h-10 md:h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs rounded-xl px-3 focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-semibold text-xs md:text-sm text-slate-700 dark:text-slate-200 w-full outline-none appearance-none cursor-pointer"
+                            style={{ backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px' }}
+                        >
+                            <option value="ALL">Todas as Empresas</option>
+                            {empresaList.map((emp) => (
+                                <option key={emp.id} value={emp.id}>{emp.nome}</option>
+                            ))}
+                            <option value="SEM_EMPRESA">Sem Empresa</option>
+                        </select>
+                    </div>
+
+                    {/* Datas Início e Fim */}
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 shrink-0">
+                        <div className="space-y-1 md:space-y-1.5 w-full sm:w-36 md:w-40">
+                            <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">
+                                Período (Início)
+                            </label>
+                            <DatePicker
+                                value={startDate}
+                                onChange={setStartDate}
+                                placeholder="dd/mm/aaaa"
+                            />
+                        </div>
+
+                        <div className="space-y-1 md:space-y-1.5 w-full sm:w-36 md:w-40">
+                            <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">
+                                Período (Término)
+                            </label>
+                            <DatePicker
+                                value={endDate}
+                                onChange={setEndDate}
+                                placeholder="dd/mm/aaaa"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Esquema de Agrupamento (Solicitante + Empresa) */}
+                    <div className="space-y-1 md:space-y-1.5 w-full sm:w-64 shrink-0">
+                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">
+                            Visualização (Agrupar)
+                        </label>
+                        <select
+                            value={groupBy}
+                            onChange={(e: any) => {
+                                setGroupBy(e.target.value)
+                                setSelectedGroup(null)
+                            }}
+                            className="h-10 md:h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs rounded-xl px-3 focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-semibold text-xs md:text-sm text-slate-700 dark:text-slate-200 w-full outline-none appearance-none cursor-pointer"
+                            style={{ backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px' }}
+                        >
+                            <option value="SOLICITANTE_EMPRESA">Agrupar por Solicitante + Empresa (Padrão)</option>
+                            <option value="SOLICITANTE">Agrupar apenas por Solicitante</option>
+                            <option value="EMPRESA">Agrupar por Empresa (Grupo)</option>
+                            <option value="NONE">Sem Agrupamento (Lista Corrida)</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Botão Limpar Filtros */}
+                {(searchQuery || startDate || endDate || selectedEmpresa !== 'ALL' || groupBy !== 'SOLICITANTE_EMPRESA') && (
+                    <div className="flex justify-start gap-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setSearchQuery("")
+                                setStartDate("")
+                                setEndDate("")
+                                setSelectedEmpresa("ALL")
+                                setGroupBy("SOLICITANTE_EMPRESA")
+                                setSelectedGroup(null)
+                            }}
+                            className="text-[10px] text-slate-500 hover:text-emerald-600 font-bold uppercase tracking-wider h-8 rounded-lg px-3 bg-slate-100 hover:bg-slate-200/50 transition-all cursor-pointer"
+                        >
+                            Limpar Filtros & Agrupamentos
+                        </Button>
+                    </div>
+                )}
+            </div>
+
+            {/* Conteúdo Principal: Tabela Agrupada ou Tabela Corrida */}
+            {loading ? (
+                <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100">
+                    <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                    <p className="text-sm">Carregando painel de aprovações...</p>
+                </div>
+            ) : filteredDespesas.length === 0 ? (
+                <Card className="bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 py-12 rounded-3xl text-center space-y-3">
+                    <div className="w-12 h-12 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
+                        <CheckCircle className="w-6 h-6 text-emerald-500" />
+                    </div>
+                    <p className="text-base font-bold text-slate-900 dark:text-white">Tudo em dia!</p>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                        {searchQuery || startDate || endDate || selectedEmpresa !== 'ALL'
+                            ? "Nenhuma despesa encontrada para os filtros selecionados."
+                            : "Nenhuma despesa pendente de aprovação neste momento."}
+                    </p>
+                </Card>
+            ) : groupBy !== 'NONE' ? (
+                <>
+                    {/* Tabela Agrupada para Desktop (Idêntica à tela de Diárias) */}
+                    <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    <th className="py-4.5 px-6">{getGroupTypeLabel()}</th>
+                                    <th className="py-4.5 px-6 text-center">Qtd. Solicitações</th>
+                                    <th className="py-4.5 px-6 text-right">Valor Acumulado</th>
+                                    <th className="py-4.5 px-6 text-right">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100/70 dark:divide-slate-800/70">
+                                {groupedDespesas.map(group => (
+                                    <tr
+                                        key={group.key}
+                                        onClick={() => {
+                                            setSelectedGroup(group)
+                                            setSelectedItemIdsForBatch(group.items.map(i => i.id))
+                                        }}
+                                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 active:bg-slate-100/50 transition-all cursor-pointer text-sm text-slate-700 dark:text-slate-200"
+                                    >
+                                        <td className="py-4.5 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60">
+                                                    {getGroupIcon()}
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    <span className="font-bold text-slate-900 dark:text-white text-sm block">
+                                                        {group.name}
+                                                    </span>
+                                                    {group.subName && (
+                                                        <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider block">
+                                                            {group.subName}
+                                                        </span>
+                                                    )}
+                                                    {group.solicitantePix && (
+                                                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 block">
+                                                            PIX: {group.solicitantePix}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="py-4.5 px-6 text-center">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold">
+                                                {group.count} {group.count === 1 ? 'solicitação' : 'solicitações'}
+                                            </span>
+                                        </td>
+                                        <td className="py-4.5 px-6 text-right">
+                                            <span className="font-black text-slate-900 dark:text-white tracking-tight text-base">
+                                                {formatCurrency(group.totalValue)}
+                                            </span>
+                                        </td>
+                                        <td className="py-4.5 px-6 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                className="text-xs font-black uppercase tracking-wider text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                                            >
+                                                Abrir Extrato &rarr;
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Cards Agrupados para Mobile */}
+                    <div className="block md:hidden space-y-3">
+                        {groupedDespesas.map(group => (
+                            <div
+                                key={group.key}
+                                onClick={() => {
+                                    setSelectedGroup(group)
+                                    setSelectedItemIdsForBatch(group.items.map(i => i.id))
+                                }}
+                                className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:bg-slate-50/50 active:bg-slate-50 transition-all cursor-pointer flex justify-between items-center"
+                            >
+                                <div className="space-y-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        {getGroupIcon()}
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block truncate">
+                                            {group.subName}
+                                        </span>
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate">{group.name}</h4>
+                                    {group.solicitantePix && (
+                                        <p className="text-[10px] font-mono text-emerald-600 truncate">
+                                            PIX: {group.solicitantePix}
+                                        </p>
+                                    )}
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold border border-slate-100 dark:border-slate-700">
+                                        {group.count} {group.count === 1 ? 'solicitação' : 'solicitações'}
+                                    </span>
+                                </div>
+                                <div className="text-right shrink-0 ml-3 space-y-1">
+                                    <span className="font-black text-slate-900 dark:text-white text-base tracking-tight block">
+                                        {formatCurrency(group.totalValue)}
+                                    </span>
+                                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block">
+                                        Extrato &rarr;
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            ) : (
+                /* Modo sem agrupamento: Tabela Corrida Tradicional */
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                 <tr>
-                                    {/* Checkbox para seleção em lote */}
                                     <th className="py-3.5 px-3 w-10 text-center">
                                         <input
                                             type="checkbox"
@@ -718,7 +1125,6 @@ export default function AprovacoesDespesasPage() {
                                                     : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
                                             }`}
                                         >
-                                            {/* Checkbox */}
                                             <td 
                                                 className="py-3.5 px-3 text-center whitespace-nowrap"
                                                 onClick={(e) => e.stopPropagation()}
@@ -732,9 +1138,8 @@ export default function AprovacoesDespesasPage() {
                                                 />
                                             </td>
 
-                                            {/* Solicitante & Pix */}
                                             <td className="py-3.5 px-4 whitespace-nowrap">
-                                                <p className="font-bold text-xs text-slate-900 dark:text-white hover:text-blue-600">
+                                                <p className="font-bold text-xs text-slate-900 dark:text-white hover:text-emerald-600">
                                                     {d.solicitante.nome}
                                                 </p>
                                                 <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
@@ -749,7 +1154,6 @@ export default function AprovacoesDespesasPage() {
                                                 </p>
                                             </td>
 
-                                            {/* Tipo */}
                                             <td className="py-3.5 px-4 whitespace-nowrap">
                                                 {d.tipo === "REEMBOLSO" ? (
                                                     <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 font-semibold text-[11px]">
@@ -762,7 +1166,6 @@ export default function AprovacoesDespesasPage() {
                                                 )}
                                             </td>
 
-                                            {/* Empresa */}
                                             <td className="py-3.5 px-4 whitespace-nowrap text-xs font-medium text-slate-700 dark:text-slate-300">
                                                 <div className="flex items-center gap-1.5">
                                                     <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -770,7 +1173,6 @@ export default function AprovacoesDespesasPage() {
                                                 </div>
                                             </td>
 
-                                            {/* Descrição & Comentários */}
                                             <td className="py-3.5 px-4 max-w-xs">
                                                 <p className="font-medium text-slate-900 dark:text-white truncate text-xs" title={d.descricao}>
                                                     {d.descricao}
@@ -779,18 +1181,16 @@ export default function AprovacoesDespesasPage() {
                                                     <span className="text-[10px] text-slate-400">
                                                         {new Date(d.createdAt).toLocaleDateString("pt-BR")}
                                                     </span>
-                                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold underline">
+                                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold underline">
                                                         Clique para ver detalhes
                                                     </span>
                                                 </div>
                                             </td>
 
-                                            {/* Valor */}
                                             <td className="py-3.5 px-4 whitespace-nowrap font-bold text-xs text-slate-900 dark:text-white">
                                                 {formatCurrency(Number(d.valorSolicitado))}
                                             </td>
 
-                                            {/* Prestação de Contas */}
                                             <td className="py-3.5 px-4 whitespace-nowrap text-xs">
                                                 {d.valorComprovado !== null ? (
                                                     <div className="space-y-0.5">
@@ -813,7 +1213,6 @@ export default function AprovacoesDespesasPage() {
                                                 )}
                                             </td>
 
-                                            {/* Situação e Conta Azul */}
                                             <td className="py-3.5 px-4 whitespace-nowrap">
                                                 <div className="space-y-1">
                                                     <div>{getStatusBadge(d.status, d.tipo)}</div>
@@ -830,7 +1229,6 @@ export default function AprovacoesDespesasPage() {
                                                 </div>
                                             </td>
 
-                                            {/* Comprovantes */}
                                             <td 
                                                 className="py-3.5 px-4 whitespace-nowrap"
                                                 onClick={(e) => e.stopPropagation()}
@@ -838,7 +1236,7 @@ export default function AprovacoesDespesasPage() {
                                                 {d.anexos && d.anexos.length > 0 ? (
                                                     <button
                                                         onClick={() => setPreviewAnexo(d.anexos[0])}
-                                                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold cursor-pointer underline"
+                                                        className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 font-semibold cursor-pointer underline"
                                                     >
                                                         <Eye className="w-3.5 h-3.5" />
                                                         Ver ({d.anexos.length})
@@ -848,13 +1246,12 @@ export default function AprovacoesDespesasPage() {
                                                 )}
                                             </td>
 
-                                            {/* Ações */}
                                             <td 
                                                 className="py-3.5 px-4 whitespace-nowrap text-right"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 {isProcessing ? (
-                                                    <Loader2 className="w-5 h-5 animate-spin text-blue-600 inline-block" />
+                                                    <Loader2 className="w-5 h-5 animate-spin text-emerald-600 inline-block" />
                                                 ) : isPendingApproval ? (
                                                     <div className="flex items-center justify-end gap-1.5">
                                                         <Button
@@ -960,8 +1357,172 @@ export default function AprovacoesDespesasPage() {
                             </tbody>
                         </table>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
+
+            {/* MODAL DE EXTRATO DO GRUPO (Idêntico ao modal de extrato da tela de diárias) */}
+            <Dialog open={!!selectedGroup} onOpenChange={(open) => !open && setSelectedGroup(null)}>
+                <DialogContent showCloseButton={false} className="max-w-3xl rounded-3xl border-none shadow-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden bg-slate-50">
+                    <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100/60 shrink-0 text-left bg-white relative">
+                        <div className="pr-10">
+                            <DialogTitle className="font-black text-xl text-slate-900 tracking-tight flex items-center gap-2">
+                                <User className="w-5 h-5 text-emerald-600" />
+                                Extrato - {selectedGroup?.name}
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[9px] mt-0.5">
+                                {selectedGroup?.subName} &bull; {selectedGroup?.items.length} solicitação(ões) pendente(s)
+                                {selectedGroup?.solicitantePix && ` • PIX: ${selectedGroup.solicitantePix}`}
+                            </DialogDescription>
+                        </div>
+                        <DialogClose className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 hover:bg-slate-100 transition-all cursor-pointer shrink-0 absolute top-5 right-5">
+                            <X className="h-5 w-5" />
+                        </DialogClose>
+                    </DialogHeader>
+
+                    {selectedGroup && (
+                        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-none bg-slate-50">
+                            {/* Checklist Header */}
+                            <div className="flex justify-between items-center px-1 pb-2 border-b border-slate-200/60">
+                                <label className="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedGroup.items.length > 0 && selectedItemIdsForBatch.length === selectedGroup.items.length}
+                                        onChange={toggleAllGroupItems}
+                                        className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
+                                    />
+                                    Selecionar Todos ({selectedItemIdsForBatch.length}/{selectedGroup.items.length})
+                                </label>
+                                <span className="text-xs font-black text-slate-700 tracking-tight">
+                                    Total Selecionado: {formatCurrency(
+                                        selectedGroup.items
+                                            .filter(i => selectedItemIdsForBatch.includes(i.id))
+                                            .reduce((acc, item) => acc + Number(item.valorSolicitado || 0), 0)
+                                    )}
+                                </span>
+                            </div>
+
+                            {/* Alerta de Consolidação Conta Azul */}
+                            <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-100 text-xs text-emerald-900 flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span>Ao aprovar, todas as solicitações selecionadas deste colaborador serão consolidadas em <strong>1 único título no Conta Azul</strong> com a soma total.</span>
+                            </div>
+
+                            {/* Lista de itens do grupo */}
+                            <div className="space-y-2">
+                                {selectedGroup.items.map(item => {
+                                    const isSelected = selectedItemIdsForBatch.includes(item.id)
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            onClick={() => toggleGroupItemSelection(item.id)}
+                                            className={`flex items-center justify-between p-3.5 hover:bg-slate-50 transition-all rounded-2xl border cursor-pointer select-none ${
+                                                isSelected 
+                                                    ? 'bg-emerald-50/30 border-emerald-300/70 shadow-2xs' 
+                                                    : 'bg-white border-slate-200/80'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    readOnly
+                                                    className="h-4.5 w-4.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 accent-emerald-600 pointer-events-none shrink-0"
+                                                />
+                                                <div className="min-w-0 space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge className={item.tipo === "REEMBOLSO" ? "bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px]" : "bg-purple-500/10 text-purple-600 border-purple-500/20 text-[10px]"}>
+                                                            {item.tipo}
+                                                        </Badge>
+                                                        <span className="text-xs font-bold text-slate-800">
+                                                            {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                                                        </span>
+                                                        {item.centroCusto?.nome && (
+                                                            <span className="text-[10px] text-slate-400 font-semibold truncate">
+                                                                &bull; CC: {item.centroCusto.nome}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-slate-700 font-medium truncate" title={item.descricao}>
+                                                        {item.descricao}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2.5 shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
+                                                <div className="text-right flex flex-col items-end gap-0.5">
+                                                    <span className="text-sm font-black text-slate-900 tracking-tight">
+                                                        {formatCurrency(Number(item.valorSolicitado))}
+                                                    </span>
+                                                    {item.anexos && item.anexos.length > 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setPreviewAnexo(item.anexos[0])}
+                                                            className="text-[10px] text-emerald-600 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                                                        >
+                                                            <FileText className="w-3 h-3" /> {item.anexos.length} anexo(s)
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setDetailItem(item)}
+                                                    className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-slate-100 rounded-lg cursor-pointer shrink-0"
+                                                    title="Ver detalhes completos"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="px-5 py-4 border-t border-slate-100/60 bg-white shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setSelectedGroup(null)} 
+                            className="w-full sm:w-auto font-bold uppercase tracking-wider text-[10px] text-slate-500 hover:bg-slate-100"
+                        >
+                            Fechar
+                        </Button>
+                        {selectedGroup && (
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Button
+                                    variant="destructive"
+                                    disabled={selectedItemIdsForBatch.length === 0}
+                                    onClick={() => {
+                                        setSelectedIds(selectedItemIdsForBatch)
+                                        setIsBatchRejectOpen(true)
+                                    }}
+                                    className="text-xs font-semibold cursor-pointer"
+                                >
+                                    Reprovar Selecionados
+                                </Button>
+                                <Button
+                                    disabled={selectedItemIdsForBatch.length === 0 || batchProcessing}
+                                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold text-xs py-2 w-full sm:w-auto cursor-pointer gap-1.5"
+                                    onClick={() => {
+                                        const targetEmp = selectedGroup.empresaId && selectedGroup.empresaId !== "SEM_EMPRESA" 
+                                            ? selectedGroup.empresaId 
+                                            : undefined
+                                        handleAprovarLoteComIds(selectedItemIdsForBatch, targetEmp)
+                                    }}
+                                >
+                                    {batchProcessing ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <CheckCircle className="w-4 h-4" />
+                                    )}
+                                    Aprovar Selecionados ({selectedItemIdsForBatch.length}) em Lote
+                                </Button>
+                            </div>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* MODAL DETALHES COMPLETO DA SOLICITAÇÃO (COMENTÁRIOS, PIX, ITENS, AUDITORIA) */}
             <DespesaDetailModal
@@ -997,7 +1558,7 @@ export default function AprovacoesDespesasPage() {
                         <form onSubmit={handleReprovar} className="space-y-4 pt-2">
                             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs space-y-1">
                                 <p className="font-semibold text-slate-900 dark:text-white">
-                                    {selectedDespesa.solicitante.nome} — {selectedDespesa.descricao}
+                                    {selectedDespesa.solicitante.nome} &mdash; {selectedDespesa.descricao}
                                 </p>
                                 <p className="text-slate-500">
                                     Valor: {formatCurrency(Number(selectedDespesa.valorSolicitado))}
@@ -1046,7 +1607,7 @@ export default function AprovacoesDespesasPage() {
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold flex items-center gap-2 text-rose-600">
                             <XCircle className="w-5 h-5" />
-                            Reprovar {selectedIds.length} Despesa(s) em Lote
+                            Reprovar Despesa(s) em Lote
                         </DialogTitle>
                         <DialogDescription className="text-xs text-slate-500">
                             A justificativa informada será registrada no histórico de todas as despesas selecionadas.
@@ -1055,7 +1616,7 @@ export default function AprovacoesDespesasPage() {
 
                     <form onSubmit={handleReprovarLoteSubmit} className="space-y-4 pt-2">
                         <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 text-xs text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
-                            Total a reprovar: <strong>{selectedIds.length} solicitações</strong> ({formatCurrency(selectedSummary.totalValor)})
+                            Total a reprovar: <strong>{(selectedIds.length > 0 ? selectedIds : selectedItemIdsForBatch).length} solicitações</strong>
                         </div>
 
                         <div className="space-y-1.5">
