@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Receipt, Plus, Loader2, ArrowRight, FileUp, CheckCircle, Trash2, X, ChevronLeft } from "lucide-react"
+import { Receipt, Plus, Loader2, ArrowRight, FileUp, CheckCircle, Trash2, X, ChevronLeft, Building2, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -27,6 +27,9 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
     const [uploading, setUploading] = useState(false)
     const [itens, setItens] = useState<any[]>([])
     const [categorias, setCategorias] = useState<string[]>([])
+    const [empresas, setEmpresas] = useState<any[]>([])
+    const [empresaId, setEmpresaId] = useState("")
+    const [chavePix, setChavePix] = useState(user?.chavePix || "")
     
     const [itemCategoria, setItemCategoria] = useState("")
     const [itemDescricao, setItemDescricao] = useState("")
@@ -44,6 +47,16 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
         setItemData("")
         setItemQuantidade("1")
         setItemValorUnitario("")
+        if (user?.chavePix) {
+            setChavePix(user.chavePix)
+        } else {
+            fetch("/api/user/profile")
+                .then(res => res.json())
+                .then(data => {
+                    if (data?.chavePix) setChavePix(data.chavePix)
+                })
+                .catch(() => {})
+        }
         
         fetch("/api/politicas")
             .then(res => res.json())
@@ -57,7 +70,18 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
             .catch(() => {
                 setCategorias(["REFEICAO", "HOSPEDAGEM", "TRANSPORTE", "OUTROS"])
             })
-    }, [isOpen])
+
+        fetch("/api/admin/empresas")
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    const ativas = data.filter((e: any) => e.ativo)
+                    setEmpresas(ativas)
+                    if (ativas.length > 0) setEmpresaId(ativas[0].id)
+                }
+            })
+            .catch(() => {})
+    }, [isOpen, user?.chavePix])
 
     const handleAddItem = () => {
         if (!itemCategoria || !itemDescricao || !itemData || !itemQuantidade || !itemValorUnitario) {
@@ -139,6 +163,16 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
     }
 
     const handleSubmit = async (enviarParaAprovacao: boolean) => {
+        if (!empresaId) {
+            toast.error("Por favor, selecione a Empresa do Grupo.")
+            return
+        }
+
+        if (!chavePix.trim()) {
+            toast.error("A Chave PIX é obrigatória para cadastrar o reembolso.")
+            return
+        }
+
         if (!descricao) {
             toast.error("Por favor, preencha a finalidade geral da solicitação.")
             return
@@ -163,6 +197,8 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
                 body: JSON.stringify({
                     tipo: "REEMBOLSO",
                     descricao,
+                    empresaId,
+                    chavePix: chavePix.trim(),
                     valorSolicitado: Math.round(totalDespesa * 100) / 100,
                     itens,
                     anexos,
@@ -250,6 +286,48 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6">
+                    {/* Empresa do Grupo */}
+                    <div className="space-y-1.5">
+                        <Label htmlFor="empresa-reemb" className="text-xs font-semibold text-slate-500 ml-1 flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-sky-600" />
+                            Empresa do Grupo *
+                        </Label>
+                        <select
+                            id="empresa-reemb"
+                            value={empresaId}
+                            onChange={(e) => setEmpresaId(e.target.value)}
+                            className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-sm focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer"
+                        >
+                            <option value="">Selecione a empresa...</option>
+                            {empresas.map((emp: any) => (
+                                <option key={emp.id} value={emp.id}>{emp.nome}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Chave PIX Obrigatória */}
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="pix-reemb" className="text-xs font-semibold text-slate-500 ml-1 flex items-center gap-1.5">
+                                <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                                Chave PIX para Recebimento *
+                            </Label>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                Obrigatório p/ Conta Azul
+                            </span>
+                        </div>
+                        <Input
+                            id="pix-reemb"
+                            placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória..."
+                            value={chavePix}
+                            onChange={(e) => setChavePix(e.target.value)}
+                            className="h-11 rounded-xl bg-white border-slate-200 text-sm font-semibold focus:border-indigo-500 focus:ring-indigo-500/10"
+                        />
+                        <p className="text-[10px] text-slate-400 ml-1">
+                            A chave PIX é obrigatória e constará na observação do contas a pagar gerado no ERP Conta Azul.
+                        </p>
+                    </div>
+
                     {/* Descrição */}
                     <div className="space-y-2">
                         <Label htmlFor="desc-reemb" className="text-xs font-semibold text-slate-500 ml-1">Finalidade Geral da Solicitação *</Label>

@@ -36,6 +36,7 @@ export default function NovaDespesaPage() {
     // Temporary inputs for Adiantamento
     const [valorAdiantamento, setValorAdiantamento] = useState("")
     const [dataAdiantamento, setDataAdiantamento] = useState("")
+    const [chavePix, setChavePix] = useState("")
 
     useEffect(() => {
         fetch("/api/politicas")
@@ -58,6 +59,15 @@ export default function NovaDespesaPage() {
                     const ativas = data.filter((e: any) => e.ativo)
                     setEmpresas(ativas)
                     if (ativas.length > 0) setEmpresaId(ativas[0].id)
+                }
+            })
+            .catch(() => {})
+
+        fetch("/api/user/profile")
+            .then(res => res.json())
+            .then(data => {
+                if (data?.chavePix) {
+                    setChavePix(data.chavePix)
                 }
             })
             .catch(() => {})
@@ -144,6 +154,16 @@ export default function NovaDespesaPage() {
     }
 
     const handleSubmit = async (enviarParaAprovacao: boolean) => {
+        if (!empresaId) {
+            toast.error("Por favor, selecione a Empresa do Grupo.")
+            return
+        }
+
+        if (!chavePix.trim()) {
+            toast.error("A Chave PIX é obrigatória para cadastrar reembolsos ou adiantamentos.")
+            return
+        }
+
         if (!descricao) {
             toast.error("Por favor, preencha a finalidade geral da solicitação.")
             return
@@ -191,6 +211,7 @@ export default function NovaDespesaPage() {
                     tipo,
                     descricao,
                     empresaId,
+                    chavePix: chavePix.trim(),
                     valorSolicitado: tipo === "ADIANTAMENTO" ? roundedValorAdiantamento : Math.round(totalDespesa * 100) / 100,
                     itens: finalItens,
                     anexos,
@@ -339,6 +360,29 @@ export default function NovaDespesaPage() {
                             ))}
                         </select>
                         <p className="text-[11px] text-slate-400">O contas a pagar será direcionado para o ERP Conta Azul da empresa selecionada.</p>
+                    </div>
+
+                    {/* Chave PIX Obrigatória */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                                <DollarSign className="h-4 w-4 text-emerald-600" />
+                                <Label htmlFor="chavePix" className="font-bold text-slate-700">Chave PIX para Pagamento *</Label>
+                            </div>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                Obrigatório p/ Conta Azul
+                            </span>
+                        </div>
+                        <Input
+                            id="chavePix"
+                            placeholder="Informe seu CPF, CNPJ, e-mail, telefone ou chave aleatória..."
+                            value={chavePix}
+                            onChange={(e) => setChavePix(e.target.value)}
+                            className="h-11 rounded-2xl border-slate-200 font-semibold text-sm focus:border-primary focus:ring-primary/10 transition-colors"
+                        />
+                        <p className="text-[11px] text-slate-400">
+                            Esta chave PIX é obrigatória e constará na observação do título gerado no ERP Conta Azul para liquidação.
+                        </p>
                     </div>
 
                     {/* Descrição */}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DollarSign, Loader2, ArrowRight, X, ChevronLeft } from "lucide-react"
+import { DollarSign, Loader2, ArrowRight, X, ChevronLeft, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -23,15 +23,50 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user, logoUrl }:
     const [valorAdiantamento, setValorAdiantamento] = useState("")
     const [dataAdiantamento, setDataAdiantamento] = useState("")
     const [loading, setLoading] = useState(false)
+    const [empresas, setEmpresas] = useState<any[]>([])
+    const [empresaId, setEmpresaId] = useState("")
+    const [chavePix, setChavePix] = useState(user?.chavePix || "")
 
     useEffect(() => {
         if (!isOpen) return
         setDescricao("")
         setValorAdiantamento("")
         setDataAdiantamento("")
-    }, [isOpen])
+
+        if (user?.chavePix) {
+            setChavePix(user.chavePix)
+        } else {
+            fetch("/api/user/profile")
+                .then(res => res.json())
+                .then(data => {
+                    if (data?.chavePix) setChavePix(data.chavePix)
+                })
+                .catch(() => {})
+        }
+
+        fetch("/api/admin/empresas")
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    const ativas = data.filter((e: any) => e.ativo)
+                    setEmpresas(ativas)
+                    if (ativas.length > 0) setEmpresaId(ativas[0].id)
+                }
+            })
+            .catch(() => {})
+    }, [isOpen, user?.chavePix])
 
     const handleSubmit = async (enviarParaAprovacao: boolean) => {
+        if (!empresaId) {
+            toast.error("Por favor, selecione a Empresa do Grupo.")
+            return
+        }
+
+        if (!chavePix.trim()) {
+            toast.error("A Chave PIX é obrigatória para cadastrar o adiantamento.")
+            return
+        }
+
         if (!descricao) {
             toast.error("Por favor, preencha a finalidade geral da solicitação.")
             return
@@ -67,6 +102,8 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user, logoUrl }:
                 body: JSON.stringify({
                     tipo: "ADIANTAMENTO",
                     descricao,
+                    empresaId,
+                    chavePix: chavePix.trim(),
                     valorSolicitado: roundedValorAdiantamento,
                     itens: finalItens,
                     anexos: [],
@@ -154,6 +191,48 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user, logoUrl }:
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6">
+                    {/* Empresa do Grupo */}
+                    <div className="space-y-1.5">
+                        <Label htmlFor="empresa-adiant" className="text-xs font-semibold text-slate-500 ml-1 flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-sky-600" />
+                            Empresa do Grupo *
+                        </Label>
+                        <select
+                            id="empresa-adiant"
+                            value={empresaId}
+                            onChange={(e) => setEmpresaId(e.target.value)}
+                            className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-sm focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer"
+                        >
+                            <option value="">Selecione a empresa...</option>
+                            {empresas.map((emp: any) => (
+                                <option key={emp.id} value={emp.id}>{emp.nome}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Chave PIX Obrigatória */}
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="pix-adiant" className="text-xs font-semibold text-slate-500 ml-1 flex items-center gap-1.5">
+                                <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                                Chave PIX para Recebimento *
+                            </Label>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                Obrigatório p/ Conta Azul
+                            </span>
+                        </div>
+                        <Input
+                            id="pix-adiant"
+                            placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória..."
+                            value={chavePix}
+                            onChange={(e) => setChavePix(e.target.value)}
+                            className="h-11 rounded-xl bg-white border-slate-200 text-sm font-semibold focus:border-indigo-500 focus:ring-indigo-500/10"
+                        />
+                        <p className="text-[10px] text-slate-400 ml-1">
+                            A chave PIX é obrigatória e constará na observação do contas a pagar gerado no ERP Conta Azul.
+                        </p>
+                    </div>
+
                     {/* Descrição */}
                     <div className="space-y-2">
                         <Label htmlFor="desc-adiant" className="text-xs font-semibold text-slate-500 ml-1">Finalidade Geral da Solicitação *</Label>

@@ -1002,6 +1002,10 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
         }
 
         const cleanPix = (despesa.chavePix || despesa.solicitante.chavePix || "").trim()
+        if (!cleanPix) {
+            return { success: false, error: "Chave PIX não informada. O cadastro da Chave PIX é obrigatório para integração com o Conta Azul." }
+        }
+
         let beneficiarioNome = despesa.solicitante.nome
         let beneficiarioCpf = (despesa.solicitante.cpf || "").trim()
         let beneficiarioEmail = despesa.solicitante.email
@@ -1033,7 +1037,7 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
 
         const valor = Number(despesa.valorSolicitado)
         const dataHoje = format(new Date(), "yyyy-MM-dd")
-        const pixInfo = cleanPix ? ` - PIX: ${cleanPix}` : ""
+        const pixInfo = ` - PIX: ${cleanPix}`
         const solicitanteInfo = beneficiarioNome !== despesa.solicitante.nome ? ` (Sol. ${despesa.solicitante.nome})` : ""
         const descricao = `${despesa.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}: ${beneficiarioNome}${pixInfo}${solicitanteInfo} - ${despesa.descricao}`
 
@@ -1067,13 +1071,14 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             return { success: false, error: contactResult.error || "Contato/Fornecedor não localizado ou cadastrado no Conta Azul." }
         }
 
-        const observacao = `Beneficiário: ${beneficiarioNome} | CPF: ${beneficiarioCpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Solicitante: ${despesa.solicitante.nome} | Ref: ${despesa.tipo} - ${despesa.descricao} | Despesa ID: ${despesa.id.slice(-6).toUpperCase()}`
+        const observacao = `CHAVE PIX: ${cleanPix} | Beneficiário: ${beneficiarioNome} | CPF: ${beneficiarioCpf || "N/I"} | Solicitante: ${despesa.solicitante.nome} | Ref: ${despesa.tipo} - ${despesa.descricao} | Despesa ID: ${despesa.id.slice(-6).toUpperCase()}`
 
         const payload: any = {
             data_competencia: dataHoje,
             valor: valor,
             descricao: descricao,
             observacao: observacao,
+            notes: observacao,
             id_fornecedor: contactResult.contactId,
             contato: contactResult.contactId,
             conta_financeira: bankAccountId,
@@ -1083,7 +1088,9 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
                     {
                         descricao: "Parcela 1/1",
                         data_vencimento: dataHoje,
-                        nota: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
+                        nota: `CHAVE PIX: ${cleanPix}`,
+                        observacao: `CHAVE PIX: ${cleanPix}`,
+                        notes: `CHAVE PIX: ${cleanPix}`,
                         conta_financeira: bankAccountId,
                         metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
                         detalhe_valor: {
@@ -1188,6 +1195,9 @@ export async function createPayableFromGroupedDespesas(despesaIds: string[]): Pr
         }
 
         const cleanPix = (primary.chavePix || solicitante.chavePix || "").trim()
+        if (!cleanPix) {
+            return { success: false, error: "Chave PIX não informada nas despesas do lote. Obrigatório cadastrar a chave PIX para integração com o Conta Azul." }
+        }
         const cleanCpf = (solicitante.cpf || "").trim()
 
         const contactResult = await findOrCreateContaAzulContact(empresaId, {
@@ -1254,20 +1264,21 @@ export async function createPayableFromGroupedDespesas(despesaIds: string[]): Pr
             return { success: false, error: "Nenhuma conta financeira/bancária localizada no Conta Azul para esta empresa." }
         }
 
-        const pixInfo = cleanPix ? ` - PIX: ${cleanPix}` : ""
+        const pixInfo = ` - PIX: ${cleanPix}`
         const tipos = Array.from(new Set(despesas.map(d => d.tipo === "REEMBOLSO" ? "Reembolsos" : "Adiantamentos"))).join(" e ")
         const descricao = `${tipos} Lote (${despesas.length}x): ${solicitante.nome}${pixInfo}`
         if (!contactResult.success || !contactResult.contactId) {
             return { success: false, error: contactResult.error || "Contato/Fornecedor não localizado ou cadastrado no Conta Azul." }
         }
 
-        const observacao = `Beneficiário: ${solicitante.nome} | CPF: ${cleanCpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Lote: ${despesas.length} despesas (Total: R$ ${valorTotal.toFixed(2)}) | Detalhes: ${despesasDetalhadas.join(" | ")}`
+        const observacao = `CHAVE PIX: ${cleanPix} | Beneficiário: ${solicitante.nome} | CPF: ${cleanCpf || "N/I"} | Lote: ${despesas.length} despesas (Total: R$ ${valorTotal.toFixed(2)}) | Detalhes: ${despesasDetalhadas.join(" | ")}`
 
         const payload: any = {
             data_competencia: dataHoje,
             valor: valorTotal,
             descricao: descricao,
             observacao: observacao,
+            notes: observacao,
             id_fornecedor: contactResult.contactId,
             contato: contactResult.contactId,
             conta_financeira: bankAccountId,
@@ -1280,7 +1291,9 @@ export async function createPayableFromGroupedDespesas(despesaIds: string[]): Pr
                     {
                         descricao: "Parcela 1/1",
                         data_vencimento: dataHoje,
-                        nota: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
+                        nota: `CHAVE PIX: ${cleanPix}`,
+                        observacao: `CHAVE PIX: ${cleanPix}`,
+                        notes: `CHAVE PIX: ${cleanPix}`,
                         conta_financeira: bankAccountId,
                         metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
                         detalhe_valor: {
