@@ -311,8 +311,21 @@ export default function MinhasDespesasPage() {
             // Tab filter
             if (filterTab === "REEMBOLSO" && d.tipo !== "REEMBOLSO") return false
             if (filterTab === "ADIANTAMENTO" && d.tipo !== "ADIANTAMENTO") return false
-            if (filterTab === "PENDENTES" && ["CONCLUIDO", "REPROVADO"].includes(d.status)) return false
-            if (filterTab === "CONCLUIDAS" && d.status !== "CONCLUIDO") return false
+            
+            if (filterTab === "PENDENTES") {
+                // Reembolso pago ou concluído já foi finalizado
+                if (d.tipo === "REEMBOLSO" && ["PAGO", "CONCLUIDO", "REPROVADO"].includes(d.status)) return false
+                // Adiantamento concluído ou reprovado
+                if (d.tipo === "ADIANTAMENTO" && ["CONCLUIDO", "REPROVADO"].includes(d.status)) return false
+            }
+
+            if (filterTab === "CONCLUIDAS") {
+                if (d.tipo === "REEMBOLSO") {
+                    if (!["PAGO", "CONCLUIDO"].includes(d.status)) return false
+                } else {
+                    if (d.status !== "CONCLUIDO") return false
+                }
+            }
 
             // Search query
             if (searchQuery.trim()) {
@@ -331,12 +344,19 @@ export default function MinhasDespesasPage() {
     // KPIs calculados
     const kpis = useMemo(() => {
         const total = despesas.reduce((acc, d) => acc + Number(d.valorSolicitado), 0)
-        const pendentes = despesas.filter(d => !["CONCLUIDO", "REPROVADO"].includes(d.status))
-            .reduce((acc, d) => acc + Number(d.valorSolicitado), 0)
+        const pendentes = despesas.filter(d => {
+            if (d.tipo === "REEMBOLSO") return !["PAGO", "CONCLUIDO", "REPROVADO"].includes(d.status)
+            return !["CONCLUIDO", "REPROVADO"].includes(d.status)
+        }).reduce((acc, d) => acc + Number(d.valorSolicitado), 0)
+
         const adiantamentosAbertos = despesas.filter(d => 
             d.tipo === "ADIANTAMENTO" && ["PAGO", "AGUARDANDO_PRESTACAO"].includes(d.status)
         ).length
-        const concluidas = despesas.filter(d => d.status === "CONCLUIDO").length
+
+        const concluidas = despesas.filter(d => {
+            if (d.tipo === "REEMBOLSO") return ["PAGO", "CONCLUIDO"].includes(d.status)
+            return d.status === "CONCLUIDO"
+        }).length
 
         return { total, pendentes, adiantamentosAbertos, concluidas }
     }, [despesas])
