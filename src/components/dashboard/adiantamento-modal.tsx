@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { toast } from "sonner"
 import { MobileNav } from "./mobile-nav"
 
@@ -284,42 +285,44 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user, logoUrl }:
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="space-y-1.5">
                             <Label className="text-xs font-semibold text-slate-500 ml-1">Conta / Categoria Conta Azul</Label>
-                            <select
+                            <SearchableSelect
+                                options={categoriasContaAzul.map(cat => ({
+                                    value: cat.id,
+                                    label: cat.nome,
+                                    badge: cat.tipo || "DESPESA"
+                                }))}
                                 value={adiantamentoCategoriaId}
-                                onChange={(e) => {
-                                    const val = e.target.value
+                                onChange={(val) => {
                                     setAdiantamentoCategoriaId(val)
                                     const found = categoriasContaAzul.find(c => c.id === val)
                                     setAdiantamentoCategoriaNome(found ? found.nome : val)
                                 }}
-                                className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500 truncate"
-                            >
-                                <option value="">Categoria padrão (Adiantamento Salarial)</option>
-                                {categoriasContaAzul.map(cat => (
-                                    <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                                ))}
-                            </select>
+                                placeholder="Selecione ou digite a categoria..."
+                                searchPlaceholder="Ex: adiantamento, diaria, viagem..."
+                                emptyMessage="Nenhuma categoria encontrada."
+                                loading={loadingOptions}
+                            />
                         </div>
 
                         <div className="space-y-1.5">
                             <Label className="text-xs font-semibold text-slate-500 ml-1">Centro de Custo</Label>
-                            <select
+                            <SearchableSelect
+                                options={centrosCusto.map(cc => ({
+                                    value: cc.id,
+                                    label: cc.codigo ? `${cc.codigo} - ${cc.nome}` : cc.nome,
+                                    badge: cc.codigo || undefined
+                                }))}
                                 value={adiantamentoCentroCustoId}
-                                onChange={(e) => {
-                                    const val = e.target.value
+                                onChange={(val) => {
                                     setAdiantamentoCentroCustoId(val)
                                     const found = centrosCusto.find(cc => cc.id === val)
                                     setAdiantamentoCentroCustoNome(found ? found.nome : "")
                                 }}
-                                className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500 truncate"
-                            >
-                                <option value="">Centro de custo padrão</option>
-                                {centrosCusto.map(cc => (
-                                    <option key={cc.id} value={cc.id}>
-                                        {cc.codigo ? `${cc.codigo} - ${cc.nome}` : cc.nome}
-                                    </option>
-                                ))}
-                            </select>
+                                placeholder="Selecione ou digite o centro de custo..."
+                                searchPlaceholder="Ex: operacao, comercial, administrativo..."
+                                emptyMessage="Nenhum centro de custo encontrado."
+                                loading={loadingOptions}
+                            />
                         </div>
                     </div>
 

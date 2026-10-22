@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 import { compressImageIfNeeded } from "@/lib/image-compress"
@@ -406,43 +407,45 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
                                 {/* Categoria / Conta Conta Azul */}
                                 <div className="col-span-1 sm:col-span-2 space-y-1">
                                     <Label className="text-xs font-semibold text-slate-700 ml-1">Conta / Categoria Conta Azul *</Label>
-                                    <select
+                                    <SearchableSelect
+                                        options={categoriasContaAzul.map(cat => ({
+                                            value: cat.id,
+                                            label: cat.nome,
+                                            badge: cat.tipo || "DESPESA"
+                                        }))}
                                         value={itemCategoriaId}
-                                        onChange={(e) => {
-                                            const val = e.target.value
+                                        onChange={(val) => {
                                             setItemCategoriaId(val)
                                             const found = categoriasContaAzul.find(c => c.id === val)
                                             setItemCategoriaNome(found ? found.nome : val)
                                         }}
-                                        className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500 truncate"
-                                    >
-                                        <option value="">Selecione a categoria (Ex: Combustível, Diária, EPI...)</option>
-                                        {categoriasContaAzul.map(cat => (
-                                            <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                                        ))}
-                                    </select>
+                                        placeholder="Selecione ou digite para buscar categoria..."
+                                        searchPlaceholder="Ex: combustivel, diaria, epi, refeicao..."
+                                        emptyMessage="Nenhuma categoria encontrada."
+                                        loading={loadingOptions}
+                                    />
                                 </div>
 
                                 {/* Centro de Custo */}
                                 <div className="col-span-1 sm:col-span-2 space-y-1">
                                     <Label className="text-xs font-semibold text-slate-700 ml-1">Centro de Custo</Label>
-                                    <select
+                                    <SearchableSelect
+                                        options={centrosCusto.map(cc => ({
+                                            value: cc.id,
+                                            label: cc.codigo ? `${cc.codigo} - ${cc.nome}` : cc.nome,
+                                            badge: cc.codigo || undefined
+                                        }))}
                                         value={itemCentroCustoId}
-                                        onChange={(e) => {
-                                            const val = e.target.value
+                                        onChange={(val) => {
                                             setItemCentroCustoId(val)
                                             const found = centrosCusto.find(cc => cc.id === val)
                                             setItemCentroCustoNome(found ? found.nome : "")
                                         }}
-                                        className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500 truncate"
-                                    >
-                                        <option value="">Selecione o centro de custo (opcional)...</option>
-                                        {centrosCusto.map(cc => (
-                                            <option key={cc.id} value={cc.id}>
-                                                {cc.codigo ? `${cc.codigo} - ${cc.nome}` : cc.nome}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        placeholder="Selecione ou digite o centro de custo..."
+                                        searchPlaceholder="Ex: operacao, comercial, administrativo..."
+                                        emptyMessage="Nenhum centro de custo encontrado."
+                                        loading={loadingOptions}
+                                    />
                                 </div>
 
                                 {/* Descrição do Item / Pra que foi gasto */}
