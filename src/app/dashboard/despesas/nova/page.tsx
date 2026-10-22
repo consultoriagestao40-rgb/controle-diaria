@@ -25,9 +25,17 @@ export default function NovaDespesaPage() {
     const [categorias, setCategorias] = useState<string[]>([])
     const [empresas, setEmpresas] = useState<any[]>([])
     const [empresaId, setEmpresaId] = useState("")
+
+    // Opções sincronizadas do Conta Azul (Categorias e Centros de Custo)
+    const [categoriasContaAzul, setCategoriasContaAzul] = useState<any[]>([])
+    const [centrosCusto, setCentrosCusto] = useState<any[]>([])
+    const [loadingOptions, setLoadingOptions] = useState(false)
     
-    // Temporary inputs for new item
-    const [itemCategoria, setItemCategoria] = useState("")
+    // Inputs temporários para o novo item
+    const [itemCategoriaId, setItemCategoriaId] = useState("")
+    const [itemCategoriaNome, setItemCategoriaNome] = useState("")
+    const [itemCentroCustoId, setItemCentroCustoId] = useState("")
+    const [itemCentroCustoNome, setItemCentroCustoNome] = useState("")
     const [itemDescricao, setItemDescricao] = useState("")
     const [itemData, setItemData] = useState("")
     const [itemQuantidade, setItemQuantidade] = useState("1")
@@ -73,9 +81,28 @@ export default function NovaDespesaPage() {
             .catch(() => {})
     }, [])
 
+    // Carrega categorias e centros de custo do Conta Azul ao selecionar empresa
+    useEffect(() => {
+        if (!empresaId) return
+        setLoadingOptions(true)
+        fetch(`/api/contaazul/options?empresaId=${empresaId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.categorias && Array.isArray(data.categorias)) {
+                    setCategoriasContaAzul(data.categorias)
+                }
+                if (data.centrosCusto && Array.isArray(data.centrosCusto)) {
+                    setCentrosCusto(data.centrosCusto)
+                }
+            })
+            .catch(err => console.error("Erro ao carregar opções do Conta Azul:", err))
+            .finally(() => setLoadingOptions(false))
+    }, [empresaId])
+
     const handleAddItem = () => {
-        if (!itemCategoria || !itemDescricao || !itemData || !itemQuantidade || !itemValorUnitario) {
-            toast.error("Por favor, preencha todos os campos do item.")
+        const catFinal = (itemCategoriaNome || "").trim()
+        if (!catFinal || !itemDescricao.trim() || !itemData || !itemQuantidade || !itemValorUnitario) {
+            toast.error("Por favor, preencha todos os campos obrigatórios do item (Categoria, Pra que foi gasto, Data, Quantidade e Valor).")
             return
         }
 
@@ -88,18 +115,24 @@ export default function NovaDespesaPage() {
         }
 
         const newItem = {
-            categoria: itemCategoria,
-            descricao: itemDescricao,
+            categoria: catFinal,
+            categoriaId: itemCategoriaId || null,
+            centroCustoId: itemCentroCustoId || null,
+            centroCustoNome: itemCentroCustoNome || null,
+            descricao: itemDescricao.trim(),
             data: itemData,
             quantidade: qty,
             valorUnitario: valUnit,
-            valorTotal: qty * valUnit
+            valorTotal: Math.round(qty * valUnit * 100) / 100
         }
 
         setItens([...itens, newItem])
         
         // Reset item temporary fields
-        setItemCategoria("")
+        setItemCategoriaId("")
+        setItemCategoriaNome("")
+        setItemCentroCustoId("")
+        setItemCentroCustoNome("")
         setItemDescricao("")
         setItemData("")
         setItemQuantidade("1")
@@ -196,7 +229,10 @@ export default function NovaDespesaPage() {
         try {
             const roundedValorAdiantamento = Math.round(parseFloat(valorAdiantamento) * 100) / 100
             const finalItens = tipo === "ADIANTAMENTO" ? [{
-                categoria: "VIAGEM",
+                categoria: itemCategoriaNome || "ADIANTAMENTO",
+                categoriaId: itemCategoriaId || null,
+                centroCustoId: itemCentroCustoId || null,
+                centroCustoNome: itemCentroCustoNome || null,
                 descricao: descricao,
                 data: dataAdiantamento,
                 quantidade: 1,
@@ -401,34 +437,87 @@ export default function NovaDespesaPage() {
                     {/* Detalhamento dos Itens (Apenas para Reembolso) */}
                     {tipo === "REEMBOLSO" && (
                         <div className="pt-6 border-t border-slate-100 space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="h-6 w-1 bg-primary rounded-full" />
-                                <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">Itens / Lançamentos da Despesa</h3>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-6 w-1 bg-primary rounded-full" />
+                                    <div>
+                                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">Itens / Lançamentos da Despesa</h3>
+                                        <p className="text-xs text-slate-400">Classifique cada gasto por categoria e centro de custo do Conta Azul</p>
+                                    </div>
+                                </div>
+                                {loadingOptions && (
+                                    <span className="text-[11px] font-semibold text-primary flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full animate-pulse">
+                                        <Loader2 className="h-3 w-3 animate-spin" /> Atualizando opções...
+                                    </span>
+                                )}
                             </div>
 
                             {/* Form para adicionar item */}
-                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Adicionar Novo Lançamento</p>
+                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-black text-slate-700 uppercase tracking-wider">Adicionar Novo Lançamento</p>
+                                    <span className="text-[10px] font-bold text-slate-400">Rateio automático por categoria e centro de custo</span>
+                                </div>
                                 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                    {/* Categoria */}
-                                    <div className="space-y-1">
-                                        <Label className="text-xs font-bold text-slate-600">Categoria *</Label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                    {/* Categoria / Conta Conta Azul */}
+                                    <div className="col-span-1 sm:col-span-2 space-y-1">
+                                        <Label className="text-xs font-bold text-slate-700">Conta / Categoria Conta Azul *</Label>
                                         <select
-                                            value={itemCategoria}
-                                            onChange={(e) => setItemCategoria(e.target.value)}
-                                            className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-primary focus:border-primary"
+                                            value={itemCategoriaId}
+                                            onChange={(e) => {
+                                                const val = e.target.value
+                                                setItemCategoriaId(val)
+                                                const found = categoriasContaAzul.find(c => c.id === val)
+                                                setItemCategoriaNome(found ? found.nome : val)
+                                            }}
+                                            className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-primary focus:border-primary truncate"
                                         >
-                                            <option value="">Selecione...</option>
-                                            {categorias.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
+                                            <option value="">Selecione a conta/categoria (Ex: Combustível, Diária, EPI...)</option>
+                                            {categoriasContaAzul.map(cat => (
+                                                <option key={cat.id} value={cat.id}>
+                                                    {cat.nome}
+                                                </option>
                                             ))}
                                         </select>
                                     </div>
 
+                                    {/* Centro de Custo */}
+                                    <div className="col-span-1 sm:col-span-2 space-y-1">
+                                        <Label className="text-xs font-bold text-slate-700">Centro de Custo</Label>
+                                        <select
+                                            value={itemCentroCustoId}
+                                            onChange={(e) => {
+                                                const val = e.target.value
+                                                setItemCentroCustoId(val)
+                                                const found = centrosCusto.find(cc => cc.id === val)
+                                                setItemCentroCustoNome(found ? found.nome : "")
+                                            }}
+                                            className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-primary focus:border-primary truncate"
+                                        >
+                                            <option value="">Selecione o centro de custo (opcional)...</option>
+                                            {centrosCusto.map(cc => (
+                                                <option key={cc.id} value={cc.id}>
+                                                    {cc.codigo ? `${cc.codigo} - ${cc.nome}` : cc.nome}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Descrição do Item / Pra que foi gasto */}
+                                    <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1">
+                                        <Label className="text-xs font-bold text-slate-700">Pra que foi gasto / Justificativa *</Label>
+                                        <Input
+                                            placeholder="Ex: Abastecimento caminhão placa XYZ, Almoço reunião de equipe..."
+                                            value={itemDescricao}
+                                            onChange={(e) => setItemDescricao(e.target.value)}
+                                            className="h-11 rounded-xl bg-white border-slate-200 text-xs font-medium"
+                                        />
+                                    </div>
+
                                     {/* Data */}
                                     <div className="space-y-1">
-                                        <Label className="text-xs font-bold text-slate-600">Data do Evento *</Label>
+                                        <Label className="text-xs font-bold text-slate-700">Data do Evento *</Label>
                                         <Input
                                             type="date"
                                             value={itemData}
@@ -439,7 +528,7 @@ export default function NovaDespesaPage() {
 
                                     {/* Quantidade */}
                                     <div className="space-y-1">
-                                        <Label className="text-xs font-bold text-slate-600">Quantidade *</Label>
+                                        <Label className="text-xs font-bold text-slate-700">Quantidade *</Label>
                                         <Input
                                             type="number"
                                             min="1"
@@ -452,8 +541,8 @@ export default function NovaDespesaPage() {
                                     </div>
 
                                     {/* Valor Unitario */}
-                                    <div className="space-y-1">
-                                        <Label className="text-xs font-bold text-slate-600">Valor Unitário (R$) *</Label>
+                                    <div className="col-span-1 sm:col-span-2 space-y-1">
+                                        <Label className="text-xs font-bold text-slate-700">Valor Unitário (R$) *</Label>
                                         <div className="relative">
                                             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
                                             <Input
@@ -467,40 +556,30 @@ export default function NovaDespesaPage() {
                                             />
                                         </div>
                                     </div>
-
-                                    {/* Descrição do Item */}
-                                    <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1">
-                                        <Label className="text-xs font-bold text-slate-600">Descrição / Justificativa *</Label>
-                                        <Input
-                                            placeholder="Ex: Hospedagem Hotel Londrina ou Almoço com cliente"
-                                            value={itemDescricao}
-                                            onChange={(e) => setItemDescricao(e.target.value)}
-                                            className="h-11 rounded-xl bg-white border-slate-200 text-xs font-medium"
-                                        />
-                                    </div>
                                 </div>
 
                                 <div className="flex justify-end pt-2">
                                     <Button
                                         type="button"
                                         onClick={handleAddItem}
-                                        className="h-11 px-5 bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[10px] rounded-xl flex items-center gap-2 transition-all active:scale-95"
+                                        className="h-11 px-6 bg-slate-900 hover:bg-primary text-white font-bold uppercase tracking-wider text-[11px] rounded-xl flex items-center gap-2 transition-all active:scale-95 shadow-md"
                                     >
-                                        <Plus className="h-4 w-4" /> Adicionar Item
+                                        <Plus className="h-4 w-4" /> Adicionar Lançamento
                                     </Button>
                                 </div>
                             </div>
 
                             {/* Lista de itens inseridos */}
                             {itens.length > 0 ? (
-                                <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="border-b bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                                                    <th className="py-3 px-4">Categoria</th>
+                                                    <th className="py-3 px-4">Conta / Categoria</th>
+                                                    <th className="py-3 px-4">Centro de Custo</th>
+                                                    <th className="py-3 px-4">Pra que foi gasto</th>
                                                     <th className="py-3 px-4">Data</th>
-                                                    <th className="py-3 px-4">Descrição</th>
                                                     <th className="py-3 px-4 text-center">Qtd.</th>
                                                     <th className="py-3 px-4 text-right">Unitário</th>
                                                     <th className="py-3 px-4 text-right">Total</th>
@@ -510,19 +589,32 @@ export default function NovaDespesaPage() {
                                             <tbody>
                                                 {itens.map((item, idx) => (
                                                     <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50 text-xs font-semibold text-slate-600">
-                                                        <td className="py-3.5 px-4 font-bold text-slate-900">{item.categoria}</td>
-                                                        <td className="py-3.5 px-4">{new Date(item.data + "T00:00:00").toLocaleDateString('pt-BR')}</td>
-                                                        <td className="py-3.5 px-4 max-w-[200px] truncate">{item.descricao}</td>
+                                                        <td className="py-3.5 px-4 font-bold text-slate-900">
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100 max-w-[200px] truncate" title={item.categoria}>
+                                                                {item.categoria}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3.5 px-4">
+                                                            {item.centroCustoNome ? (
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 max-w-[160px] truncate" title={item.centroCustoNome}>
+                                                                    {item.centroCustoNome}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[11px] text-slate-400 italic">Padrão da empresa</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-3.5 px-4 max-w-[200px] truncate font-medium text-slate-700" title={item.descricao}>{item.descricao}</td>
+                                                        <td className="py-3.5 px-4 whitespace-nowrap">{new Date(item.data + "T00:00:00").toLocaleDateString('pt-BR')}</td>
                                                         <td className="py-3.5 px-4 text-center font-bold">{item.quantidade}</td>
                                                         <td className="py-3.5 px-4 text-right font-medium">R$ {Number(item.valorUnitario).toFixed(2)}</td>
-                                                        <td className="py-3.5 px-4 text-right font-bold text-slate-800">R$ {Number(item.valorTotal).toFixed(2)}</td>
+                                                        <td className="py-3.5 px-4 text-right font-black text-slate-900">R$ {Number(item.valorTotal).toFixed(2)}</td>
                                                         <td className="py-3.5 px-4 text-center">
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 onClick={() => handleRemoveItem(idx)}
-                                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg active:scale-95"
+                                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg active:scale-95 cursor-pointer"
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
@@ -534,15 +626,15 @@ export default function NovaDespesaPage() {
                                     </div>
                                     
                                     <div className="bg-slate-50 p-4 border-t flex justify-between items-center text-sm font-black text-slate-800 uppercase tracking-wider">
-                                        <span>Total da Solicitação:</span>
+                                        <span>Total da Solicitação ({itens.length} lançamento{itens.length > 1 ? 's' : ''}):</span>
                                         <span className="text-lg text-primary font-black">R$ {totalDespesa.toFixed(2)}</span>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="border-dashed border-2 border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center bg-slate-50/30">
                                     <Receipt className="h-10 w-10 text-slate-300 mb-3 animate-pulse" />
-                                    <p className="text-sm font-bold text-slate-400">Nenhum item adicionado à despesa ainda.</p>
-                                    <p className="text-xs text-slate-400 mt-1">Preencha os dados e clique em 'Adicionar Item' para compor a solicitação.</p>
+                                    <p className="text-sm font-bold text-slate-500">Nenhum lançamento adicionado ainda.</p>
+                                    <p className="text-xs text-slate-400 mt-1">Preencha categoria, centro de custo, valor e adicione cada despesa da viagem ou atividade.</p>
                                 </div>
                             )}
                         </div>
@@ -550,34 +642,82 @@ export default function NovaDespesaPage() {
 
                     {/* Campos Simplificados (Apenas para Adiantamento) */}
                     {tipo === "ADIANTAMENTO" && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
-                            {/* Data Prevista */}
-                            <div className="space-y-2">
-                                <Label htmlFor="dataAdiantamento" className="font-bold text-slate-700">Data Prevista da Viagem / Operação *</Label>
-                                <Input
-                                    id="dataAdiantamento"
-                                    type="date"
-                                    value={dataAdiantamento}
-                                    onChange={(e) => setDataAdiantamento(e.target.value)}
-                                    className="rounded-2xl border-slate-200 focus:border-primary focus:ring-primary/10 transition-colors h-14 font-semibold text-slate-700 p-4"
-                                />
+                        <div className="space-y-6 pt-6 border-t border-slate-100">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Categoria Conta Azul Adiantamento */}
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-bold text-slate-700">Conta / Categoria Conta Azul</Label>
+                                    <select
+                                        value={itemCategoriaId}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                            setItemCategoriaId(val)
+                                            const found = categoriasContaAzul.find(c => c.id === val)
+                                            setItemCategoriaNome(found ? found.nome : val)
+                                        }}
+                                        className="w-full h-12 border border-slate-200 rounded-2xl px-3 bg-white font-semibold text-xs focus:ring-primary focus:border-primary truncate"
+                                    >
+                                        <option value="">Categoria padrão (Adiantamento Salarial)</option>
+                                        {categoriasContaAzul.map(cat => (
+                                            <option key={cat.id} value={cat.id}>
+                                                {cat.nome}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Centro de Custo Adiantamento */}
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-bold text-slate-700">Centro de Custo</Label>
+                                    <select
+                                        value={itemCentroCustoId}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                            setItemCentroCustoId(val)
+                                            const found = centrosCusto.find(cc => cc.id === val)
+                                            setItemCentroCustoNome(found ? found.nome : "")
+                                        }}
+                                        className="w-full h-12 border border-slate-200 rounded-2xl px-3 bg-white font-semibold text-xs focus:ring-primary focus:border-primary truncate"
+                                    >
+                                        <option value="">Centro de custo padrão</option>
+                                        {centrosCusto.map(cc => (
+                                            <option key={cc.id} value={cc.id}>
+                                                {cc.codigo ? `${cc.codigo} - ${cc.nome}` : cc.nome}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
-                            {/* Valor Solicitado */}
-                            <div className="space-y-2">
-                                <Label htmlFor="valorAdiantamento" className="font-bold text-slate-700">Valor Total Previsto (R$) *</Label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {/* Data Prevista */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="dataAdiantamento" className="font-bold text-slate-700">Data Prevista da Viagem / Operação *</Label>
                                     <Input
-                                        id="valorAdiantamento"
-                                        type="number"
-                                        step="0.01"
-                                        inputMode="decimal"
-                                        placeholder="0,00"
-                                        value={valorAdiantamento}
-                                        onChange={(e) => setValorAdiantamento(e.target.value)}
-                                        className="pl-10 rounded-2xl border-slate-200 focus:border-primary focus:ring-primary/10 transition-colors h-14 font-black text-slate-700"
+                                        id="dataAdiantamento"
+                                        type="date"
+                                        value={dataAdiantamento}
+                                        onChange={(e) => setDataAdiantamento(e.target.value)}
+                                        className="rounded-2xl border-slate-200 focus:border-primary focus:ring-primary/10 transition-colors h-14 font-semibold text-slate-700 p-4"
                                     />
+                                </div>
+
+                                {/* Valor Solicitado */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="valorAdiantamento" className="font-bold text-slate-700">Valor Total Previsto (R$) *</Label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                                        <Input
+                                            id="valorAdiantamento"
+                                            type="number"
+                                            step="0.01"
+                                            inputMode="decimal"
+                                            placeholder="0,00"
+                                            value={valorAdiantamento}
+                                            onChange={(e) => setValorAdiantamento(e.target.value)}
+                                            className="pl-10 rounded-2xl border-slate-200 focus:border-primary focus:ring-primary/10 transition-colors h-14 font-black text-slate-700"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>

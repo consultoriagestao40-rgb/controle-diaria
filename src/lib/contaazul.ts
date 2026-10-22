@@ -963,7 +963,8 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             include: {
                 solicitante: true,
                 centroCusto: true,
-                empresa: true
+                empresa: true,
+                itens: true
             }
         })
 
@@ -1041,37 +1042,100 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
         const solicitanteInfo = beneficiarioNome !== despesa.solicitante.nome ? ` (Sol. ${despesa.solicitante.nome})` : ""
         const descricao = `${despesa.tipo === "REEMBOLSO" ? "Reembolso" : "Adiantamento"}: ${beneficiarioNome}${pixInfo}${solicitanteInfo} - ${despesa.descricao}`
 
-        // Categoria apropriada por tipo
-        const categoriaId = despesa.tipo === "REEMBOLSO"
+        // Categoria padrão configurada por tipo
+        const defaultCategoriaId = despesa.tipo === "REEMBOLSO"
             ? (config.categoriaReembolsoId || config.categoriaDiariaId)
             : (config.categoriaAdiantamentoId || config.categoriaDiariaId)
 
-        const costCenterId = await resolveCostCenterForEmpresa(empresaId, null, config.centroCustoPadraoId)
+        const defaultCostCenterId = await resolveCostCenterForEmpresa(
+            empresaId,
+            despesa.centroCusto ? { nome: despesa.centroCusto.nome, centroCustoContaAzulId: despesa.centroCustoId } : null,
+            config.centroCustoPadraoId
+        )
         const bankAccountId = await resolveFinancialAccountForEmpresa(empresaId, config.contaFinanceiraPadraoId)
 
         if (!bankAccountId) {
             return { success: false, error: "Nenhuma conta financeira/bancária localizada no Conta Azul para esta empresa." }
         }
 
-        const rateioObj: any = {
-            id_categoria: categoriaId,
-            valor: valor
+        const isUUID = (str?: string | null) => Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str))
+
+        // Rateio multi-categoria e multi-centro de custo com base nos itens detalhados
+        const categoryMap = new Map<string, { totalValor: number; costCenters: Map<string, number> }>()
+        const detalheItensDesc: string[] = []
+
+        if (despesa.itens && despesa.itens.length > 0) {
+            for (const item of despesa.itens) {
+                const itemValor = Number(item.valorTotal)
+                const itemCatId = (isUUID(item.categoriaId) ? item.categoriaId : null) || defaultCategoriaId
+
+                // Resolver Centro de Custo específico deste item
+                const itemCcId = await resolveCostCenterForEmpresa(
+                    empresaId,
+                    { nome: item.centroCustoNome || item.descricao, centroCustoContaAzulId: item.centroCustoId },
+                    defaultCostCenterId
+                )
+
+                if (itemCatId) {
+                    if (!categoryMap.has(itemCatId)) {
+                        categoryMap.set(itemCatId, {
+                            totalValor: 0,
+                            costCenters: new Map()
+                        })
+                    }
+                    const group = categoryMap.get(itemCatId)!
+                    group.totalValor = Math.round((group.totalValor + itemValor) * 100) / 100
+                    if (itemCcId) {
+                        const prevCc = group.costCenters.get(itemCcId) || 0
+                        group.costCenters.set(itemCcId, Math.round((prevCc + itemValor) * 100) / 100)
+                    }
+                }
+
+                detalheItensDesc.push(
+                    `${item.categoria}: R$ ${itemValor.toFixed(2)} - ${item.descricao}${item.centroCustoNome ? ` [CC: ${item.centroCustoNome}]` : ""}`
+                )
+            }
+        } else if (defaultCategoriaId) {
+            const group = {
+                totalValor: valor,
+                costCenters: new Map<string, number>()
+            }
+            if (defaultCostCenterId) {
+                group.costCenters.set(defaultCostCenterId, valor)
+            }
+            categoryMap.set(defaultCategoriaId, group)
         }
 
-        if (costCenterId) {
-            rateioObj.rateio_centro_custo = [
-                {
-                    id_centro_custo: costCenterId,
-                    valor: valor
-                }
-            ]
+        const rateio: any[] = []
+        for (const [catId, group] of Array.from(categoryMap.entries())) {
+            const rateioItem: any = {
+                id_categoria: catId,
+                valor: group.totalValor
+            }
+            if (group.costCenters.size > 0) {
+                rateioItem.rateio_centro_custo = Array.from(group.costCenters.entries()).map(([ccId, ccVal]) => ({
+                    id_centro_custo: ccId,
+                    valor: ccVal
+                }))
+            }
+            rateio.push(rateioItem)
+        }
+
+        // Se por ventura o rateio estiver vazio, insere fallback mínimo
+        if (rateio.length === 0 && defaultCategoriaId) {
+            const fallbackItem: any = { id_categoria: defaultCategoriaId, valor }
+            if (defaultCostCenterId) {
+                fallbackItem.rateio_centro_custo = [{ id_centro_custo: defaultCostCenterId, valor }]
+            }
+            rateio.push(fallbackItem)
         }
 
         if (!contactResult.success || !contactResult.contactId) {
             return { success: false, error: contactResult.error || "Contato/Fornecedor não localizado ou cadastrado no Conta Azul." }
         }
 
-        const observacao = `CHAVE PIX: ${cleanPix} | Beneficiário: ${beneficiarioNome} | CPF: ${beneficiarioCpf || "N/I"} | Solicitante: ${despesa.solicitante.nome} | Ref: ${despesa.tipo} - ${despesa.descricao} | Despesa ID: ${despesa.id.slice(-6).toUpperCase()}`
+        const itensObservacao = detalheItensDesc.length > 0 ? ` | Detalhe: [${detalheItensDesc.join("; ")}]` : ""
+        const observacao = `CHAVE PIX: ${cleanPix} | Beneficiário: ${beneficiarioNome} | CPF: ${beneficiarioCpf || "N/I"} | Solicitante: ${despesa.solicitante.nome}${itensObservacao} | Ref: ${despesa.tipo} - ${despesa.descricao} | Despesa ID: ${despesa.id.slice(-6).toUpperCase()}`
 
         const payload: any = {
             data_competencia: dataHoje,
@@ -1082,7 +1146,7 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             id_fornecedor: contactResult.contactId,
             contato: contactResult.contactId,
             conta_financeira: bankAccountId,
-            rateio: [rateioObj],
+            rateio: rateio,
             condicao_pagamento: {
                 parcelas: [
                     {
@@ -1159,7 +1223,8 @@ export async function createPayableFromGroupedDespesas(despesaIds: string[]): Pr
             include: {
                 solicitante: true,
                 centroCusto: true,
-                empresa: true
+                empresa: true,
+                itens: true
             },
             orderBy: { createdAt: 'asc' }
         })
@@ -1210,36 +1275,79 @@ export async function createPayableFromGroupedDespesas(despesaIds: string[]): Pr
         const valorTotal = despesas.reduce((acc, d) => acc + Number(d.valorSolicitado), 0)
         const dataHoje = format(new Date(), "yyyy-MM-dd")
 
+        const isUUID = (str?: string | null) => Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str))
+
         // Agrupamento por categoria e centro de custo (Rateio)
         const categoryMap = new Map<string, { totalValor: number; costCenters: Map<string, number> }>()
         const despesasDetalhadas: string[] = []
 
         for (const desp of despesas) {
-            const dVal = Number(desp.valorSolicitado)
-            const catId = desp.tipo === "REEMBOLSO"
+            const defaultCatId = desp.tipo === "REEMBOLSO"
                 ? (config.categoriaReembolsoId || config.categoriaDiariaId)
                 : (config.categoriaAdiantamentoId || config.categoriaDiariaId)
 
-            if (!catId) continue
+            const defaultCcId = await resolveCostCenterForEmpresa(
+                empresaId,
+                desp.centroCusto ? { nome: desp.centroCusto.nome, centroCustoContaAzulId: desp.centroCustoId } : null,
+                config.centroCustoPadraoId
+            )
 
-            const costCenterId = await resolveCostCenterForEmpresa(empresaId, null, config.centroCustoPadraoId)
+            if (desp.itens && desp.itens.length > 0) {
+                for (const item of desp.itens) {
+                    const itemVal = Number(item.valorTotal)
+                    const catId = (isUUID(item.categoriaId) ? item.categoriaId : null) || defaultCatId
+                    if (!catId) continue
 
-            if (!categoryMap.has(catId)) {
-                categoryMap.set(catId, {
-                    totalValor: 0,
-                    costCenters: new Map()
-                })
+                    const costCenterId = await resolveCostCenterForEmpresa(
+                        empresaId,
+                        { nome: item.centroCustoNome || item.descricao, centroCustoContaAzulId: item.centroCustoId },
+                        defaultCcId
+                    )
+
+                    if (!categoryMap.has(catId)) {
+                        categoryMap.set(catId, {
+                            totalValor: 0,
+                            costCenters: new Map()
+                        })
+                    }
+
+                    const catGroup = categoryMap.get(catId)!
+                    catGroup.totalValor = Math.round((catGroup.totalValor + itemVal) * 100) / 100
+
+                    if (costCenterId) {
+                        const currentCcVal = catGroup.costCenters.get(costCenterId) || 0
+                        catGroup.costCenters.set(costCenterId, Math.round((currentCcVal + itemVal) * 100) / 100)
+                    }
+
+                    despesasDetalhadas.push(
+                        `${item.categoria}: R$ ${itemVal.toFixed(2)} - ${item.descricao}${item.centroCustoNome ? ` [CC: ${item.centroCustoNome}]` : ""}`
+                    )
+                }
+            } else {
+                const dVal = Number(desp.valorSolicitado)
+                const catId = defaultCatId
+
+                if (catId) {
+                    const costCenterId = defaultCcId
+
+                    if (!categoryMap.has(catId)) {
+                        categoryMap.set(catId, {
+                            totalValor: 0,
+                            costCenters: new Map()
+                        })
+                    }
+
+                    const catGroup = categoryMap.get(catId)!
+                    catGroup.totalValor = Math.round((catGroup.totalValor + dVal) * 100) / 100
+
+                    if (costCenterId) {
+                        const currentCcVal = catGroup.costCenters.get(costCenterId) || 0
+                        catGroup.costCenters.set(costCenterId, Math.round((currentCcVal + dVal) * 100) / 100)
+                    }
+                }
+
+                despesasDetalhadas.push(`${desp.tipo}: ${desp.descricao} (R$ ${dVal.toFixed(2)})`)
             }
-
-            const catGroup = categoryMap.get(catId)!
-            catGroup.totalValor += dVal
-
-            if (costCenterId) {
-                const currentCcVal = catGroup.costCenters.get(costCenterId) || 0
-                catGroup.costCenters.set(costCenterId, currentCcVal + dVal)
-            }
-
-            despesasDetalhadas.push(`${desp.tipo}: ${desp.descricao} (R$ ${dVal.toFixed(2)})`)
         }
 
         const rateio: any[] = []

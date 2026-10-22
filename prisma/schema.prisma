@@ -458,17 +458,20 @@ model ConfiguracaoAuditoria {
 }
 
 model ItemDespesa {
-  id            String   @id @default(uuid())
-  despesaId     String
-  despesa       Despesa  @relation(fields: [despesaId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  despesaId       String
+  despesa         Despesa  @relation(fields: [despesaId], references: [id], onDelete: Cascade)
   
-  categoria     String   // ex: REFEICAO, HOSPEDAGEM, TRANSPORTE
-  descricao     String   // Descrição/Justificativa do item
-  data          DateTime // Data do evento/ocorrência
-  quantidade    Int      @default(1)
-  valorUnitario Decimal
-  valorTotal    Decimal
-  createdAt     DateTime @default(now())
+  categoria       String   // Nome da categoria (ex: Combustível, Diária, EPI, Refeição...)
+  categoriaId     String?  // ID da Categoria no Conta Azul
+  centroCustoId   String?  // ID do Centro de Custo no Conta Azul ou local
+  centroCustoNome String?  // Nome do Centro de Custo
+  descricao       String   // Descrição/Justificativa do item (pra que foi gasto)
+  data            DateTime // Data do evento/ocorrência
+  quantidade      Int      @default(1)
+  valorUnitario   Decimal
+  valorTotal      Decimal
+  createdAt       DateTime @default(now())
 }
 
 model CentroCusto {

@@ -78,7 +78,10 @@ export async function POST(
                 totalCalculado = Math.round((totalCalculado + valTotal) * 100) / 100
 
                 itemsToCreate.push({
-                    categoria: categoria.toUpperCase().trim(),
+                    categoria: categoria.trim(),
+                    categoriaId: item.categoriaId ? String(item.categoriaId).trim() : null,
+                    centroCustoId: item.centroCustoId ? String(item.centroCustoId).trim() : null,
+                    centroCustoNome: item.centroCustoNome ? String(item.centroCustoNome).trim() : null,
                     descricao: itemDesc,
                     data: new Date(data),
                     quantidade: qty,
@@ -139,6 +142,9 @@ export async function POST(
                     data: {
                         despesaId: id,
                         categoria: item.categoria,
+                        categoriaId: item.categoriaId,
+                        centroCustoId: item.centroCustoId,
+                        centroCustoNome: item.centroCustoNome,
                         descricao: item.descricao,
                         data: item.data,
                         quantidade: item.quantidade,

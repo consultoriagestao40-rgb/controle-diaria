@@ -31,7 +31,16 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
     const [empresaId, setEmpresaId] = useState("")
     const [chavePix, setChavePix] = useState(user?.chavePix || "")
     
-    const [itemCategoria, setItemCategoria] = useState("")
+    // Opções sincronizadas do Conta Azul
+    const [categoriasContaAzul, setCategoriasContaAzul] = useState<any[]>([])
+    const [centrosCusto, setCentrosCusto] = useState<any[]>([])
+    const [loadingOptions, setLoadingOptions] = useState(false)
+
+    // Inputs temporários para o novo item
+    const [itemCategoriaId, setItemCategoriaId] = useState("")
+    const [itemCategoriaNome, setItemCategoriaNome] = useState("")
+    const [itemCentroCustoId, setItemCentroCustoId] = useState("")
+    const [itemCentroCustoNome, setItemCentroCustoNome] = useState("")
     const [itemDescricao, setItemDescricao] = useState("")
     const [itemData, setItemData] = useState("")
     const [itemQuantidade, setItemQuantidade] = useState("1")
@@ -42,7 +51,10 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
         setDescricao("")
         setAnexos([])
         setItens([])
-        setItemCategoria("")
+        setItemCategoriaId("")
+        setItemCategoriaNome("")
+        setItemCentroCustoId("")
+        setItemCentroCustoNome("")
         setItemDescricao("")
         setItemData("")
         setItemQuantidade("1")
@@ -83,9 +95,28 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
             .catch(() => {})
     }, [isOpen, user?.chavePix])
 
+    // Carregar opções do Conta Azul quando a empresa selecionada mudar
+    useEffect(() => {
+        if (!empresaId) return
+        setLoadingOptions(true)
+        fetch(`/api/contaazul/options?empresaId=${empresaId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.categorias && Array.isArray(data.categorias)) {
+                    setCategoriasContaAzul(data.categorias)
+                }
+                if (data.centrosCusto && Array.isArray(data.centrosCusto)) {
+                    setCentrosCusto(data.centrosCusto)
+                }
+            })
+            .catch(err => console.error("Erro ao carregar opções do Conta Azul:", err))
+            .finally(() => setLoadingOptions(false))
+    }, [empresaId])
+
     const handleAddItem = () => {
-        if (!itemCategoria || !itemDescricao || !itemData || !itemQuantidade || !itemValorUnitario) {
-            toast.error("Por favor, preencha todos os campos do item.")
+        const catFinal = (itemCategoriaNome || "").trim()
+        if (!catFinal || !itemDescricao.trim() || !itemData || !itemQuantidade || !itemValorUnitario) {
+            toast.error("Por favor, preencha todos os campos obrigatórios do item (Categoria, Pra que foi gasto, Data, Quantidade e Valor).")
             return
         }
 
@@ -98,17 +129,23 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
         }
 
         const newItem = {
-            categoria: itemCategoria,
-            descricao: itemDescricao,
+            categoria: catFinal,
+            categoriaId: itemCategoriaId || null,
+            centroCustoId: itemCentroCustoId || null,
+            centroCustoNome: itemCentroCustoNome || null,
+            descricao: itemDescricao.trim(),
             data: itemData,
             quantidade: qty,
             valorUnitario: valUnit,
-            valorTotal: qty * valUnit
+            valorTotal: Math.round(qty * valUnit * 100) / 100
         }
 
         setItens([...itens, newItem])
         
-        setItemCategoria("")
+        setItemCategoriaId("")
+        setItemCategoriaNome("")
+        setItemCentroCustoId("")
+        setItemCentroCustoNome("")
         setItemDescricao("")
         setItemData("")
         setItemQuantidade("1")
@@ -343,45 +380,96 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
 
                     {/* Detalhamento dos Itens */}
                     <div className="pt-4 border-t border-slate-100 space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-6 w-1 bg-indigo-500 rounded-full" />
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Itens / Lançamentos da Despesa</h3>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="h-6 w-1 bg-indigo-500 rounded-full" />
+                                <div>
+                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Itens / Lançamentos da Despesa</h3>
+                                    <p className="text-[11px] text-slate-400">Classifique cada lançamento por categoria e centro de custo do Conta Azul</p>
+                                </div>
+                            </div>
+                            {loadingOptions && (
+                                <span className="text-[10px] font-semibold text-indigo-600 flex items-center gap-1 animate-pulse">
+                                    <Loader2 className="h-3 w-3 animate-spin" /> Atualizando opções...
+                                </span>
+                            )}
                         </div>
 
                         {/* Form para adicionar item */}
-                        <div className="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-100 space-y-4">
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Adicionar Novo Lançamento</p>
+                        <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[11px] font-black text-slate-700 uppercase tracking-wider">Adicionar Novo Lançamento</p>
+                                <span className="text-[10px] text-slate-400 font-medium">Rateio detalhado no Conta Azul</span>
+                            </div>
                             
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                                {/* Categoria */}
-                                <div className="col-span-2 md:col-span-1 space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Categoria *</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                                {/* Categoria / Conta Conta Azul */}
+                                <div className="col-span-1 sm:col-span-2 space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-700 ml-1">Conta / Categoria Conta Azul *</Label>
                                     <select
-                                        value={itemCategoria}
-                                        onChange={(e) => setItemCategoria(e.target.value)}
-                                        className="w-full h-12 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        value={itemCategoriaId}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                            setItemCategoriaId(val)
+                                            const found = categoriasContaAzul.find(c => c.id === val)
+                                            setItemCategoriaNome(found ? found.nome : val)
+                                        }}
+                                        className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500 truncate"
                                     >
-                                        <option value="">Selecione...</option>
-                                        {categorias.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
+                                        <option value="">Selecione a categoria (Ex: Combustível, Diária, EPI...)</option>
+                                        {categoriasContaAzul.map(cat => (
+                                            <option key={cat.id} value={cat.id}>{cat.nome}</option>
                                         ))}
                                     </select>
                                 </div>
 
+                                {/* Centro de Custo */}
+                                <div className="col-span-1 sm:col-span-2 space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-700 ml-1">Centro de Custo</Label>
+                                    <select
+                                        value={itemCentroCustoId}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                            setItemCentroCustoId(val)
+                                            const found = centrosCusto.find(cc => cc.id === val)
+                                            setItemCentroCustoNome(found ? found.nome : "")
+                                        }}
+                                        className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500 truncate"
+                                    >
+                                        <option value="">Selecione o centro de custo (opcional)...</option>
+                                        {centrosCusto.map(cc => (
+                                            <option key={cc.id} value={cc.id}>
+                                                {cc.codigo ? `${cc.codigo} - ${cc.nome}` : cc.nome}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Descrição do Item / Pra que foi gasto */}
+                                <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-700 ml-1">Pra que foi gasto / Justificativa *</Label>
+                                    <Input
+                                        placeholder="Ex: Abastecimento caminhão, compra de luvas e botas EPI..."
+                                        value={itemDescricao}
+                                        onChange={(e) => setItemDescricao(e.target.value)}
+                                        className="h-11 rounded-xl bg-white border-slate-200 text-xs font-medium"
+                                    />
+                                </div>
+
                                 {/* Data */}
-                                <div className="col-span-2 md:col-span-1 space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Data do Evento *</Label>
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-700 ml-1">Data do Evento *</Label>
                                     <Input
                                         type="date"
                                         value={itemData}
                                         onChange={(e) => setItemData(e.target.value)}
-                                        className="h-12 rounded-xl bg-white border-slate-200 text-sm"
+                                        className="h-11 rounded-xl bg-white border-slate-200 text-xs"
                                     />
                                 </div>
 
                                 {/* Quantidade */}
-                                <div className="col-span-1 space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Quantidade *</Label>
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-700 ml-1">Quantidade *</Label>
                                     <Input
                                         type="number"
                                         min="1"
@@ -389,13 +477,13 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
                                         pattern="[0-9]*"
                                         value={itemQuantidade}
                                         onChange={(e) => setItemQuantidade(e.target.value)}
-                                        className="h-12 rounded-xl bg-white border-slate-200 text-sm font-semibold"
+                                        className="h-11 rounded-xl bg-white border-slate-200 text-xs font-semibold"
                                     />
                                 </div>
 
                                 {/* Valor Unitario */}
-                                <div className="col-span-1 space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Valor Unitário (R$) *</Label>
+                                <div className="col-span-1 sm:col-span-2 space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-700 ml-1">Valor Unitário (R$) *</Label>
                                     <div className="relative">
                                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">R$</span>
                                         <Input
@@ -405,20 +493,9 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
                                             placeholder="0,00"
                                             value={itemValorUnitario}
                                             onChange={(e) => setItemValorUnitario(e.target.value)}
-                                            className="pl-9 h-12 rounded-xl bg-white border-slate-200 text-sm font-semibold"
+                                            className="pl-9 h-11 rounded-xl bg-white border-slate-200 text-xs font-semibold"
                                         />
                                     </div>
-                                </div>
-
-                                {/* Descrição do Item */}
-                                <div className="col-span-2 space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-500 ml-1">Descrição / Justificativa *</Label>
-                                    <Input
-                                        placeholder="Ex: Almoço com cliente ou Hospedagem"
-                                        value={itemDescricao}
-                                        onChange={(e) => setItemDescricao(e.target.value)}
-                                        className="h-12 rounded-xl bg-white border-slate-200 text-sm font-medium"
-                                    />
                                 </div>
                             </div>
 
@@ -426,45 +503,59 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
                                 <Button
                                     type="button"
                                     onClick={handleAddItem}
-                                    className="h-12 px-6 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                                    className="h-11 px-6 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer shadow-md"
                                 >
-                                    <Plus className="h-4 w-4" /> Adicionar Item
+                                    <Plus className="h-4 w-4" /> Adicionar Lançamento
                                 </Button>
                             </div>
                         </div>
 
                         {/* Lista de itens inseridos */}
                         {itens.length > 0 ? (
-                            <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="border-b bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                                                <th className="py-2 px-2 sm:py-2.5 sm:px-3">Categoria</th>
-                                                <th className="py-2 px-2 sm:py-2.5 sm:px-3">Data</th>
-                                                <th className="py-2 px-2 sm:py-2.5 sm:px-3">Descrição</th>
-                                                <th className="py-2 px-2 sm:py-2.5 sm:px-3 text-center">Qtd.</th>
-                                                <th className="py-2 px-2 sm:py-2.5 sm:px-3 text-right">Unitário</th>
-                                                <th className="py-2 px-2 sm:py-2.5 sm:px-3 text-right">Total</th>
-                                                <th className="py-2 px-2 sm:py-2.5 sm:px-3 text-center">Ações</th>
+                                                <th className="py-2.5 px-3">Conta / Categoria</th>
+                                                <th className="py-2.5 px-3">Centro de Custo</th>
+                                                <th className="py-2.5 px-3">Pra que foi gasto</th>
+                                                <th className="py-2.5 px-3">Data</th>
+                                                <th className="py-2.5 px-3 text-center">Qtd.</th>
+                                                <th className="py-2.5 px-3 text-right">Unitário</th>
+                                                <th className="py-2.5 px-3 text-right">Total</th>
+                                                <th className="py-2.5 px-3 text-center">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {itens.map((item, idx) => (
                                                 <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50 text-xs font-semibold text-slate-600">
-                                                    <td className="py-2 px-2 sm:py-3 sm:px-3 font-bold text-slate-900">{item.categoria}</td>
-                                                    <td className="py-2 px-2 sm:py-3 sm:px-3">{new Date(item.data + "T00:00:00").toLocaleDateString('pt-BR')}</td>
-                                                    <td className="py-2 px-2 sm:py-3 sm:px-3 max-w-[150px] truncate">{item.descricao}</td>
-                                                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-center font-bold">{item.quantidade}</td>
-                                                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-right font-medium">{formatCurrency(item.valorUnitario)}</td>
-                                                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-right font-bold text-slate-800">{formatCurrency(item.valorTotal)}</td>
-                                                    <td className="py-2 px-2 sm:py-3 sm:px-3 text-center">
+                                                    <td className="py-3 px-3 font-bold text-slate-900">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100 max-w-[180px] truncate" title={item.categoria}>
+                                                            {item.categoria}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-3">
+                                                        {item.centroCustoNome ? (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 max-w-[150px] truncate" title={item.centroCustoNome}>
+                                                                {item.centroCustoNome}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[11px] text-slate-400 italic">Padrão</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-3 max-w-[160px] truncate font-medium text-slate-700" title={item.descricao}>{item.descricao}</td>
+                                                    <td className="py-3 px-3 whitespace-nowrap">{new Date(item.data + "T00:00:00").toLocaleDateString('pt-BR')}</td>
+                                                    <td className="py-3 px-3 text-center font-bold">{item.quantidade}</td>
+                                                    <td className="py-3 px-3 text-right font-medium">{formatCurrency(item.valorUnitario)}</td>
+                                                    <td className="py-3 px-3 text-right font-black text-slate-900">{formatCurrency(item.valorTotal)}</td>
+                                                    <td className="py-3 px-3 text-center">
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={() => handleRemoveItem(idx)}
-                                                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg active:scale-95"
+                                                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg active:scale-95 cursor-pointer"
                                                         >
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
@@ -476,14 +567,15 @@ export function ReembolsoModal({ isOpen, onClose, onSuccess, user, logoUrl }: Re
                                 </div>
                                 
                                 <div className="bg-slate-50 p-3.5 border-t flex justify-between items-center text-xs font-black text-slate-800 uppercase tracking-wider">
-                                    <span>Total da Solicitação:</span>
+                                    <span>Total da Solicitação ({itens.length} lançamento{itens.length > 1 ? 's' : ''}):</span>
                                     <span className="text-base text-indigo-600 font-black">{formatCurrency(totalDespesa)}</span>
                                 </div>
                             </div>
                         ) : (
-                            <div className="border-dashed border-2 border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50/30">
-                                <Receipt className="h-8 w-8 text-slate-300 mb-2 animate-pulse" />
-                                <p className="text-xs font-bold text-slate-400">Nenhum item adicionado à despesa ainda.</p>
+                            <div className="border-dashed border-2 border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50/30 text-center">
+                                <Receipt className="h-9 w-9 text-slate-300 mb-2 animate-pulse" />
+                                <p className="text-xs font-bold text-slate-500">Nenhum lançamento adicionado ainda.</p>
+                                <p className="text-[11px] text-slate-400 mt-0.5">Preencha os campos acima e clique em 'Adicionar Lançamento'.</p>
                             </div>
                         )}
                     </div>

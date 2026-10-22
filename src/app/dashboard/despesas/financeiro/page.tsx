@@ -793,8 +793,10 @@ export default function FinanceiroDespesasPage() {
                                                 <div key={item.id} className="p-3 flex justify-between items-center text-xs">
                                                     <div className="space-y-1">
                                                         <div className="font-bold text-slate-900">{item.descricao}</div>
-                                                        <div className="text-slate-400 font-medium">
-                                                            {item.categoria} &bull; {item.quantidade}x {formatCurrency(item.valorUnitario)}
+                                                        <div className="text-slate-500 font-medium flex items-center gap-1.5 flex-wrap text-[11px]">
+                                                            <span className="font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded text-[10px] border border-sky-100">{item.categoria}</span>
+                                                            {item.centroCustoNome && <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[10px] border border-slate-200">{item.centroCustoNome}</span>}
+                                                            <span>&bull; {item.quantidade}x {formatCurrency(item.valorUnitario)}</span>
                                                         </div>
                                                     </div>
                                                     <div className="font-black text-slate-900 shrink-0">

@@ -161,7 +161,7 @@ export async function POST(req: Request) {
 
         if (itens && Array.isArray(itens) && itens.length > 0) {
             for (const item of itens) {
-                const { categoria, descricao: itemDesc, data, quantidade, valorUnitario } = item
+                const { categoria, categoriaId, centroCustoId, centroCustoNome, descricao: itemDesc, data, quantidade, valorUnitario } = item
                 if (!categoria || !itemDesc || !data || !quantidade || !valorUnitario) {
                     return new NextResponse(
                         JSON.stringify({ error: "Todos os itens devem conter: categoria, descrição, data, quantidade e valor unitário." }),
@@ -183,7 +183,10 @@ export async function POST(req: Request) {
                 totalCalculado = Math.round((totalCalculado + valTotal) * 100) / 100
 
                 itemsToCreate.push({
-                    categoria: categoria.toUpperCase().trim(),
+                    categoria: categoria.trim(),
+                    categoriaId: categoriaId ? String(categoriaId).trim() : null,
+                    centroCustoId: centroCustoId ? String(centroCustoId).trim() : null,
+                    centroCustoNome: centroCustoNome ? String(centroCustoNome).trim() : null,
                     descricao: itemDesc,
                     data: new Date(data),
                     quantidade: qty,
@@ -234,6 +237,9 @@ export async function POST(req: Request) {
                     itens: itemsToCreate.length > 0 ? {
                         create: itemsToCreate.map(item => ({
                             categoria: item.categoria,
+                            categoriaId: item.categoriaId,
+                            centroCustoId: item.centroCustoId,
+                            centroCustoNome: item.centroCustoNome,
                             descricao: item.descricao,
                             data: item.data,
                             quantidade: item.quantidade,

@@ -380,6 +380,7 @@ export function DespesaDetailModal({
                                             <tr>
                                                 <th className="p-2.5">Descrição</th>
                                                 <th className="p-2.5">Categoria</th>
+                                                <th className="p-2.5">Centro de Custo</th>
                                                 <th className="p-2.5 text-right">Valor</th>
                                             </tr>
                                         </thead>
@@ -387,8 +388,23 @@ export function DespesaDetailModal({
                                             {despesa.itens.map((it: any, idx: number) => (
                                                 <tr key={it.id || idx}>
                                                     <td className="p-2.5 font-medium text-slate-900 dark:text-white">{it.descricao || "-"}</td>
-                                                    <td className="p-2.5 text-slate-500">{it.categoria || "-"}</td>
-                                                    <td className="p-2.5 text-right font-bold text-slate-900 dark:text-white">{formatCurrency(Number(it.valor || 0))}</td>
+                                                    <td className="p-2.5 text-slate-600">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100">
+                                                            {it.categoria || "-"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-2.5 text-slate-500 text-xs">
+                                                        {it.centroCustoNome ? (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700">
+                                                                {it.centroCustoNome}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-slate-400 italic">Padrão</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-2.5 text-right font-bold text-slate-900 dark:text-white">
+                                                        {formatCurrency(Number(it.valorTotal || it.valor || (Number(it.valorUnitario || 0) * (it.quantidade || 1)) || 0))}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>

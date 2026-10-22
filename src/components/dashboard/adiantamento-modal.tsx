@@ -27,11 +27,24 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user, logoUrl }:
     const [empresaId, setEmpresaId] = useState("")
     const [chavePix, setChavePix] = useState(user?.chavePix || "")
 
+    // Opções sincronizadas do Conta Azul
+    const [categoriasContaAzul, setCategoriasContaAzul] = useState<any[]>([])
+    const [centrosCusto, setCentrosCusto] = useState<any[]>([])
+    const [loadingOptions, setLoadingOptions] = useState(false)
+    const [adiantamentoCategoriaId, setAdiantamentoCategoriaId] = useState("")
+    const [adiantamentoCategoriaNome, setAdiantamentoCategoriaNome] = useState("")
+    const [adiantamentoCentroCustoId, setAdiantamentoCentroCustoId] = useState("")
+    const [adiantamentoCentroCustoNome, setAdiantamentoCentroCustoNome] = useState("")
+
     useEffect(() => {
         if (!isOpen) return
         setDescricao("")
         setValorAdiantamento("")
         setDataAdiantamento("")
+        setAdiantamentoCategoriaId("")
+        setAdiantamentoCategoriaNome("")
+        setAdiantamentoCentroCustoId("")
+        setAdiantamentoCentroCustoNome("")
 
         if (user?.chavePix) {
             setChavePix(user.chavePix)
@@ -55,6 +68,24 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user, logoUrl }:
             })
             .catch(() => {})
     }, [isOpen, user?.chavePix])
+
+    // Carregar opções do Conta Azul quando a empresa selecionada mudar
+    useEffect(() => {
+        if (!empresaId) return
+        setLoadingOptions(true)
+        fetch(`/api/contaazul/options?empresaId=${empresaId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.categorias && Array.isArray(data.categorias)) {
+                    setCategoriasContaAzul(data.categorias)
+                }
+                if (data.centrosCusto && Array.isArray(data.centrosCusto)) {
+                    setCentrosCusto(data.centrosCusto)
+                }
+            })
+            .catch(err => console.error("Erro ao carregar opções do Conta Azul:", err))
+            .finally(() => setLoadingOptions(false))
+    }, [empresaId])
 
     const handleSubmit = async (enviarParaAprovacao: boolean) => {
         if (!empresaId) {
@@ -88,7 +119,10 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user, logoUrl }:
         try {
             const roundedValorAdiantamento = Math.round(val * 100) / 100
             const finalItens = [{
-                categoria: "VIAGEM",
+                categoria: adiantamentoCategoriaNome || "ADIANTAMENTO",
+                categoriaId: adiantamentoCategoriaId || null,
+                centroCustoId: adiantamentoCentroCustoId || null,
+                centroCustoNome: adiantamentoCentroCustoNome || null,
                 descricao: descricao,
                 data: dataAdiantamento,
                 quantidade: 1,
@@ -244,6 +278,49 @@ export function AdiantamentoModal({ isOpen, onClose, onSuccess, user, logoUrl }:
                             onChange={(e) => setDescricao(e.target.value)}
                             className="rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-colors text-sm"
                         />
+                    </div>
+
+                    {/* Categoria e Centro de Custo do Conta Azul */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-slate-500 ml-1">Conta / Categoria Conta Azul</Label>
+                            <select
+                                value={adiantamentoCategoriaId}
+                                onChange={(e) => {
+                                    const val = e.target.value
+                                    setAdiantamentoCategoriaId(val)
+                                    const found = categoriasContaAzul.find(c => c.id === val)
+                                    setAdiantamentoCategoriaNome(found ? found.nome : val)
+                                }}
+                                className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500 truncate"
+                            >
+                                <option value="">Categoria padrão (Adiantamento Salarial)</option>
+                                {categoriasContaAzul.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-slate-500 ml-1">Centro de Custo</Label>
+                            <select
+                                value={adiantamentoCentroCustoId}
+                                onChange={(e) => {
+                                    const val = e.target.value
+                                    setAdiantamentoCentroCustoId(val)
+                                    const found = centrosCusto.find(cc => cc.id === val)
+                                    setAdiantamentoCentroCustoNome(found ? found.nome : "")
+                                }}
+                                className="w-full h-11 border border-slate-200 rounded-xl px-3 bg-white font-semibold text-xs focus:ring-indigo-500 focus:border-indigo-500 truncate"
+                            >
+                                <option value="">Centro de custo padrão</option>
+                                {centrosCusto.map(cc => (
+                                    <option key={cc.id} value={cc.id}>
+                                        {cc.codigo ? `${cc.codigo} - ${cc.nome}` : cc.nome}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
