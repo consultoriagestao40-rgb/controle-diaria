@@ -136,7 +136,7 @@ export async function GET(req: Request) {
         // Agrupar pedidos por categoriaId e categoriaNome
         const pedidosMap: Record<string, { total: number; count: number; pedidos: any[] }> = {}
         for (const p of pedidos) {
-            const key = p.categoriaId || p.categoriaNome
+            const key = p.categoriaId || p.categoriaNome || "OUTROS"
             if (!pedidosMap[key]) {
                 pedidosMap[key] = { total: 0, count: 0, pedidos: [] }
             }

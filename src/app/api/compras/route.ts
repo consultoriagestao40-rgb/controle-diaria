@@ -68,21 +68,25 @@ export async function GET(req: Request) {
             pedidos.map(async (p) => {
                 let orcado = 0
                 try {
-                    const cleanCat = p.categoriaId.includes(":") ? p.categoriaId.split(":").pop()! : p.categoriaId
-                    const cleanCc = p.centroCustoId.includes(":") ? p.centroCustoId.split(":").pop()! : p.centroCustoId
+                    if (p.categoriaId) {
+                        const cleanCat = p.categoriaId.includes(":") ? p.categoriaId.split(":").pop()! : p.categoriaId
+                        const cleanCc = p.centroCustoId.includes(":") ? p.centroCustoId.split(":").pop()! : p.centroCustoId
 
-                    const b = await budgetHubPrisma.$queryRaw<any[]>`
-                        SELECT amount 
-                        FROM "BudgetEntry" 
-                        WHERE "tenantId" = ${p.tenantId}
-                          AND ("categoryId" = ${p.categoriaId} OR "categoryId" = ${cleanCat} OR "categoryId" LIKE ${'%' + cleanCat})
-                          AND ("costCenterId" = ${p.centroCustoId} OR "costCenterId" = ${cleanCc} OR "costCenterId" LIKE ${'%' + cleanCc})
-                          AND month = ${p.mesCompetencia}
-                          AND year = ${p.anoCompetencia}
-                        LIMIT 1
-                    `
-                    if (b.length > 0 && b[0].amount) {
-                        orcado = Number(b[0].amount)
+                        const b = await budgetHubPrisma.$queryRaw<any[]>`
+                            SELECT amount 
+                            FROM "BudgetEntry" 
+                            WHERE "tenantId" = ${p.tenantId}
+                              AND ("categoryId" = ${p.categoriaId} OR "categoryId" = ${cleanCat} OR "categoryId" LIKE ${'%' + cleanCat})
+                              AND ("costCenterId" = ${p.centroCustoId} OR "costCenterId" = ${cleanCc} OR "costCenterId" LIKE ${'%' + cleanCc})
+                              AND month = ${p.mesCompetencia}
+                              AND year = ${p.anoCompetencia}
+                            LIMIT 1
+                        `
+                        if (b.length > 0 && b[0].amount) {
+                            orcado = Number(b[0].amount)
+                        } else if (p.budgetDisponivel) {
+                            orcado = Number(p.budgetDisponivel)
+                        }
                     } else if (p.budgetDisponivel) {
                         orcado = Number(p.budgetDisponivel)
                     }
@@ -134,9 +138,9 @@ export async function POST(req: Request) {
             itens
         } = body
 
-        if (!tenantId || !centroCustoId || !categoriaId || !mesCompetencia || !anoCompetencia || !justificativa) {
+        if (!tenantId || !centroCustoId || !mesCompetencia || !anoCompetencia || !justificativa) {
             return NextResponse.json(
-                { error: "Campos obrigatórios ausentes: Empresa, Centro de Custo, Categoria, Competência e Justificativa." },
+                { error: "Campos obrigatórios ausentes: Empresa, Centro de Custo, Competência e Justificativa." },
                 { status: 400 }
             )
         }
@@ -148,19 +152,25 @@ export async function POST(req: Request) {
             )
         }
 
-        // Consultar snapshot de saldo de budget disponível no momento
+        // Categoria geral ou primeira categoria dos itens
+        const primaryCatId = categoriaId || itens[0]?.categoriaId || null
+        const primaryCatNome = categoriaNome || itens[0]?.categoriaFilho || itens[0]?.categoriaPai || "Múltiplas Categorias"
+
+        // Consultar snapshot de saldo de budget disponível no momento se houver categoria
         let budgetDisponivel = 0
-        try {
-            const avail = await getBudgetAvailability({
-                tenantId,
-                costCenterId: centroCustoId,
-                categoryId: categoriaId,
-                mes: Number(mesCompetencia),
-                ano: Number(anoCompetencia)
-            })
-            budgetDisponivel = avail.saldoDisponivel
-        } catch (e) {
-            console.warn("Aviso: Falha ao consultar budget inicial no BudgetHub", e)
+        if (primaryCatId) {
+            try {
+                const avail = await getBudgetAvailability({
+                    tenantId,
+                    costCenterId: centroCustoId,
+                    categoryId: primaryCatId,
+                    mes: Number(mesCompetencia),
+                    ano: Number(anoCompetencia)
+                })
+                budgetDisponivel = avail.saldoDisponivel
+            } catch (e) {
+                console.warn("Aviso: Falha ao consultar budget inicial no BudgetHub", e)
+            }
         }
 
         // Gerar número sequencial do pedido PC-YYYY-XXXX
@@ -185,8 +195,8 @@ export async function POST(req: Request) {
                 tenantNome: tenantNome || 'EMPRESA',
                 centroCustoId,
                 centroCustoNome: centroCustoNome || 'CENTRO DE CUSTO',
-                categoriaId,
-                categoriaNome: categoriaNome || 'CATEGORIA',
+                categoriaId: primaryCatId,
+                categoriaNome: primaryCatNome,
                 mesCompetencia: Number(mesCompetencia),
                 anoCompetencia: Number(anoCompetencia),
                 budgetDisponivel,
@@ -194,8 +204,13 @@ export async function POST(req: Request) {
                 solicitanteId: user.id,
                 itens: {
                     create: itens.map((item: any) => ({
+                        categoriaPai: item.categoriaPai || null,
+                        categoriaFilho: item.categoriaFilho || null,
+                        categoriaId: item.categoriaId || null,
                         descricao: item.descricao,
                         especificacao: item.especificacao || null,
+                        marca: item.marca || null,
+                        tamanho: item.tamanho || null,
                         quantidade: Number(item.quantidade) || 1,
                         unidade: item.unidade || 'UN'
                     }))

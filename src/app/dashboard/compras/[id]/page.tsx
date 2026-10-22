@@ -41,6 +41,10 @@ interface Item {
     id: string
     descricao: string
     especificacao?: string
+    categoriaPai?: string
+    categoriaFilho?: string
+    marca?: string
+    tamanho?: string
     quantidade: number
     unidade: string
     precoUnitario?: number
@@ -1218,9 +1222,22 @@ export default function PedidoDetalhePage({ params }: { params: Promise<{ id: st
                                     return (
                                         <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                                             <td className="py-3.5 px-4">
-                                                <p className="font-bold text-slate-900 text-xs">{item.descricao}</p>
-                                                {item.especificacao && (
-                                                    <p className="text-[11px] text-slate-500 mt-0.5">{item.especificacao}</p>
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    {(item.categoriaFilho || item.categoriaPai) && (
+                                                        <span className="text-[10px] bg-indigo-50 text-indigo-700 font-extrabold px-1.5 py-0.5 rounded border border-indigo-100">
+                                                            {item.categoriaFilho || item.categoriaPai}
+                                                        </span>
+                                                    )}
+                                                    <p className="font-bold text-slate-900 text-xs">{item.descricao}</p>
+                                                </div>
+                                                {(item.especificacao || item.marca || item.tamanho) && (
+                                                    <p className="text-[11px] text-slate-500 mt-0.5">
+                                                        {[
+                                                            item.especificacao,
+                                                            item.marca ? `Marca: ${item.marca}` : null,
+                                                            item.tamanho ? `Tam: ${item.tamanho}` : null
+                                                        ].filter(Boolean).join(" • ")}
+                                                    </p>
                                                 )}
                                             </td>
 

@@ -3,8 +3,6 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { extractQuotationWithGemini } from "@/lib/gemini-parser"
-import { writeFile, mkdir } from "fs/promises"
-import { join } from "path"
 
 export async function POST(
     req: NextRequest,
@@ -36,17 +34,9 @@ export async function POST(
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
 
-        // Salvar arquivo localmente para auditoria e visualização
-        const uploadDir = join(process.cwd(), "public", "uploads", "cotacoes")
-        await mkdir(uploadDir, { recursive: true })
-
-        const timestamp = Date.now()
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
-        const fileName = `${timestamp}_${safeName}`
-        const filePath = join(uploadDir, fileName)
-        await writeFile(filePath, buffer)
-
-        const fileUrl = `/uploads/cotacoes/${fileName}`
+        // Converter arquivo para Data URL base64 seguro para Vercel
+        const base64Data = buffer.toString("base64")
+        const fileUrl = `data:${file.type || "application/pdf"};base64,${base64Data}`
 
         // Resumir os itens solicitados para passar como contexto ao Gemini
         const requestedSummary = pedido.itens

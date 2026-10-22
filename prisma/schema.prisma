@@ -564,8 +564,8 @@ model PedidoCompra {
   tenantNome              String             // Nome da Empresa (Spot, JVS, Clean Tech, etc.)
   centroCustoId           String             // ID do Centro de Custo no BudgetHub
   centroCustoNome         String             // Nome do Centro de Custo
-  categoriaId             String             // ID da Categoria no BudgetHub
-  categoriaNome           String             // Nome da Categoria (Ex: 03.6.1 - Materiais de Limpeza)
+  categoriaId             String?            // ID da Categoria no BudgetHub (ou principal)
+  categoriaNome           String?            // Nome da Categoria (Ex: 03.6.1 - Materiais de Limpeza)
   mesCompetencia          Int                // 1 a 12
   anoCompetencia          Int                // Ex: 2026
   budgetDisponivel        Decimal?           // Snapshot do saldo orçamentário no momento da criação
@@ -619,8 +619,15 @@ model ItemPedidoCompra {
   pedidoId       String
   pedido         PedidoCompra  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   
+  // Classificação por item (Multi-categoria no mesmo pedido)
+  categoriaPai   String?       // Ex: 03.5 - EPIs e Uniformes, 03.6 - Materiais de Limpeza
+  categoriaFilho String?       // Ex: 03.5.1 - EPI, 03.6.1 - Químicos
+  categoriaId    String?       // ID da Categoria no BudgetHub se mapeada
+  
   descricao      String
-  especificacao  String?
+  especificacao  String?       // Especificação detalhada / CA (Certificado de Aprovação)
+  marca          String?       // Marca (Danny, Brascamp, etc.)
+  tamanho        String?       // Tamanho / Dimensão (P, M, G, GG, 40, 42, 5L, etc.)
   quantidade     Float         @default(1)
   unidade        String        @default("UN") // UN, PAR, CX, PCT, L, KG, KIT, MT
   precoUnitario  Decimal?

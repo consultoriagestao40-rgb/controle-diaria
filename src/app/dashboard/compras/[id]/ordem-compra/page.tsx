@@ -20,6 +20,10 @@ interface Item {
     id: string
     descricao: string
     especificacao?: string
+    categoriaPai?: string
+    categoriaFilho?: string
+    marca?: string
+    tamanho?: string
     quantidade: number
     unidade: string
     precoUnitario?: number
@@ -449,9 +453,22 @@ export default function OrdemCompraImpressaoPage({ params }: { params: Promise<{
                                             {String(idx + 1).padStart(2, "0")}
                                         </td>
                                         <td className="py-3 px-4">
-                                            <p className="font-bold text-slate-950">{item.descricao}</p>
-                                            {item.especificacao && (
-                                                <p className="text-[11px] text-slate-500 mt-0.5">{item.especificacao}</p>
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                {(item.categoriaFilho || item.categoriaPai) && (
+                                                    <span className="text-[9px] bg-slate-100 text-slate-700 font-black px-1.5 py-0.5 rounded border border-slate-300 print:border-black">
+                                                        {item.categoriaFilho || item.categoriaPai}
+                                                    </span>
+                                                )}
+                                                <p className="font-bold text-slate-950">{item.descricao}</p>
+                                            </div>
+                                            {(item.especificacao || item.marca || item.tamanho) && (
+                                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                                    {[
+                                                        item.especificacao,
+                                                        item.marca ? `Marca: ${item.marca}` : null,
+                                                        item.tamanho ? `Tam: ${item.tamanho}` : null
+                                                    ].filter(Boolean).join(" • ")}
+                                                </p>
                                             )}
                                         </td>
                                         {!selectedSupplier && distinctSuppliers.length > 1 && (
