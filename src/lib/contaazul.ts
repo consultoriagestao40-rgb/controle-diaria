@@ -657,6 +657,10 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
             ]
         }
 
+        if (!contactResult.success || !contactResult.contactId) {
+            return { success: false, error: contactResult.error || "Contato/Fornecedor não localizado ou cadastrado no Conta Azul." }
+        }
+
         const observacao = `Beneficiário: ${cobertura.diarista.nome} | CPF: ${cobertura.diarista.cpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Posto: ${cobertura.posto.nome} | Ref: ${format(new Date(cobertura.data), "dd/MM/yyyy")} | Diária ID: ${cobertura.id.slice(-6).toUpperCase()}`
 
         const payload: any = {
@@ -664,6 +668,7 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
             valor: valor,
             descricao: descricao,
             observacao: observacao,
+            id_fornecedor: contactResult.contactId,
             contato: contactResult.contactId,
             conta_financeira: bankAccountId,
             rateio: [rateioObj],
@@ -875,6 +880,10 @@ export async function createPayableFromGroupedCoberturas(coberturaIds: string[])
             return { success: false, error: "Nenhuma conta financeira/bancária localizada no Conta Azul para esta empresa." }
         }
 
+        if (!contactResult.success || !contactResult.contactId) {
+            return { success: false, error: contactResult.error || "Contato/Fornecedor não localizado ou cadastrado no Conta Azul." }
+        }
+
         const observacao = `Beneficiário: ${diarista.nome} | CPF: ${diarista.cpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Lote: ${coberturas.length} plantões (Total: R$ ${valorTotal.toFixed(2)}) | Detalhes: ${plantoesDetalhados.join(" | ")}`
 
         const payload: any = {
@@ -882,6 +891,7 @@ export async function createPayableFromGroupedCoberturas(coberturaIds: string[])
             valor: valorTotal,
             descricao: descricao,
             observacao: observacao,
+            id_fornecedor: contactResult.contactId,
             contato: contactResult.contactId,
             conta_financeira: bankAccountId,
             rateio: rateio,
@@ -1053,6 +1063,10 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             ]
         }
 
+        if (!contactResult.success || !contactResult.contactId) {
+            return { success: false, error: contactResult.error || "Contato/Fornecedor não localizado ou cadastrado no Conta Azul." }
+        }
+
         const observacao = `Beneficiário: ${beneficiarioNome} | CPF: ${beneficiarioCpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Solicitante: ${despesa.solicitante.nome} | Ref: ${despesa.tipo} - ${despesa.descricao} | Despesa ID: ${despesa.id.slice(-6).toUpperCase()}`
 
         const payload: any = {
@@ -1060,6 +1074,7 @@ export async function createPayableFromDespesa(despesaId: string): Promise<Conta
             valor: valor,
             descricao: descricao,
             observacao: observacao,
+            id_fornecedor: contactResult.contactId,
             contato: contactResult.contactId,
             conta_financeira: bankAccountId,
             rateio: [rateioObj],
@@ -1242,6 +1257,10 @@ export async function createPayableFromGroupedDespesas(despesaIds: string[]): Pr
         const pixInfo = cleanPix ? ` - PIX: ${cleanPix}` : ""
         const tipos = Array.from(new Set(despesas.map(d => d.tipo === "REEMBOLSO" ? "Reembolsos" : "Adiantamentos"))).join(" e ")
         const descricao = `${tipos} Lote (${despesas.length}x): ${solicitante.nome}${pixInfo}`
+        if (!contactResult.success || !contactResult.contactId) {
+            return { success: false, error: contactResult.error || "Contato/Fornecedor não localizado ou cadastrado no Conta Azul." }
+        }
+
         const observacao = `Beneficiário: ${solicitante.nome} | CPF: ${cleanCpf || "N/I"} | CHAVE PIX: ${cleanPix || "NÃO INFORMADA"} | Lote: ${despesas.length} despesas (Total: R$ ${valorTotal.toFixed(2)}) | Detalhes: ${despesasDetalhadas.join(" | ")}`
 
         const payload: any = {
@@ -1249,6 +1268,7 @@ export async function createPayableFromGroupedDespesas(despesaIds: string[]): Pr
             valor: valorTotal,
             descricao: descricao,
             observacao: observacao,
+            id_fornecedor: contactResult.contactId,
             contato: contactResult.contactId,
             conta_financeira: bankAccountId,
             rateio: rateio.length > 0 ? rateio : [{
@@ -1415,6 +1435,8 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                     }
                     
                     const isPaid = list.length > 0 && list.every((p: any) => 
+                        p.status === "ACQUITTED" ||
+                        p.status === "RECEBIDO" ||
                         p.status === "QUITADO" ||
                         p.status === "PAGO" || 
                         p.status === "BAIXADO" || 
@@ -1509,6 +1531,8 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
                     }
                     
                     const isPaid = list.length > 0 && list.every((p: any) => 
+                        p.status === "ACQUITTED" ||
+                        p.status === "RECEBIDO" ||
                         p.status === "QUITADO" ||
                         p.status === "PAGO" || 
                         p.status === "BAIXADO" || 
