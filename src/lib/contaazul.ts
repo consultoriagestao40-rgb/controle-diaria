@@ -1550,43 +1550,6 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
         if (!config || !config.ativo || !config.accessToken) continue
 
         try {
-            // 0. Auto-criação de Diárias aprovadas que ainda não foram enviadas ao Conta Azul (ex: falhas anteriores já corrigidas)
-            if (config.autoCriarAoAprovar) {
-                const coberturasSemCA = await prisma.cobertura.findMany({
-                    where: {
-                        empresaId: empresa.id,
-                        status: "APROVADO",
-                        contaAzulPayableId: null
-                    },
-                    select: { id: true, diaristaId: true }
-                })
-
-                if (coberturasSemCA.length > 0) {
-                    const cobGroupMap = new Map<string, string[]>()
-                    for (const cob of coberturasSemCA) {
-                        if (!cobGroupMap.has(cob.diaristaId)) {
-                            cobGroupMap.set(cob.diaristaId, [])
-                        }
-                        cobGroupMap.get(cob.diaristaId)!.push(cob.id)
-                    }
-
-                    for (const [_, cobIds] of Array.from(cobGroupMap.entries())) {
-                        try {
-                            const res = cobIds.length === 1 
-                                ? await createPayableFromCobertura(cobIds[0])
-                                : await createPayableFromGroupedCoberturas(cobIds)
-                            if (res.success && res.payableId) {
-                                results.coberturasCriadas += cobIds.length
-                            } else if (res.error) {
-                                results.erros.push(`${empresa.nome}: ${res.error}`)
-                            }
-                        } catch (err: any) {
-                            console.error(`[SYNC AUTO-CREATE COBERTURA ERROR]`, err)
-                        }
-                    }
-                }
-            }
-
             // 1. Busca Diárias (Coberturas) pendentes de pagamento que foram enviadas ao Conta Azul
             const coberturasPendentes = await prisma.cobertura.findMany({
                 where: {
