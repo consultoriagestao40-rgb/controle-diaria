@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",
+  },
+  other: {
+    google: "notranslate",
   }
 };
 
@@ -36,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" className="notranslate" translate="no">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

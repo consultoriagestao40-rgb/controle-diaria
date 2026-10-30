@@ -308,7 +308,13 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
 
         // 1. Tenta buscar por CPF ou Nome via /v1/pessoas
         const searchRes = await fetchContaAzul(empresaId, `/v1/pessoas?busca=${encodeURIComponent(searchTerm)}`)
-        const items = searchRes?.items || searchRes?.itens || (Array.isArray(searchRes) ? searchRes : [])
+        let items = searchRes?.items || searchRes?.itens || (Array.isArray(searchRes) ? searchRes : [])
+
+        // Fallback: se buscou por documento e não achou nada, busca pelo nome
+        if (items.length === 0 && cleanCpf && contactInfo.nome?.trim()) {
+            const nameSearchRes = await fetchContaAzul(empresaId, `/v1/pessoas?busca=${encodeURIComponent(contactInfo.nome.trim())}`)
+            items = nameSearchRes?.items || nameSearchRes?.itens || (Array.isArray(nameSearchRes) ? nameSearchRes : [])
+        }
 
         if (items.length > 0) {
             // Se temos CPF, tenta achar match exato por documento
@@ -330,17 +336,22 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
             return { success: true, contactId: items[0].id }
         }
 
+        // Validação básica de CPF/CNPJ para não enviar documentos inválidos (ex: 11111111111111)
+        const isRepeatedDigits = cleanCpf && /^(\d)\1+$/.test(cleanCpf)
+        const isValidCpf = cleanCpf && cleanCpf.length === 11 && !isRepeatedDigits
+        const isValidCnpj = cleanCpf && cleanCpf.length === 14 && !isRepeatedDigits
+
         // 2. Se não encontrou, cadastra nova Pessoa (Fornecedor) na API v2 com CPF e PIX
         const payload: any = {
             nome: contactInfo.nome.trim(),
-            tipo_pessoa: cleanCpf && cleanCpf.length === 14 ? "Jurídica" : "Física",
+            tipo_pessoa: isValidCnpj ? "Jurídica" : "Física",
             perfis: [{ tipo_perfil: "Fornecedor" }],
             observacao: cleanPix ? `CHAVE PIX: ${cleanPix}` : undefined
         }
 
-        if (cleanCpf && cleanCpf.length === 11) {
+        if (isValidCpf) {
             payload.cpf = cleanCpf
-        } else if (cleanCpf && cleanCpf.length === 14) {
+        } else if (isValidCnpj) {
             payload.cnpj = cleanCpf
         }
 
@@ -365,6 +376,14 @@ export async function findOrCreateContaAzulContact(empresaId: string, contactInf
                 const retryItems = retrySearch?.items || retrySearch?.itens || []
                 if (retryItems.length > 0) {
                     return { success: true, contactId: retryItems[0].id }
+                }
+            }
+            // Tenta também recuperar pelo nome se falhar o cadastro
+            if (contactInfo.nome?.trim()) {
+                const nameRetrySearch = await fetchContaAzul(empresaId, `/v1/pessoas?busca=${encodeURIComponent(contactInfo.nome.trim())}`)
+                const nameRetryItems = nameRetrySearch?.items || nameRetrySearch?.itens || []
+                if (nameRetryItems.length > 0) {
+                    return { success: true, contactId: nameRetryItems[0].id }
                 }
             }
             return { success: false, error: createRes.error }
@@ -678,6 +697,8 @@ export async function createPayableFromCobertura(coberturaId: string): Promise<C
                         descricao: "Parcela 1/1",
                         data_vencimento: dataVencimento,
                         nota: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
+                        observacao: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
+                        notes: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
                         conta_financeira: bankAccountId,
                         metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
                         detalhe_valor: {
@@ -901,6 +922,8 @@ export async function createPayableFromGroupedCoberturas(coberturaIds: string[])
                         descricao: "Parcela 1/1",
                         data_vencimento: dataVencimento,
                         nota: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
+                        observacao: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
+                        notes: cleanPix ? `CHAVE PIX: ${cleanPix}` : "Pagamento via PIX",
                         conta_financeira: bankAccountId,
                         metodo_pagamento: "PIX_PAGAMENTO_INSTANTANEO",
                         detalhe_valor: {
@@ -1527,6 +1550,43 @@ export async function syncContaAzulPayables(targetEmpresaId?: string) {
         if (!config || !config.ativo || !config.accessToken) continue
 
         try {
+            // 0. Auto-criação de Diárias aprovadas que ainda não foram enviadas ao Conta Azul (ex: falhas anteriores já corrigidas)
+            if (config.autoCriarAoAprovar) {
+                const coberturasSemCA = await prisma.cobertura.findMany({
+                    where: {
+                        empresaId: empresa.id,
+                        status: "APROVADO",
+                        contaAzulPayableId: null
+                    },
+                    select: { id: true, diaristaId: true }
+                })
+
+                if (coberturasSemCA.length > 0) {
+                    const cobGroupMap = new Map<string, string[]>()
+                    for (const cob of coberturasSemCA) {
+                        if (!cobGroupMap.has(cob.diaristaId)) {
+                            cobGroupMap.set(cob.diaristaId, [])
+                        }
+                        cobGroupMap.get(cob.diaristaId)!.push(cob.id)
+                    }
+
+                    for (const [_, cobIds] of Array.from(cobGroupMap.entries())) {
+                        try {
+                            const res = cobIds.length === 1 
+                                ? await createPayableFromCobertura(cobIds[0])
+                                : await createPayableFromGroupedCoberturas(cobIds)
+                            if (res.success && res.payableId) {
+                                results.coberturasCriadas += cobIds.length
+                            } else if (res.error) {
+                                results.erros.push(`${empresa.nome}: ${res.error}`)
+                            }
+                        } catch (err: any) {
+                            console.error(`[SYNC AUTO-CREATE COBERTURA ERROR]`, err)
+                        }
+                    }
+                }
+            }
+
             // 1. Busca Diárias (Coberturas) pendentes de pagamento que foram enviadas ao Conta Azul
             const coberturasPendentes = await prisma.cobertura.findMany({
                 where: {
