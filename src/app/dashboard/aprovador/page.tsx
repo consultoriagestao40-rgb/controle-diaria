@@ -71,6 +71,8 @@ export default function ApproverDashboard() {
 
     const [selectedEmpresa, setSelectedEmpresa] = useState("ALL")
     const [optionsEmpresas, setOptionsEmpresas] = useState<{ id: string; nome: string }[]>([])
+    const [selectedMotivo, setSelectedMotivo] = useState("ALL")
+    const [optionsMotivos, setOptionsMotivos] = useState<{ id: string; descricao: string }[]>([])
 
     const [userRole, setUserRole] = useState("")
 
@@ -88,6 +90,9 @@ export default function ApproverDashboard() {
         }).then(data => {
             if (data?.empresas) {
                 setOptionsEmpresas(data.empresas)
+            }
+            if (data?.motivos) {
+                setOptionsMotivos(data.motivos)
             }
         }).catch(() => { })
     }, [])
@@ -107,6 +112,21 @@ export default function ApproverDashboard() {
         })
         return Array.from(map.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome))
     }, [optionsEmpresas, items])
+
+    const motivoList = useMemo(() => {
+        const map = new Map<string, string>()
+        optionsMotivos.forEach(m => {
+            if (m.descricao) {
+                map.set(m.descricao, m.descricao)
+            }
+        })
+        items.forEach(item => {
+            if (item.motivo?.descricao && !map.has(item.motivo.descricao)) {
+                map.set(item.motivo.descricao, item.motivo.descricao)
+            }
+        })
+        return Array.from(map.values()).sort((a, b) => a.localeCompare(b))
+    }, [optionsMotivos, items])
 
     const fetchItems = async () => {
         try {
@@ -146,6 +166,12 @@ export default function ApproverDashboard() {
                 }
             }
 
+            if (selectedMotivo !== "ALL") {
+                if (item.motivo?.descricao !== selectedMotivo) {
+                    return false
+                }
+            }
+
             if (startDate || endDate) {
                 let itemDateStr = ""
                 if (item.data) {
@@ -170,7 +196,7 @@ export default function ApproverDashboard() {
 
             return true
         })
-    }, [items, searchTerm, selectedEmpresa, startDate, endDate])
+    }, [items, searchTerm, selectedEmpresa, selectedMotivo, startDate, endDate])
 
     // Action State
     const [selectedItem, setSelectedItem] = useState<Item | null>(null)
@@ -507,7 +533,7 @@ export default function ApproverDashboard() {
                     </div>
 
                     {/* Filtro Empresa */}
-                    <div className="space-y-1 md:space-y-1.5 w-full sm:w-56 shrink-0">
+                    <div className="space-y-1 md:space-y-1.5 w-full sm:w-48 lg:w-52 shrink-0">
                         <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Empresa (Grupo)</label>
                         <select
                             value={selectedEmpresa}
@@ -523,6 +549,25 @@ export default function ApproverDashboard() {
                                 <option key={emp.id} value={emp.id}>{emp.nome}</option>
                             ))}
                             <option value="SEM_EMPRESA">Sem Empresa</option>
+                        </select>
+                    </div>
+
+                    {/* Filtro Motivo */}
+                    <div className="space-y-1 md:space-y-1.5 w-full sm:w-44 lg:w-48 shrink-0">
+                        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Motivo</label>
+                        <select
+                            value={selectedMotivo}
+                            onChange={(e) => {
+                                setSelectedMotivo(e.target.value)
+                                setSelectedGroup(null)
+                            }}
+                            className="h-10 md:h-12 bg-white border border-slate-200 hover:border-slate-300 shadow-xs rounded-xl px-3 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all font-semibold text-xs md:text-sm text-slate-700 w-full outline-none appearance-none cursor-pointer"
+                            style={{ backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '16px' }}
+                        >
+                            <option value="ALL">Todos os Motivos</option>
+                            {motivoList.map((motivoNome) => (
+                                <option key={motivoNome} value={motivoNome}>{motivoNome}</option>
+                            ))}
                         </select>
                     </div>
 
@@ -571,7 +616,7 @@ export default function ApproverDashboard() {
                     </div>
                 </div>
 
-                {(searchTerm || startDate || endDate || groupBy !== 'NONE' || selectedEmpresa !== 'ALL') && (
+                {(searchTerm || startDate || endDate || groupBy !== 'NONE' || selectedEmpresa !== 'ALL' || selectedMotivo !== 'ALL') && (
                     <div className="flex justify-start gap-2 px-1">
                         <Button
                             variant="ghost"
@@ -580,6 +625,7 @@ export default function ApproverDashboard() {
                                 setStartDate("")
                                 setEndDate("")
                                 setSelectedEmpresa("ALL")
+                                setSelectedMotivo("ALL")
                                 setGroupBy("NONE")
                                 setSelectedGroup(null)
                             }}
