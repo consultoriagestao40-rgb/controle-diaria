@@ -61,7 +61,7 @@ const formSchema = z.object({
     horaInicio: z.string().optional(),
     horaFim: z.string().optional(),
     observacao: z.string().optional(),
-    empresaId: z.string().optional(),
+    empresaId: z.string().min(1, "Empresa do Grupo é obrigatória."),
 })
 
 export default function NovaDiariaPage() {
@@ -543,7 +543,7 @@ export default function NovaDiariaPage() {
                                         name="empresaId"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Empresa do Grupo</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Empresa do Grupo *</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
                                                         <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">

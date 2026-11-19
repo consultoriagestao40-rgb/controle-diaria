@@ -42,13 +42,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 // Validation Schema
 const formSchema = z.object({
     data: z.date(),
-    postoId: z.string().min(1),
-    diaristaId: z.string().min(1),
-    reservaId: z.string().min(1),
-    motivoId: z.string().min(1),
-    cargaHorariaId: z.string().min(1),
-    valor: z.string().min(1),
-    meioPagamentoSolicitadoId: z.string().min(1),
+    postoId: z.string().min(1, "Posto é obrigatório."),
+    diaristaId: z.string().min(1, "Diarista é obrigatória."),
+    reservaId: z.string().min(1, "Colaborador é obrigatório."),
+    motivoId: z.string().min(1, "Motivo é obrigatório."),
+    cargaHorariaId: z.string().min(1, "Carga horária é obrigatória."),
+    valor: z.string().min(1, "Valor é obrigatório."),
+    meioPagamentoSolicitadoId: z.string().min(1, "Meio de pagamento é obrigatório."),
+    empresaId: z.string().min(1, "Empresa do Grupo é obrigatória."),
     categoriaFinanceira: z.string().optional(),
     observacao: z.string().optional(),
 })
@@ -67,7 +68,8 @@ function EditarDiariaForm({ id }: { id: string }) {
         motivos: [],
         reservas: [],
         cargas: [],
-        meios: []
+        meios: [],
+        empresas: []
     })
     const [originalData, setOriginalData] = useState<any>(null)
 
@@ -103,6 +105,7 @@ function EditarDiariaForm({ id }: { id: string }) {
                 cargaHorariaId: data.cargaHorariaId,
                 valor: String(data.valor || ""),
                 meioPagamentoSolicitadoId: data.meioPagamentoSolicitadoId,
+                empresaId: data.empresaId || "",
                 categoriaFinanceira: data.categoriaFinanceira || "03.4.2 - Diária Coberturas",
                 observacao: data.observacao || ""
             })
@@ -297,6 +300,25 @@ function EditarDiariaForm({ id }: { id: string }) {
                             )}
                             />
                         </div>
+
+                        {/* Empresa do Grupo */}
+                        <FormField control={form.control} name="empresaId" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-xs font-semibold text-slate-500 ml-1">Empresa do Grupo *</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                    <FormControl>
+                                        <SelectTrigger className="w-full h-12 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-4 text-left text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all">
+                                            <SelectValue placeholder="Selecione a empresa correlata" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                                        {(options.empresas || []).map((i: any) => (<SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                        />
 
                         {/* Categoria Financeira */}
                         <FormField control={form.control} name="categoriaFinanceira" render={({ field }) => (

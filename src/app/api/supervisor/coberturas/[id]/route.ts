@@ -68,6 +68,14 @@ export async function PUT(
             return new NextResponse("Forbidden", { status: 403 })
         }
 
+        const targetEmpresaId = body.empresaId !== undefined ? body.empresaId : existing.empresaId
+        if (!targetEmpresaId) {
+            return new NextResponse(
+                JSON.stringify({ error: "A Empresa do Grupo é obrigatória." }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            )
+        }
+
         // Update and Reset Status to PENDENTE
         const updated = await prisma.$transaction([
             prisma.cobertura.update({
@@ -80,7 +88,7 @@ export async function PUT(
                     motivoId,
                     cargaHorariaId,
                     meioPagamentoSolicitadoId,
-                    empresaId: body.empresaId !== undefined ? body.empresaId : existing.empresaId,
+                    empresaId: targetEmpresaId,
                     categoriaFinanceira: body.categoriaFinanceira || existing.categoriaFinanceira || "03.4.2 - Diária Coberturas",
                     valor: parseFloat(valor),
                     observacao,

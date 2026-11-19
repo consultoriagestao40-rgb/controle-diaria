@@ -291,6 +291,11 @@ export default function AdminCoberturasPage() {
 
     const saveEdit = async () => {
         if (!editingItem) return
+        if (!editForm.empresaId || editForm.empresaId === "NULL") {
+            toast.error("A Empresa do Grupo é obrigatória.")
+            return
+        }
+
         setSaving(true)
         try {
             const res = await fetch(`/api/admin/coberturas/${editingItem.id}`, {
@@ -299,7 +304,7 @@ export default function AdminCoberturasPage() {
                 body: JSON.stringify({
                     data: editForm.data,
                     postoId: editForm.postoId,
-                    empresaId: editForm.empresaId === "NULL" ? null : editForm.empresaId,
+                    empresaId: editForm.empresaId,
                     diaristaId: editForm.diaristaId,
                     reservaId: editForm.reservaId,
                     motivoId: editForm.motivoId,
@@ -910,11 +915,10 @@ export default function AdminCoberturasPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Empresa</Label>
-                            <Select value={editForm.empresaId || "NULL"} onValueChange={v => setEditForm(prev => ({ ...prev, empresaId: v }))}>
-                                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <Label>Empresa do Grupo *</Label>
+                            <Select value={editForm.empresaId || ""} onValueChange={v => setEditForm(prev => ({ ...prev, empresaId: v }))}>
+                                <SelectTrigger><SelectValue placeholder="Selecione a empresa..." /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="NULL">Sem empresa</SelectItem>
                                     {((options as any).empresas || []).map((i: any) => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}
                                 </SelectContent>
                             </Select>

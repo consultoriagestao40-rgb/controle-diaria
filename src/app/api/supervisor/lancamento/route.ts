@@ -28,9 +28,9 @@ export async function POST(req: Request) {
         } = body
 
         // Basic Validation
-        if (!data || !postoId || !diaristaId || !motivoId || !valor || !reservaId || !cargaHorariaId || !meioPagamentoSolicitadoId) {
+        if (!data || !postoId || !diaristaId || !motivoId || !valor || !reservaId || !cargaHorariaId || !meioPagamentoSolicitadoId || !body.empresaId) {
             return new NextResponse(
-                JSON.stringify({ error: "Todos os campos obrigatórios devem ser preenchidos." }),
+                JSON.stringify({ error: "Todos os campos obrigatórios devem ser preenchidos, incluindo a Empresa do Grupo." }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
