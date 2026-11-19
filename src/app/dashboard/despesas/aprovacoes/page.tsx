@@ -1480,16 +1480,16 @@ export default function AprovacoesDespesasPage() {
                         </div>
                     )}
 
-                    <DialogFooter className="px-5 py-4 border-t border-slate-100/60 bg-white shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                    <DialogFooter className="px-5 py-3 border-t border-slate-100/60 bg-white shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 w-full">
                         <Button 
                             variant="ghost" 
                             onClick={() => setSelectedGroup(null)} 
-                            className="w-full sm:w-auto font-bold uppercase tracking-wider text-[10px] text-slate-500 hover:bg-slate-100"
+                            className="w-full sm:w-auto font-bold uppercase tracking-wider text-[11px] text-slate-500 hover:bg-slate-100 h-9 px-4 shrink-0"
                         >
                             Fechar
                         </Button>
                         {selectedGroup && (
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-end">
                                 <Button
                                     variant="destructive"
                                     disabled={selectedItemIdsForBatch.length === 0}
@@ -1497,13 +1497,13 @@ export default function AprovacoesDespesasPage() {
                                         setSelectedIds(selectedItemIdsForBatch)
                                         setIsBatchRejectOpen(true)
                                     }}
-                                    className="text-xs font-semibold cursor-pointer"
+                                    className="text-xs font-semibold cursor-pointer h-9 px-3 shrink-0"
                                 >
-                                    Reprovar Selecionados
+                                    Reprovar ({selectedItemIdsForBatch.length})
                                 </Button>
                                 <Button
                                     disabled={selectedItemIdsForBatch.length === 0 || batchProcessing}
-                                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold text-xs py-2 w-full sm:w-auto cursor-pointer gap-1.5"
+                                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold text-xs h-9 px-3.5 cursor-pointer gap-1.5 shrink-0"
                                     onClick={() => {
                                         const targetEmp = selectedGroup.empresaId && selectedGroup.empresaId !== "SEM_EMPRESA" 
                                             ? selectedGroup.empresaId 
@@ -1516,7 +1516,7 @@ export default function AprovacoesDespesasPage() {
                                     ) : (
                                         <CheckCircle className="w-4 h-4" />
                                     )}
-                                    Aprovar Selecionados ({selectedItemIdsForBatch.length}) em Lote
+                                    <span>Aprovar ({selectedItemIdsForBatch.length}) em Lote</span>
                                 </Button>
                             </div>
                         )}

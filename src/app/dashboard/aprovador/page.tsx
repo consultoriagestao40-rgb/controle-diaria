@@ -1453,18 +1453,18 @@ export default function ApproverDashboard() {
                         </div>
                     )}
 
-                    <DialogFooter className="px-5 py-4 border-t border-slate-100/60 bg-white shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                    <DialogFooter className="px-5 py-3 border-t border-slate-100/60 bg-white shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 w-full">
                         <Button 
                             variant="ghost" 
                             onClick={() => setSelectedGroup(null)} 
-                            className="w-full sm:w-auto font-bold uppercase tracking-wider text-[10px] text-slate-500 hover:bg-slate-100"
+                            className="w-full sm:w-auto font-bold uppercase tracking-wider text-[11px] text-slate-500 hover:bg-slate-100 h-9 px-4 shrink-0"
                         >
                             Fechar
                         </Button>
                         {selectedGroup && (
                             <Button
                                 disabled={selectedItemIdsForBatch.length === 0}
-                                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-105 disabled:text-slate-400 text-white font-black uppercase tracking-wider text-[10px] sm:text-xs py-2 w-full sm:w-auto cursor-pointer"
+                                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-105 disabled:text-slate-400 text-white font-black uppercase tracking-wider text-[11px] h-9 px-4 w-full sm:w-auto cursor-pointer shrink-0"
                                 onClick={() => {
                                     const selectedItems = selectedGroup.items.filter(item => selectedItemIdsForBatch.includes(item.id))
                                     setBatchItemsToApprove(selectedItems)
@@ -1472,7 +1472,7 @@ export default function ApproverDashboard() {
                                     setJustificativa("")
                                 }}
                             >
-                                <CheckCircle className="mr-1.5 h-4 w-4 hidden sm:inline" /> Aprovar Selecionados ({selectedItemIdsForBatch.length}) em Lote
+                                <CheckCircle className="mr-1.5 h-4 w-4 hidden sm:inline" /> Aprovar ({selectedItemIdsForBatch.length}) em Lote
                             </Button>
                         )}
                     </DialogFooter>
